@@ -47,6 +47,34 @@ public class OrderController {
                 .body(ApiResponse.created(response));
     }
 
+        @GetMapping
+        @Operation(summary = "List orders", description = "Retrieve all orders (paged)")
+            public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<OrderResponse>>> listOrders(
+                                org.springframework.data.domain.Pageable pageable,
+                                @RequestParam(name = "orderNumber", required = false) String orderNumber,
+                                @RequestParam(name = "minTotal", required = false) java.math.BigDecimal minTotal,
+                                @RequestParam(name = "maxTotal", required = false) java.math.BigDecimal maxTotal,
+                                @RequestParam(name = "startDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
+                                @RequestParam(name = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate,
+                                @RequestParam(name = "status", required = false) OrderStatus status) {
+                        var page = orderService.searchOrders(pageable, orderNumber, minTotal, maxTotal, startDate, endDate, status);
+                        return ResponseEntity.ok(ApiResponse.success("Orders retrieved", page));
+                }
+
+                // dashboard stats should be checked before id-based mappings to avoid
+                // "stats" being interpreted as a path variable.
+                @GetMapping("/stats")
+                public ResponseEntity<ApiResponse<java.util.Map<String,Object>>> getStats() {
+                        long total = orderService.countOrders();
+                        java.math.BigDecimal revenue = orderService.totalRevenue();
+                        java.util.Map<OrderStatus, Long> byStatus = orderService.countByStatus();
+                        java.util.Map<String,Object> map = new java.util.HashMap<>();
+                        map.put("totalOrders", total);
+                        map.put("totalRevenue", revenue);
+                        map.put("byStatus", byStatus);
+                        return ResponseEntity.ok(ApiResponse.success("Order statistics", map));
+                }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID", description = "Retrieves an order by its unique identifier")
     @ApiResponses(value = {
@@ -72,6 +100,10 @@ public class OrderController {
         OrderResponse response = orderService.getOrderByOrderNumber(orderNumber);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+        /**
+         * Dashboard statistics for orders.
+         */
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get orders by user", description = "Retrieves all orders for a specific user")

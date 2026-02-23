@@ -2,10 +2,13 @@ package com.kidfavor.productservice.service.impl;
 
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
+import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
 import com.kidfavor.productservice.dto.response.ProductResponse;
 import com.kidfavor.productservice.entity.Brand;
 import com.kidfavor.productservice.entity.Category;
 import com.kidfavor.productservice.entity.Product;
+import com.kidfavor.productservice.enums.EntityStatus;
+import com.kidfavor.productservice.exception.ResourceNotFoundException;
 import com.kidfavor.productservice.mapper.ProductMapper;
 import com.kidfavor.productservice.repository.BrandRepository;
 import com.kidfavor.productservice.repository.CategoryRepository;
@@ -15,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,10 +32,36 @@ public class ProductServiceImpl implements ProductService {
     private final BrandRepository brandRepository;
     private final ProductMapper productMapper;
     
+
     @Override
-    public List<ProductResponse> getAllProducts() {
-        List<Product> products = productRepository.findAll();
-        return productMapper.toResponseList(products);
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ProductResponse> listProducts(
+            org.springframework.data.domain.Pageable pageable,
+            String keyword,
+            Long categoryId,
+            Long brandId) {
+        // build dynamic specification
+        org.springframework.data.jpa.domain.Specification<Product> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+            // always only active or non-deleted products
+            preds.add(cb.equal(root.get("status"), EntityStatus.ACTIVE));
+            if (keyword != null && !keyword.isEmpty()) {
+                String pattern = "%" + keyword.toLowerCase() + "%";
+                preds.add(cb.or(
+                        cb.like(cb.lower(root.get("name")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern)
+                ));
+            }
+            if (categoryId != null) {
+                preds.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+            if (brandId != null) {
+                preds.add(cb.equal(root.get("brand").get("id"), brandId));
+            }
+            return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return productRepository.findAll(spec, pageable)
+                .map(productMapper::toResponse);
     }
     
     @Override
@@ -42,29 +72,29 @@ public class ProductServiceImpl implements ProductService {
     
     @Override
     public List<ProductResponse> getProductsByCategory(Long categoryId) {
-        List<Product> products = productRepository.findByCategoryId(categoryId);
+        List<Product> products = productRepository.findByCategoryIdAndStatus(categoryId, EntityStatus.ACTIVE);
         return productMapper.toResponseList(products);
     }
     
     @Override
     public List<ProductResponse> getProductsByBrand(Long brandId) {
-        List<Product> products = productRepository.findByBrandId(brandId);
+        List<Product> products = productRepository.findByBrandIdAndStatus(brandId, EntityStatus.ACTIVE);
         return productMapper.toResponseList(products);
     }
     
     @Override
     public List<ProductResponse> searchProducts(String keyword) {
-        List<Product> products = productRepository.findByNameContainingIgnoreCase(keyword);
+        List<Product> products = productRepository.searchByNameAndStatus(keyword, EntityStatus.ACTIVE);
         return productMapper.toResponseList(products);
     }
     
     @Override
     public ProductResponse createProduct(ProductCreateRequest request) {
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
+        Category category = categoryRepository.findByIdAndStatus(request.getCategoryId(), EntityStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
         
-        Brand brand = brandRepository.findById(request.getBrandId())
-                .orElseThrow(() -> new RuntimeException("Brand not found with id: " + request.getBrandId()));
+        Brand brand = brandRepository.findByIdAndStatus(request.getBrandId(), EntityStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Brand not found with id: " + request.getBrandId()));
         
         Product product = productMapper.toEntity(request, category, brand);
         Product savedProduct = productRepository.save(product);
@@ -73,19 +103,19 @@ public class ProductServiceImpl implements ProductService {
     
     @Override
     public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        Product product = productRepository.findByIdAndStatus(id, EntityStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         
         Category category = null;
         if (request.getCategoryId() != null) {
-            category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
+            category = categoryRepository.findByIdAndStatus(request.getCategoryId(), EntityStatus.ACTIVE)
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
         }
         
         Brand brand = null;
         if (request.getBrandId() != null) {
-            brand = brandRepository.findById(request.getBrandId())
-                    .orElseThrow(() -> new RuntimeException("Brand not found with id: " + request.getBrandId()));
+            brand = brandRepository.findByIdAndStatus(request.getBrandId(), EntityStatus.ACTIVE)
+                    .orElseThrow(() -> new ResourceNotFoundException("Brand not found with id: " + request.getBrandId()));
         }
         
         productMapper.updateEntity(product, request, category, brand);
@@ -95,6 +125,22 @@ public class ProductServiceImpl implements ProductService {
     
     @Override
     public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
+        Product product = productRepository.findByIdAndStatus(id, EntityStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+        
+        product.setStatus(EntityStatus.DELETED);
+        product.setStatusChangedAt(LocalDateTime.now());
+        productRepository.save(product);
+    }
+    
+    @Override
+    public ProductResponse updateProductStatus(Long id, StatusUpdateRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+        
+        product.setStatus(request.getStatus());
+        product.setStatusChangedAt(LocalDateTime.now());
+        Product updatedProduct = productRepository.save(product);
+        return productMapper.toResponse(updatedProduct);
     }
 }

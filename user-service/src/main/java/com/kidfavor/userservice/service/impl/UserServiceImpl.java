@@ -25,13 +25,12 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
     UserRepository userRepository;
 
-    @Override
-    @Cacheable(value = "users", key = "'all'")
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream()
-        .map(UserResponse::from)
-        .collect(Collectors.toList());
-    }
+        @Override
+        // pagination results vary by page and size so caching is omitted here
+        public org.springframework.data.domain.Page<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable) {
+                return userRepository.findAll(pageable)
+                                .map(UserResponse::from);
+        }
 
     @Override
     @Cacheable(value = "user", key = "#id")
@@ -115,4 +114,9 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("user not found with id:" + id));
         userRepository.delete(user);
     }
+    
+        @Override
+        public long countUsers() {
+                return userRepository.count();
+        }
 }

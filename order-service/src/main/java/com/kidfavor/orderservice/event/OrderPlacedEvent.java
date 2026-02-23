@@ -37,6 +37,16 @@ public class OrderPlacedEvent {
     private Long userId;
 
     /**
+     * Email of the customer who placed the order.
+     */
+    private String customerEmail;
+
+    /**
+     * Full name of the customer who placed the order.
+     */
+    private String customerName;
+
+    /**
      * Total amount of the order.
      */
     private BigDecimal totalAmount;

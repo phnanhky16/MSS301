@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class UserDto {
 
     private Integer id;
+    private String fullName;
     private String username;
     private String email;
     private String firstName;
@@ -23,4 +24,5 @@ public class UserDto {
     private String address;
     private String role;
     private Boolean isActive;
+    private Boolean status;
 }

@@ -1,5 +1,6 @@
 package com.kidfavor.productservice.entity;
 
+import com.kidfavor.productservice.enums.EntityStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,8 +35,11 @@ public class Product {
     @Column(nullable = false)
     private Integer stock = 0;
     
-    @Column(nullable = false)
-    private Boolean active = true;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private EntityStatus status = EntityStatus.ACTIVE;
+    
+    private LocalDateTime statusChangedAt;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")

@@ -41,11 +41,11 @@ public class OrderEventPublisher {
     public void handleOrderCreatedEvent(OrderCreatedDomainEvent event) {
         Order order = event.getOrder();
         String orderNumber = order.getOrderNumber();
-        
+
         log.info("Publishing OrderPlacedEvent for order: {}", orderNumber);
 
         try {
-            OrderPlacedEvent orderPlacedEvent = buildOrderPlacedEvent(order);
+            OrderPlacedEvent orderPlacedEvent = buildOrderPlacedEvent(order, event.getCustomerEmail(), event.getCustomerName());
             
             CompletableFuture<SendResult<String, Object>> future = 
                     kafkaTemplate.send(orderPlacedTopic, orderNumber, orderPlacedEvent);
@@ -72,13 +72,15 @@ public class OrderEventPublisher {
     }
 
     /**
-     * Builds the OrderPlacedEvent from the Order entity.
+     * Builds the OrderPlacedEvent from the Order entity and customer info.
      */
-    private OrderPlacedEvent buildOrderPlacedEvent(Order order) {
+    private OrderPlacedEvent buildOrderPlacedEvent(Order order, String customerEmail, String customerName) {
         return OrderPlacedEvent.builder()
                 .orderId(order.getId())
                 .orderNumber(order.getOrderNumber())
                 .userId(order.getUserId())
+                .customerEmail(customerEmail)
+                .customerName(customerName)
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
                 .items(order.getItems().stream()

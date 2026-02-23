@@ -1,5 +1,6 @@
 package com.kidfavor.productservice.dto.response;
 
+import com.kidfavor.productservice.enums.EntityStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,9 @@ public class ProductResponse {
     private String name;
     private String description;
     private BigDecimal price;
+    private Integer stock;
+    private EntityStatus status;
+    private LocalDateTime statusChangedAt;
     private CategoryResponse category;
     private BrandResponse brand;
     private List<String> imageUrls;

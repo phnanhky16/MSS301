@@ -16,6 +16,7 @@ import com.kidfavor.orderservice.exception.*;
 import com.kidfavor.orderservice.repository.OrderRepository;
 import com.kidfavor.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import com.kidfavor.orderservice.service.CouponService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductServiceClient productServiceClient;
     private final UserServiceClient userServiceClient;
     private final ApplicationEventPublisher eventPublisher;
+    private final CouponService couponService;
 
     @Override
     @Transactional
@@ -51,7 +53,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("Creating order for user: {}", request.getUserId());
 
         // Step 1: Validate user exists and is active
-        validateUser(request.getUserId());
+        UserDto user = validateUser(request.getUserId());
 
         // Step 2: Validate all products BEFORE creating the order
         Map<Long, ProductDto> validatedProducts = validateAndFetchProducts(request.getItems());
@@ -85,13 +87,32 @@ public class OrderServiceImpl implements OrderService {
         // Step 4: Calculate total amount
         order.calculateTotalAmount();
 
+        // Step 4b: apply coupon if provided
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            BigDecimal discount = couponService.applyCoupon(request.getCouponCode(), order.getTotalAmount());
+            order.setCouponCode(request.getCouponCode());
+            order.setDiscountAmount(discount);
+            // recalc after discount
+            order.calculateTotalAmount();
+        }
+
         // Step 5: Persist order atomically
         Order savedOrder = orderRepository.save(order);
         log.info("Order created successfully. Order ID: {}, Order Number: {}", 
                 savedOrder.getId(), savedOrder.getOrderNumber());
 
         // Step 6: Publish domain event (will be sent to Kafka AFTER_COMMIT)
-        eventPublisher.publishEvent(new OrderCreatedDomainEvent(this, savedOrder));
+        String customerEmail = user.getEmail();
+        String customerName = user.getFullName() != null ? user.getFullName()
+                : (user.getFirstName() != null ? user.getFirstName() + " " + user.getLastName() : user.getUsername());
+        eventPublisher.publishEvent(new OrderCreatedDomainEvent(
+            this,
+            savedOrder,
+            customerEmail,
+            customerName,
+            savedOrder.getCouponCode(),
+            savedOrder.getDiscountAmount()
+        ));
 
         return mapToOrderResponse(savedOrder);
     }
@@ -167,6 +188,71 @@ public class OrderServiceImpl implements OrderService {
         return mapToOrderResponse(cancelledOrder);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<OrderResponse> listAll(org.springframework.data.domain.Pageable pageable) {
+        // simply delegate to repository paging and convert entities to DTO
+        return orderRepository.findAll(pageable)
+                .map(this::mapToOrderResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+        public org.springframework.data.domain.Page<OrderResponse> searchOrders(
+            org.springframework.data.domain.Pageable pageable,
+            String orderNumber,
+            java.math.BigDecimal minTotal,
+            java.math.BigDecimal maxTotal,
+            java.time.LocalDateTime startDate,
+            java.time.LocalDateTime endDate,
+            OrderStatus status) {
+            // Build a dynamic Specification to avoid JPQL null/typing problems.
+            org.springframework.data.jpa.domain.Specification<Order> spec =
+                (root, query, cb) -> {
+                    java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+                        if (orderNumber != null && !orderNumber.isEmpty()) {
+                            preds.add(cb.like(root.get("orderNumber"), "%" + orderNumber + "%"));
+                        }
+                        if (minTotal != null) {
+                            preds.add(cb.ge(root.get("totalAmount"), minTotal));
+                        }
+                        if (maxTotal != null) {
+                            preds.add(cb.le(root.get("totalAmount"), maxTotal));
+                        }
+                        if (startDate != null) {
+                            preds.add(cb.greaterThanOrEqualTo(root.get("createdAt"), startDate));
+                        }
+                        if (endDate != null) {
+                            preds.add(cb.lessThanOrEqualTo(root.get("createdAt"), endDate));
+                        }
+                        if (status != null) {
+                            preds.add(cb.equal(root.get("status"), status));
+                        }
+                        return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+                    };
+            return orderRepository.findAll(spec, pageable)
+                    .map(this::mapToOrderResponse);
+    }
+
+        @Override
+        public long countOrders() {
+            return orderRepository.count();
+        }
+
+        @Override
+        public java.util.Map<OrderStatus, Long> countByStatus() {
+            java.util.Map<OrderStatus, Long> map = new java.util.EnumMap<>(OrderStatus.class);
+            for (OrderStatus status : OrderStatus.values()) {
+                map.put(status, orderRepository.countByStatus(status));
+            }
+            return map;
+        }
+
+        @Override
+        public java.math.BigDecimal totalRevenue() {
+            return orderRepository.sumTotalAmount();
+        }
+
     /**
      * Validates all products in the order request and returns validated product data.
      * This method performs fail-fast validation before any order creation.
@@ -232,30 +318,28 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * Validates that the user exists and is active.
+     * Validates that the user exists and is active. Returns the fetched UserDto.
      * Throws UserNotFoundException if user doesn't exist.
      * Throws UserServiceUnavailableException if User Service is down.
      * Throws UserInactiveException if user is inactive.
      */
-    private void validateUser(Long userId) {
+    private UserDto validateUser(Long userId) {
         log.debug("Validating user: {}", userId);
-        
-        // UserServiceClient sẽ throw exception nếu:
-        // - User Service không available -> UserServiceUnavailableException
-        // - User không tồn tại -> UserNotFoundException (từ ErrorDecoder/Fallback)
         UserDto user = userServiceClient.getUserById(userId);
-        
-        // Null check phòng trường hợp response rỗng
+
         if (user == null) {
             throw new UserNotFoundException(userId);
         }
 
-        // Validate user is active
-        if (user.getIsActive() == null || !user.getIsActive()) {
+        // Support both isActive and status fields from different UserResponse shapes
+        boolean active = (user.getIsActive() != null && user.getIsActive())
+                || (user.getStatus() != null && user.getStatus());
+        if (!active) {
             throw new UserInactiveException(userId);
         }
-        
+
         log.debug("User validated successfully: {}", userId);
+        return user;
     }
 
     /**
@@ -315,6 +399,8 @@ public class OrderServiceImpl implements OrderService {
                 .phoneNumber(order.getPhoneNumber())
                 .notes(order.getNotes())
                 .items(itemResponses)
+            .couponCode(order.getCouponCode())
+            .discountAmount(order.getDiscountAmount())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();

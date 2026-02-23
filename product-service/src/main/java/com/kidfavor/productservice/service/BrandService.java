@@ -2,6 +2,7 @@ package com.kidfavor.productservice.service;
 
 import com.kidfavor.productservice.dto.request.BrandCreateRequest;
 import com.kidfavor.productservice.dto.request.BrandUpdateRequest;
+import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
 import com.kidfavor.productservice.dto.response.BrandResponse;
 
 import java.util.List;
@@ -20,4 +21,6 @@ public interface BrandService {
     BrandResponse updateBrand(Long id, BrandUpdateRequest request);
     
     void deleteBrand(Long id);
+    
+    BrandResponse updateBrandStatus(Long id, StatusUpdateRequest request);
 }

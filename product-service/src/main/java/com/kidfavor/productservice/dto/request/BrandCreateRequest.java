@@ -13,5 +13,7 @@ public class BrandCreateRequest {
     @NotBlank(message = "Brand name is required")
     private String name;
     
+    private String description;
+    
     private String logoUrl;
 }

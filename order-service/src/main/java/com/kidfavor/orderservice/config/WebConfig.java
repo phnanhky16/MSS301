@@ -16,38 +16,11 @@ import java.util.List;
  * Allows cross-origin requests from Gateway and frontend applications.
  */
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
-
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(
-                        "http://localhost:8080",
-                        "http://localhost:8082",
-                        "http://localhost:3000",
-                        "http://127.0.0.1:8080",
-                        "http://127.0.0.1:8082",
-                        "*"
-                )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                .allowedHeaders("*")
-                .exposedHeaders("Authorization", "Content-Type")
-                .allowCredentials(false)
-                .maxAge(3600L);
-    }
-
-    @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
-        configuration.setAllowCredentials(false);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return new CorsFilter(source);
-    }
+public class WebConfig {
+    // CORS configuration has been moved to the API gateway. the gateway is the
+    // only external entry point for browser traffic, so the service should not
+    // attempt to add its own Access-Control-* headers. leaving this class
+    // around keeps the package structure consistent for other shared
+    // configuration but it no longer implements WebMvcConfigurer or
+    // registers any beans.
 }

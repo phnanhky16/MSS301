@@ -15,6 +15,7 @@ public class CategoryMapper {
     public Category toEntity(CategoryCreateRequest request) {
         Category category = new Category();
         category.setName(request.getName());
+        category.setDescription(request.getDescription());
         return category;
     }
     
@@ -22,12 +23,20 @@ public class CategoryMapper {
         if (request.getName() != null) {
             category.setName(request.getName());
         }
+        if (request.getDescription() != null) {
+            category.setDescription(request.getDescription());
+        }
     }
     
     public CategoryResponse toResponse(Category category) {
         return CategoryResponse.builder()
                 .id(category.getId())
                 .name(category.getName())
+                .description(category.getDescription())
+                .status(category.getStatus())
+                .statusChangedAt(category.getStatusChangedAt())
+                .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
                 .build();
     }
     

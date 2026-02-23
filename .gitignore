@@ -63,3 +63,12 @@ buildNumber.properties
 test-output/
 surefire-reports/
 
+# Frontend (Next.js) artifacts - we don't want built files or deps in Git
+fe/node_modules/
+fe/.next/
+fe/.env.local
+fe/.env.*.local
+fe/.vercel
+fe/.cache
+fe/.turbo
+

@@ -15,6 +15,7 @@ public class BrandMapper {
     public Brand toEntity(BrandCreateRequest request) {
         Brand brand = new Brand();
         brand.setName(request.getName());
+        brand.setDescription(request.getDescription());
         brand.setLogoUrl(request.getLogoUrl());
         return brand;
     }
@@ -22,6 +23,9 @@ public class BrandMapper {
     public void updateEntity(Brand brand, BrandUpdateRequest request) {
         if (request.getName() != null) {
             brand.setName(request.getName());
+        }
+        if (request.getDescription() != null) {
+            brand.setDescription(request.getDescription());
         }
         if (request.getLogoUrl() != null) {
             brand.setLogoUrl(request.getLogoUrl());
@@ -32,7 +36,12 @@ public class BrandMapper {
         return BrandResponse.builder()
                 .id(brand.getId())
                 .name(brand.getName())
+                .description(brand.getDescription())
                 .logoUrl(brand.getLogoUrl())
+                .status(brand.getStatus())
+                .statusChangedAt(brand.getStatusChangedAt())
+                .createdAt(brand.getCreatedAt())
+                .updatedAt(brand.getUpdatedAt())
                 .build();
     }
     

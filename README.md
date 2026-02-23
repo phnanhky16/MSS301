@@ -27,28 +27,66 @@ This project implements a microservices architecture for a Kids Store Management
 - Maven 3.8+
 - Consul running on localhost:8500
 
-### Running the Services:
+### Building & Running with Docker
 
-1. Start Consul:
-```bash
-consul agent -dev
+The Dockerfiles in this repo **no longer compile the projects**; they
+expect that a JAR has been produced by Maven on the host.  This change
+prevents intermittent network failures during image build (containers
+cannot reliably reach Maven Central), and makes the Docker images much
+smaller and faster to rebuild.
+
+Before you start the containers you must build each service once:
+
+```powershell
+cd api-gateway      && mvn clean package -DskipTests
+cd user-service     && mvn clean package -DskipTests
+cd order-service    && mvn clean package -DskipTests
+cd product-service  && mvn clean package -DskipTests
+cd inventory-service&& mvn clean package -DskipTests
+cd cart-service     && mvn clean package -DskipTests
+cd review-service   && mvn clean package -DskipTests
 ```
 
-2. Build all services:
-```bash
-./build-all.sh
+After the JAR files exist in the `target/` directories you can start the
+whole stack with Docker Compose:
+
+```powershell
+$Env:DOCKER_BUILDKIT=1   # optional, for cache mounts when rebuilding later
+docker compose -f docker\docker-compose.yml up -d --build
 ```
 
-3. Run each service:
-```bash
-cd api-gateway && mvn spring-boot:run
-cd user-service && mvn spring-boot:run
-cd order-service && mvn spring-boot:run
-cd product-service && mvn spring-boot:run
-cd inventory-service && mvn spring-boot:run
-cd cart-service && mvn spring-boot:run
-cd review-service && mvn spring-boot:run
-```
+### Coupon support (order-service)
+
+Order service now contains a first‑class coupon domain. you can:
+
+* **create or update** coupons:
+    ```http
+    POST /api/coupons
+    Content-Type: application/json
+
+    {
+        "code":"SPRING10",
+        "discountType":"PERCENT",
+        "discountValue":10,
+        "expiresAt":"2026-12-31T23:59:59",
+        "maxRedemptions":100,
+        "active":true
+    }
+    ```
+* **fetch coupon details:** `GET /api/coupons/{code}`
+* **list all coupons:** `GET /api/coupons`
+* **modify existing coupon:** `PUT /api/coupons/{code}` (body same as create)
+* **delete coupon:** `DELETE /api/coupons/{code}`
+
+When creating an order you may include `couponCode` in the request body;
+the service validates the coupon, applies the discount to the total
+amount, and records both the code and discount amount on the order.
+
+The gateway routes `/api/coupons/**` through to order-service as well.
+
+If you change code you only need to rebuild the affected service(s) with
+Maven and then re-run `docker compose` – the images will pick up the
+updated JARs without having to re-download dependencies.
 
 ### API Gateway Endpoints:
 
@@ -62,3 +100,8 @@ cd review-service && mvn spring-boot:run
 ### Service Discovery:
 
 All services register with Consul at `localhost:8500`
+if any service's pom.xml, simply add (no version needed — managed by the root POM):
+<dependency>
+    <groupId>com.kidfavor</groupId>
+    <artifactId>common-library</artifactId>
+</dependency>

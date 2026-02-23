@@ -1,4 +1,0 @@
-com\kidfavor\gateway\ApiGatewayApplication.class
-com\kidfavor\gateway\config\CorsConfig.class
-com\kidfavor\gateway\config\SwaggerConfig.class
-com\kidfavor\gateway\security\SecurityConfig.class

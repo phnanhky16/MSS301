@@ -3,6 +3,7 @@ package com.kidfavor.productservice.config;
 import com.kidfavor.productservice.entity.Brand;
 import com.kidfavor.productservice.entity.Category;
 import com.kidfavor.productservice.entity.Product;
+import com.kidfavor.productservice.enums.EntityStatus;
 import com.kidfavor.productservice.repository.BrandRepository;
 import com.kidfavor.productservice.repository.CategoryRepository;
 import com.kidfavor.productservice.repository.ProductRepository;
@@ -61,7 +62,7 @@ public class DataInitializer implements CommandLineRunner {
         Category category = new Category();
         category.setName(name);
         category.setDescription(description);
-        category.setActive(true);
+        category.setStatus(EntityStatus.ACTIVE);
         return categoryRepository.save(category);
     }
 
@@ -92,7 +93,7 @@ public class DataInitializer implements CommandLineRunner {
         brand.setName(name);
         brand.setDescription(description);
         brand.setLogoUrl(logoUrl);
-        brand.setActive(true);
+        brand.setStatus(EntityStatus.ACTIVE);
         return brandRepository.save(brand);
     }
 
@@ -218,7 +219,7 @@ public class DataInitializer implements CommandLineRunner {
         product.setCategory(category);
         product.setBrand(brand);
         product.setStock(stock);
-        product.setActive(true);
+        product.setStatus(EntityStatus.ACTIVE);
         return productRepository.save(product);
     }
 }
