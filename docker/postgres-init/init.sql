@@ -1,0 +1,6 @@
+CREATE DATABASE userdb;
+CREATE DATABASE orderdb;
+CREATE DATABASE productdb;
+CREATE DATABASE inventorydb;
+CREATE DATABASE cartdb;
+CREATE DATABASE reviewdb;

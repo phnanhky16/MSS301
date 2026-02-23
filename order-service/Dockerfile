@@ -1,30 +1,18 @@
-# Build stage
-FROM eclipse-temurin:17-jdk-alpine AS build
-WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-
-# Install Maven
-RUN apk add --no-cache maven
-
-# Build the application
-RUN mvn clean package -DskipTests
-
-# Runtime stage
+# runtime-only image; build the jar with Maven on the host before
+# invoking `docker compose up`. this keeps the docker build fast and
+# avoids flaky network errors inside containers.
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Create non-root user for security
+# create non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
-# Copy the built artifact
-COPY --from=build /app/target/*.jar app.jar
+# copy the previously-built artifact
+COPY target/*.jar app.jar
 
-# Change ownership
+# fix ownership and switch to non-root user
 RUN chown -R appuser:appgroup /app
-
-# Switch to non-root user
 USER appuser
 
 # Expose the port
