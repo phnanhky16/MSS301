@@ -16,57 +16,22 @@ import java.util.List;
 @Configuration
 public class WebConfig {
 
-    @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        
-        // Allow requests from these origins
-        corsConfiguration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:8080",      // API Gateway
-                "http://localhost:3000",      // React frontend
-                "http://localhost:4200",      // Angular frontend
-                "http://localhost:5173",      // Vite frontend
-                "http://127.0.0.1:8080",
-                "http://127.0.0.1:3000"
-        ));
-        
-        // explicit list used; avoid wildcard pattern to keep header single-valued
-        // corsConfiguration.setAllowedOriginPatterns(List.of("*"));
-        
-        // Allow these HTTP methods
-        corsConfiguration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"
-        ));
-        
-        // Allow these headers
-        corsConfiguration.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin",
-                "X-Requested-With",
-                "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
-        ));
-        
-        // Expose these headers to the client
-        corsConfiguration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "X-Total-Count",
-                "X-Page-Number",
-                "X-Page-Size"
-        ));
-        
-        // Allow credentials (cookies, authorization headers)
-        corsConfiguration.setAllowCredentials(true);
-        
-        // Cache preflight response for 1 hour
-        corsConfiguration.setMaxAge(3600L);
+    // CORS headers are applied by the API gateway only. when the product
+    // service is invoked through the gateway the origin seen by this process
+    // is the browser origin (e.g. http://localhost:3000) which the gateway has
+    // already authorized. attempting to add a second Access-Control-Allow-Origin
+    // header here caused the browser errors you saw earlier:
+    //
+    //   "Access-Control-Allow-Origin header contains multiple values
+    //    'http://localhost:3000, http://localhost:3000'"
+    //
+    // and Spring Security would block the request with 403 because the origin
+    // wasn't in the limited list below. the order-service package already
+    // removed its CORS filter for the same reason; do the same here so that
+    // only the gateway is responsible for cross‑origin policies.
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfiguration);
-        
-        return new CorsFilter(source);
-    }
+    // keep the class around for consistency, but do not register any beans or
+    // configure WebMvcConfigurer. the gateway configuration lives in
+    // api-gateway/src/main/java/com/kidfavor/apigateway/security/SecurityConfig.java
+    // (see earlier commits).
 }

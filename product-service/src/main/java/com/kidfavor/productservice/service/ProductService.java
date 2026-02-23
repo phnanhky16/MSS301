@@ -10,15 +10,30 @@ import java.util.Optional;
 
 public interface ProductService {
     
-    List<ProductResponse> getAllProducts();
+        // returns paged list of products with optional filters
+        org.springframework.data.domain.Page<ProductResponse> listProducts(
+            org.springframework.data.domain.Pageable pageable,
+            String keyword,
+            Long categoryId,
+            Long brandId);
     
     Optional<ProductResponse> getProductById(Long id);
     
-    List<ProductResponse> getProductsByCategory(Long categoryId);
-    
-    List<ProductResponse> getProductsByBrand(Long brandId);
-    
-    List<ProductResponse> searchProducts(String keyword);
+    // deprecated convenience methods retained for backward compatibility
+    default List<ProductResponse> getProductsByCategory(Long categoryId) {
+        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), null, categoryId, null)
+                .getContent();
+    }
+
+    default List<ProductResponse> getProductsByBrand(Long brandId) {
+        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), null, null, brandId)
+                .getContent();
+    }
+
+    default List<ProductResponse> searchProducts(String keyword) {
+        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), keyword, null, null)
+                .getContent();
+    }
     
     ProductResponse createProduct(ProductCreateRequest request);
     

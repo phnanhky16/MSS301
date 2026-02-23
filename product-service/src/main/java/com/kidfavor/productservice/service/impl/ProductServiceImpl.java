@@ -32,10 +32,36 @@ public class ProductServiceImpl implements ProductService {
     private final BrandRepository brandRepository;
     private final ProductMapper productMapper;
     
+
     @Override
-    public List<ProductResponse> getAllProducts() {
-        List<Product> products = productRepository.findAll();
-        return productMapper.toResponseList(products);
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ProductResponse> listProducts(
+            org.springframework.data.domain.Pageable pageable,
+            String keyword,
+            Long categoryId,
+            Long brandId) {
+        // build dynamic specification
+        org.springframework.data.jpa.domain.Specification<Product> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+            // always only active or non-deleted products
+            preds.add(cb.equal(root.get("status"), EntityStatus.ACTIVE));
+            if (keyword != null && !keyword.isEmpty()) {
+                String pattern = "%" + keyword.toLowerCase() + "%";
+                preds.add(cb.or(
+                        cb.like(cb.lower(root.get("name")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern)
+                ));
+            }
+            if (categoryId != null) {
+                preds.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+            if (brandId != null) {
+                preds.add(cb.equal(root.get("brand").get("id"), brandId));
+            }
+            return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return productRepository.findAll(spec, pageable)
+                .map(productMapper::toResponse);
     }
     
     @Override

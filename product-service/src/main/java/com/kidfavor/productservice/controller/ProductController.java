@@ -26,15 +26,20 @@ public class ProductController {
     
     private final ProductService productService;
     
+    // paged listing with optional filtering by keyword, category, brand
     @GetMapping
-    @Operation(summary = "Get all products", description = "Retrieve all products")
+    @Operation(summary = "List products", description = "Retrieve products (paged) with optional filters")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved products")
     })
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProducts() {
-        List<ProductResponse> products = productService.getAllProducts();
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ProductResponse>>> getAllProducts(
+            org.springframework.data.domain.Pageable pageable,
+            @RequestParam(name="keyword", required=false) String keyword,
+            @RequestParam(name="categoryId", required=false) Long categoryId,
+            @RequestParam(name="brandId", required=false) Long brandId) {
+        var page = productService.listProducts(pageable, keyword, categoryId, brandId);
         return ResponseEntity.ok(
-            ApiResponse.success("Products retrieved successfully", products)
+            ApiResponse.success("Products retrieved successfully", page)
         );
     }
     
@@ -53,6 +58,7 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    @Deprecated
     @GetMapping("/category/{categoryId}")
     @Operation(summary = "Get products by category", description = "Retrieve all products in a specific category")
     @ApiResponses(value = {
@@ -66,6 +72,7 @@ public class ProductController {
         );
     }
     
+    @Deprecated
     @GetMapping("/brand/{brandId}")
     @Operation(summary = "Get products by brand", description = "Retrieve all products of a specific brand")
     @ApiResponses(value = {
@@ -79,6 +86,7 @@ public class ProductController {
         );
     }
     
+    @Deprecated
     @GetMapping("/search")
     @Operation(summary = "Search products", description = "Search products by keyword in name or description")
     @ApiResponses(value = {

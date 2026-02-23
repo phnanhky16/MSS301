@@ -84,6 +84,35 @@ export function fetchOrders(page = 0, size = 10, filters = {}) {
   return request(`/orders?${params.toString()}`);
 }
 
+export function fetchProducts(page = 0, size = 10, filters = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (filters.keyword) params.append('keyword', filters.keyword);
+  if (filters.categoryId) params.append('categoryId', filters.categoryId);
+  if (filters.brandId) params.append('brandId', filters.brandId);
+  if (filters.sort) params.append('sort', filters.sort);
+  return request(`/products?${params.toString()}`);
+}
+
+export function fetchCategories() {
+  return request('/categories');
+}
+
+export function fetchBrands() {
+  return request('/brands');
+}
+
+export function createProduct(data) {
+  return request('/products', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateProduct(id, data) {
+  return request(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function deleteProduct(id) {
+  return request(`/products/${id}`, { method: 'DELETE' });
+}
+
 export function fetchUsers(page = 0, size = 10) {
   return request(`/users?page=${page}&size=${size}`);
 }

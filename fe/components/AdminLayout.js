@@ -63,7 +63,7 @@ export default function AdminLayout({ children }) {
         {/* set favicon explicitly to avoid default /favicon.ico 404 */}
         <link rel="icon" href="/images.jpg" />
       </Head>
-    <AntLayout style={{ minHeight: '100vh' }}>
+      <AntLayout style={{ minHeight: '100vh' }}>
       <Sider collapsible>
         <div className="logo" style={{ height: 32, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {/* use public/images.jpg as application icon */}
@@ -75,6 +75,9 @@ export default function AdminLayout({ children }) {
           </Menu.Item>
           <Menu.Item key="orders" icon={<ShoppingCartOutlined />}>
             <Link href="/admin/orders">Orders</Link>
+          </Menu.Item>
+          <Menu.Item key="products" icon={<ShoppingCartOutlined />}> 
+            <Link href="/admin/products">Products</Link>
           </Menu.Item>
           <Menu.Item key="coupons" icon={<TagOutlinedDyn />}> 
             <Link href="/admin/coupons">Coupons</Link>
@@ -115,6 +118,6 @@ export default function AdminLayout({ children }) {
         <Footer style={{ textAlign: 'center' }}>KidFavor Admin ©2026</Footer>
       </AntLayout>
     </AntLayout>
-  );
     </>
+  );
 }
