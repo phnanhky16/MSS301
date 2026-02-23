@@ -52,7 +52,15 @@ public class CouponServiceImpl implements CouponService {
     @Override
     @Transactional(readOnly = true)
     public java.util.List<Coupon> listAll() {
+        // legacy convenience method; returns all records in one list.  still
+        // available for internal callers but controllers should prefer paging.
         return repository.findAll();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Coupon> listAll(org.springframework.data.domain.Pageable pageable) {
+        return repository.findAll(pageable);
     }
 
     @Override

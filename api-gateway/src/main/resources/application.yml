@@ -139,6 +139,17 @@ spring:
           issuer-uri: http://localhost:8180/realms/kidfavor
           jwk-set-uri: http://localhost:8180/realms/kidfavor/protocol/openid-connect/certs
 
+# explicitly configure CORS on the gateway so it does not send a wildcard
+# value. downstream services already perform CORS checks, so the gateway
+# should simply mirror the origin header when it proxies.  the filter below
+# will clean up any duplicates if they still occur.
+  webflux:
+    cors:
+      allowed-origins: "http://localhost:3000"
+      allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+
 # Swagger/OpenAPI Configuration for Gateway aggregation
 springdoc:
   api-docs:

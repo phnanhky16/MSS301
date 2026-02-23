@@ -47,6 +47,20 @@ public class OrderController {
                 .body(ApiResponse.created(response));
     }
 
+        @GetMapping
+        @Operation(summary = "List orders", description = "Retrieve all orders (paged)")
+            public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<OrderResponse>>> listOrders(
+                                org.springframework.data.domain.Pageable pageable,
+                                @RequestParam(name = "orderNumber", required = false) String orderNumber,
+                                @RequestParam(name = "minTotal", required = false) java.math.BigDecimal minTotal,
+                                @RequestParam(name = "maxTotal", required = false) java.math.BigDecimal maxTotal,
+                                @RequestParam(name = "startDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
+                                @RequestParam(name = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate,
+                                @RequestParam(name = "status", required = false) OrderStatus status) {
+                        var page = orderService.searchOrders(pageable, orderNumber, minTotal, maxTotal, startDate, endDate, status);
+                        return ResponseEntity.ok(ApiResponse.success("Orders retrieved", page));
+                }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID", description = "Retrieves an order by its unique identifier")
     @ApiResponses(value = {

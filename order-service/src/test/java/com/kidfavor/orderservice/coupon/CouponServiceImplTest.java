@@ -11,6 +11,10 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 class CouponServiceImplTest {
 
@@ -76,5 +80,17 @@ class CouponServiceImplTest {
         when(repo.findAll()).thenReturn(java.util.List.of(c));
         var list = service.listAll();
         assertEquals(1, list.size());
+    }
+
+    @Test
+    void listAllPaged() {
+        Coupon c1 = Coupon.builder().code("A").build();
+        Coupon c2 = Coupon.builder().code("B").build();
+        Page<Coupon> pageMock = new PageImpl<>(java.util.List.of(c1, c2));
+        when(repo.findAll(any(Pageable.class))).thenReturn(pageMock);
+
+        Page<Coupon> result = service.listAll(PageRequest.of(0, 10));
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
     }
 }

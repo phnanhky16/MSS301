@@ -30,8 +30,8 @@ public class WebConfig {
                 "http://127.0.0.1:3000"
         ));
         
-        // Allow all origins in development (comment out in production)
-        corsConfiguration.setAllowedOriginPatterns(List.of("*"));
+        // explicit list used; avoid wildcard pattern to keep header single-valued
+        // corsConfiguration.setAllowedOriginPatterns(List.of("*"));
         
         // Allow these HTTP methods
         corsConfiguration.setAllowedMethods(Arrays.asList(

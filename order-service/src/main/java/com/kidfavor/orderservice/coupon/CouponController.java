@@ -3,13 +3,19 @@ package com.kidfavor.orderservice.coupon;
 import com.kidfavor.orderservice.coupon.dto.CouponRequest;
 import com.kidfavor.orderservice.coupon.dto.CouponResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/coupons")
+@Slf4j
+// Gateway already prefixes requests with /api; downstream services should
+// expose paths relative to their own context. Using "/api" here caused
+// requests forwarded by the gateway to land at /coupons, which didn’t match
+// the mapping and resulted in a 500. Removing the prefix fixes routing.
+@RequestMapping("/coupons")
 @RequiredArgsConstructor
 public class CouponController {
 
@@ -37,12 +43,16 @@ public class CouponController {
             @Validated @RequestBody CouponRequest request) {
         Coupon existing = couponService.getByCode(code);
         // update allowed fields
+        log.debug("Updating coupon code from {} to {}", existing.getCode(), request.getCode());
+        // code may be changed by admin as well
+        existing.setCode(request.getCode());
         existing.setActive(request.getActive());
         existing.setDiscountType(request.getDiscountType());
         existing.setDiscountValue(request.getDiscountValue());
         existing.setExpiresAt(request.getExpiresAt());
         existing.setMaxRedemptions(request.getMaxRedemptions());
         Coupon saved = couponService.save(existing);
+        log.debug("Saved coupon, resulting code {}", saved.getCode());
         return ResponseEntity.ok(toResponse(saved));
     }
 
@@ -53,10 +63,9 @@ public class CouponController {
     }
 
     @GetMapping
-    public java.util.List<CouponResponse> list() {
-        return couponService.listAll().stream()
-                .map(this::toResponse)
-                .toList();
+    public org.springframework.data.domain.Page<CouponResponse> list(org.springframework.data.domain.Pageable pageable) {
+        return couponService.listAll(pageable)
+                .map(this::toResponse);
     }
 
     @GetMapping("/{code}")

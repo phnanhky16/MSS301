@@ -26,7 +26,15 @@ public interface CouponService {
     void deleteByCode(String code);
 
     /**
-     * Return all coupons in the system.
+     * Return all coupons in the system.  This is a convenience method and may
+     * be inefficient for large data sets; controllers should prefer the
+     * paged variant when exposing data to clients.
      */
     java.util.List<Coupon> listAll();
+
+    /**
+     * Return coupons in the system paged.  The pageable is built automatically
+     * by Spring from `page`/`size` query params in the controller.
+     */
+    org.springframework.data.domain.Page<Coupon> listAll(org.springframework.data.domain.Pageable pageable);
 }
