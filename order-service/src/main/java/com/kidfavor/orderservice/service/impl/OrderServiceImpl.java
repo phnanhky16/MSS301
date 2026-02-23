@@ -16,7 +16,7 @@ import com.kidfavor.orderservice.exception.*;
 import com.kidfavor.orderservice.repository.OrderRepository;
 import com.kidfavor.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
-import com.kidfavor.orderservice.coupon.CouponService;
+import com.kidfavor.orderservice.service.CouponService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;

@@ -39,7 +39,7 @@ class OrderServiceImplTest {
         var productClient = Mockito.mock(com.kidfavor.orderservice.client.ProductServiceClient.class);
         var userClient = Mockito.mock(com.kidfavor.orderservice.client.UserServiceClient.class);
         var publisher = Mockito.mock(org.springframework.context.ApplicationEventPublisher.class);
-        var couponSvc = Mockito.mock(com.kidfavor.orderservice.coupon.CouponService.class);
+        var couponSvc = Mockito.mock(com.kidfavor.orderservice.service.CouponService.class);
         service = new OrderServiceImpl(repo, productClient, userClient, publisher, couponSvc);
     }
 

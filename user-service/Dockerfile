@@ -1,10 +1,6 @@
-# Dockerfile for user-service now builds **only a runtime image**.
-# the application JAR must be created ahead of time by running
-# `mvn clean package -DskipTests` in the user-service directory on
-# the host machine. this avoids any network dependency during the
-# Docker build, which repeatedly failed previously when Maven
-# attempted to fetch artifacts inside the container.
-
+# runtime-only Dockerfile; jar must be compiled beforehand using Maven on
+# the host. this approach avoids network failures during the container
+# build stage (we saw central timeouts when doing the multi-stage build).
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 # copy the already-built artifact; wildcard covers snapshot names

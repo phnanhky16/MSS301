@@ -1,4 +1,4 @@
-package com.kidfavor.orderservice.coupon;
+package com.kidfavor.orderservice.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

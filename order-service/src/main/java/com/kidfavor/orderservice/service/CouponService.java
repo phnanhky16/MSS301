@@ -1,6 +1,7 @@
-package com.kidfavor.orderservice.coupon;
+package com.kidfavor.orderservice.service;
 
 import java.math.BigDecimal;
+import com.kidfavor.orderservice.entity.Coupon;
 
 public interface CouponService {
     /**

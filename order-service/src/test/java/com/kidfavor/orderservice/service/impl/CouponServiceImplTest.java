@@ -1,8 +1,12 @@
-package com.kidfavor.orderservice.coupon;
+package com.kidfavor.orderservice.service.impl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import com.kidfavor.orderservice.entity.Coupon;
+import com.kidfavor.orderservice.repository.CouponRepository;
+import com.kidfavor.orderservice.service.impl.CouponServiceImpl;
+import com.kidfavor.orderservice.exception.CouponNotFoundException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

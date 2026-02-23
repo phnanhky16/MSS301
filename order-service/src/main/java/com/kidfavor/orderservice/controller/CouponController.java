@@ -1,7 +1,9 @@
-package com.kidfavor.orderservice.coupon;
+package com.kidfavor.orderservice.controller;
 
-import com.kidfavor.orderservice.coupon.dto.CouponRequest;
-import com.kidfavor.orderservice.coupon.dto.CouponResponse;
+import com.kidfavor.orderservice.dto.request.CouponRequest;
+import com.kidfavor.orderservice.dto.response.CouponResponse;
+import com.kidfavor.orderservice.entity.Coupon;
+import com.kidfavor.orderservice.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

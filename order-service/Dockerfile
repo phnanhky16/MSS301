@@ -1,17 +1,19 @@
-# runtime-only image; build the jar with Maven on the host before
-# invoking `docker compose up`. this keeps the docker build fast and
-# avoids flaky network errors inside containers.
+## runtime-only image; jar should be built on the host prior to
+## running docker compose.  network flakiness inside the build
+## container made the previous multi-stage approach unreliable.
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# create non-root user for security
+## create non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
-# copy the previously-built artifact
+## copy the previously-built artifact; wildcard covers snapshot names
+## make sure to run `mvn clean package -DskipTests` in order-service
+## before starting the stack.
 COPY target/*.jar app.jar
 
-# fix ownership and switch to non-root user
+## fix ownership and switch to non-root user
 RUN chown -R appuser:appgroup /app
 USER appuser
 

@@ -1,4 +1,4 @@
-package com.kidfavor.orderservice.coupon;
+package com.kidfavor.orderservice.exception;
 
 public class CouponUnavailableException extends RuntimeException {
     public CouponUnavailableException(String code) {

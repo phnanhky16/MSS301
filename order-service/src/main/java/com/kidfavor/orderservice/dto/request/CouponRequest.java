@@ -1,4 +1,4 @@
-package com.kidfavor.orderservice.coupon.dto;
+package com.kidfavor.orderservice.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -22,7 +22,7 @@ public class CouponRequest {
     private String code;
 
     @NotNull
-    private com.kidfavor.orderservice.coupon.Coupon.DiscountType discountType;
+    private com.kidfavor.orderservice.entity.Coupon.DiscountType discountType;
 
     @NotNull
     @DecimalMin("0")

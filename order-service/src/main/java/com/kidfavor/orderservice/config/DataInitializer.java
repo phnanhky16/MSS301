@@ -4,8 +4,8 @@ import com.kidfavor.orderservice.entity.Order;
 import com.kidfavor.orderservice.entity.OrderItem;
 import com.kidfavor.orderservice.entity.OrderStatus;
 import com.kidfavor.orderservice.repository.OrderRepository;
-import com.kidfavor.orderservice.coupon.Coupon;
-import com.kidfavor.orderservice.coupon.CouponRepository;
+import com.kidfavor.orderservice.entity.Coupon;
+import com.kidfavor.orderservice.repository.CouponRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,7 +31,7 @@ import java.util.UUID;
 public class DataInitializer implements CommandLineRunner {
 
     private final OrderRepository orderRepository;
-    private final com.kidfavor.orderservice.coupon.CouponRepository couponRepository;
+    private final CouponRepository couponRepository;
 
     @Override
     @Transactional

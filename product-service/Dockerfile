@@ -1,6 +1,5 @@
 # runtime image only; jar must be compiled beforehand using Maven on
-# the host. this approach avoids repeated downloads inside the
-# container which were failing intermittently.
+# the host. this avoids network dependency problems observed earlier.
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY target/*.jar app.jar

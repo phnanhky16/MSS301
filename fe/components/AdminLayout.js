@@ -47,7 +47,10 @@ export default function AdminLayout({ children }) {
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
       <Sider collapsible>
-        <div className="logo" style={{ height: 32, margin: 16, background: 'rgba(255,255,255,0.3)' }} />
+        <div className="logo" style={{ height: 32, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* use public/images.jpg as application icon */}
+          <img src="/images.jpg" alt="logo" style={{ height: 32, objectFit: 'contain' }} />
+        </div>
         <Menu theme="dark" defaultSelectedKeys={[selected]} mode="inline">
           <Menu.Item key="dashboard" icon={<HomeOutlined />}>
             <Link href="/admin">Dashboard</Link>
@@ -65,7 +68,10 @@ export default function AdminLayout({ children }) {
       </Sider>
       <AntLayout>
         <Header style={{ background: '#fff', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ marginLeft: 16 }}>Admin Panel</span>
+          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
+            <img src="/images.jpg" alt="logo" style={{ height: 24, marginRight: 8, objectFit: 'contain' }} />
+            <span>Admin Panel</span>
+          </div>
           {loggedIn && (
             <Button type="link" onClick={async () => {
               await logout();

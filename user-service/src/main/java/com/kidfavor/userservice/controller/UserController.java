@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.RequestAttributes;
 
@@ -149,7 +149,7 @@ public class UserController {
                 // spring will bind query parameters automatically if we capture them
                 // but easier to inspect request parameter map - use ServletRequest
                 // for now, use default delete=false behavior only toggles status.
-                if ("true".equalsIgnoreCase(((javax.servlet.http.HttpServletRequest)org.springframework.web.context.request.RequestContextHolder
+                                if ("true".equalsIgnoreCase(((jakarta.servlet.http.HttpServletRequest)org.springframework.web.context.request.RequestContextHolder
                                 .currentRequestAttributes()
                                 .resolveReference(org.springframework.web.context.request.RequestAttributes.REFERENCE_REQUEST))
                                 .getParameter("delete"))) {

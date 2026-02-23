@@ -1,4 +1,4 @@
-package com.kidfavor.orderservice.coupon.dto;
+package com.kidfavor.orderservice.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class CouponResponse {
     private Long id;
     private String code;
-    private com.kidfavor.orderservice.coupon.Coupon.DiscountType discountType;
+    private com.kidfavor.orderservice.entity.Coupon.DiscountType discountType;
     private BigDecimal discountValue;
     private LocalDateTime expiresAt;
     private Integer maxRedemptions;
