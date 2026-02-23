@@ -7,6 +7,7 @@ import com.kidfavor.orderservice.entity.Coupon;
 import java.util.Optional;
 
 @Repository
-public interface CouponRepository extends JpaRepository<Coupon, Long> {
+public interface CouponRepository extends JpaRepository<Coupon, Long>,
+    org.springframework.data.jpa.repository.JpaSpecificationExecutor<Coupon> {
     Optional<Coupon> findByCode(String code);
 }

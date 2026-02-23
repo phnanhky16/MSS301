@@ -35,16 +35,32 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ProductResponse> listProducts(
+        public org.springframework.data.domain.Page<ProductResponse> listProducts(
             org.springframework.data.domain.Pageable pageable,
             String keyword,
             Long categoryId,
-            Long brandId) {
+            Long brandId,
+            String status) {
         // build dynamic specification
         org.springframework.data.jpa.domain.Specification<Product> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
-            // always only active or non-deleted products
-            preds.add(cb.equal(root.get("status"), EntityStatus.ACTIVE));
+            // by default (no status param) we only return ACTIVE products to
+            // mimic original behaviour. if the caller passes "ALL" (case-
+            // insensitive) we omit the status predicate entirely. if a
+            // specific status value is provided we filter accordingly. this
+            // allows the admin UI to request all entries while public
+            // consumers can still ask for active-only.
+            if (status == null) {
+                preds.add(cb.equal(root.get("status"), EntityStatus.ACTIVE));
+            } else if (!"ALL".equalsIgnoreCase(status)) {
+                try {
+                    EntityStatus s = EntityStatus.valueOf(status.toUpperCase());
+                    preds.add(cb.equal(root.get("status"), s));
+                } catch (IllegalArgumentException ignored) {
+                    // unknown status string; ignore predicate so query returns
+                    // everything. validation is performed on the client side.
+                }
+            }
             if (keyword != null && !keyword.isEmpty()) {
                 String pattern = "%" + keyword.toLowerCase() + "%";
                 preds.add(cb.or(
@@ -60,8 +76,26 @@ public class ProductServiceImpl implements ProductService {
             }
             return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
-        return productRepository.findAll(spec, pageable)
-                .map(productMapper::toResponse);
+        // if the caller requested all statuses we want a totally stable order
+        // that doesn't change when a product flips between ACTIVE/INACTIVE.
+        // using the provided `pageable` sort may put items in a different page
+        // once their `createdAt`/`updatedAt` fields change, so we override it
+        // when status=ALL and the sort is unspecified or includes mutable
+        // columns. here we simply sort by `id` ascending which is fixed.
+        org.springframework.data.domain.Pageable effective = pageable;
+        // when the admin requests ALL statuses but doesn't supply any sort
+        // criteria we fall back to a deterministic `id` sort so that paging
+        // doesn't jump as rows change status. if the client explicitly
+        // asked for a sort (price, createdAt, etc.) we respect it instead.
+        if (status != null && status.equalsIgnoreCase("ALL") && !pageable.getSort().isSorted()) {
+            effective = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by("id").ascending()
+            );
+        }
+        return productRepository.findAll(spec, effective)
+            .map(productMapper::toResponse);
     }
     
     @Override

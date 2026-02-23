@@ -20,6 +20,8 @@ ENV NODE_ENV=production
 COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
+# copy public static assets so they are available at runtime (icons, etc.)
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/public ./public
 EXPOSE 3000
 CMD ["npm", "run", "start"]

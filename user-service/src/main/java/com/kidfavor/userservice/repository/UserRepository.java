@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Integer> {
+public interface UserRepository extends JpaRepository<User, Integer>,
+    org.springframework.data.jpa.repository.JpaSpecificationExecutor<User> {
     List<User> findByStatus(Boolean status);
 
     List<User> findByRole(Role role);

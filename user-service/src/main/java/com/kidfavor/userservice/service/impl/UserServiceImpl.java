@@ -32,6 +32,31 @@ public class UserServiceImpl implements UserService {
                                 .map(UserResponse::from);
         }
 
+        @Override
+        public org.springframework.data.domain.Page<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable,
+                                                                                                                                                   String keyword,
+                                                                                                                                                   Boolean status,
+                                                                                                                                                   Role role) {
+                org.springframework.data.jpa.domain.Specification<User> spec = (root, query, cb) -> {
+                        java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+                        if (keyword != null && !keyword.isEmpty()) {
+                                String pattern = "%" + keyword.toLowerCase() + "%";
+                                preds.add(cb.or(
+                                                cb.like(cb.lower(root.get("fullName")), pattern),
+                                                cb.like(cb.lower(root.get("email")), pattern)
+                                ));
+                        }
+                        if (status != null) {
+                                preds.add(cb.equal(root.get("status"), status));
+                        }
+                        if (role != null) {
+                                preds.add(cb.equal(root.get("role"), role));
+                        }
+                        return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+                };
+                return userRepository.findAll(spec, pageable).map(UserResponse::from);
+        }
+
     @Override
     @Cacheable(value = "user", key = "#id")
     public UserResponse getUserById(int id) {

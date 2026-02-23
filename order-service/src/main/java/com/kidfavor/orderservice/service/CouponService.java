@@ -38,4 +38,10 @@ public interface CouponService {
      * by Spring from `page`/`size` query params in the controller.
      */
     org.springframework.data.domain.Page<Coupon> listAll(org.springframework.data.domain.Pageable pageable);
+
+    // overloaded listing with optional filters (code contains, active flag, discount type)
+    org.springframework.data.domain.Page<Coupon> listAll(org.springframework.data.domain.Pageable pageable,
+                                                         String code,
+                                                         Boolean active,
+                                                         Coupon.DiscountType discountType);
 }

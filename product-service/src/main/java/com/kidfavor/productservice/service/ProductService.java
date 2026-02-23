@@ -15,23 +15,24 @@ public interface ProductService {
             org.springframework.data.domain.Pageable pageable,
             String keyword,
             Long categoryId,
-            Long brandId);
+            Long brandId,
+            String status);
     
     Optional<ProductResponse> getProductById(Long id);
     
     // deprecated convenience methods retained for backward compatibility
     default List<ProductResponse> getProductsByCategory(Long categoryId) {
-        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), null, categoryId, null)
+        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), null, categoryId, null, null)
                 .getContent();
     }
 
     default List<ProductResponse> getProductsByBrand(Long brandId) {
-        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), null, null, brandId)
+        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), null, null, brandId, null)
                 .getContent();
     }
 
     default List<ProductResponse> searchProducts(String keyword) {
-        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), keyword, null, null)
+        return listProducts(org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE), keyword, null, null, null)
                 .getContent();
     }
     
