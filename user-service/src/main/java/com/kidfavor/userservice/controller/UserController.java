@@ -49,6 +49,13 @@ public class UserController {
                 return ResponseEntity.ok(ApiResponse.success("Retrieved users successfully", users));
     }
 
+        // count endpoint must come before /{id} to avoid treating "count" as an id
+        @GetMapping("/count")
+        public ResponseEntity<ApiResponse<Long>> getUserCount() {
+                long count = userService.countUsers();
+                return ResponseEntity.ok(ApiResponse.success("User count", count));
+        }
+
     @Operation(
             summary = "Get user by ID",
             description = "Retrieve a specific user by their ID"
@@ -71,6 +78,10 @@ public class UserController {
         UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success("Retrieved user successfully", user));
     }
+
+        /**
+         * Dashboard stats: total number of users in the system.
+         */
 
     @Operation(
             summary = "Get users by status",

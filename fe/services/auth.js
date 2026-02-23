@@ -46,3 +46,27 @@ export function refresh() {
     return res.data;
   });
 }
+
+// helper to decode a JWT payload
+export function parseJwt(token) {
+  if (!token) return null;
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.warn('Failed to parse JWT', e);
+    return null;
+  }
+}
+
+export function getCurrentUser() {
+  const token = localStorage.getItem('accessToken');
+  return parseJwt(token);
+}

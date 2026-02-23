@@ -88,6 +88,15 @@ export function fetchUsers(page = 0, size = 10) {
   return request(`/users?page=${page}&size=${size}`);
 }
 
+// dashboard helpers
+export function fetchUserCount() {
+  return request('/users/count');
+}
+
+export function fetchOrderStats() {
+  return request('/orders/stats');
+}
+
 export function deleteUser(id, deleteFlag) {
   // deleteFlag optional boolean to request full delete (otherwise toggles status)
   const suffix = deleteFlag ? '?delete=true' : '';

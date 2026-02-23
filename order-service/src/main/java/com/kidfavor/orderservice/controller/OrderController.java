@@ -61,6 +61,20 @@ public class OrderController {
                         return ResponseEntity.ok(ApiResponse.success("Orders retrieved", page));
                 }
 
+                // dashboard stats should be checked before id-based mappings to avoid
+                // "stats" being interpreted as a path variable.
+                @GetMapping("/stats")
+                public ResponseEntity<ApiResponse<java.util.Map<String,Object>>> getStats() {
+                        long total = orderService.countOrders();
+                        java.math.BigDecimal revenue = orderService.totalRevenue();
+                        java.util.Map<OrderStatus, Long> byStatus = orderService.countByStatus();
+                        java.util.Map<String,Object> map = new java.util.HashMap<>();
+                        map.put("totalOrders", total);
+                        map.put("totalRevenue", revenue);
+                        map.put("byStatus", byStatus);
+                        return ResponseEntity.ok(ApiResponse.success("Order statistics", map));
+                }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID", description = "Retrieves an order by its unique identifier")
     @ApiResponses(value = {
@@ -86,6 +100,10 @@ public class OrderController {
         OrderResponse response = orderService.getOrderByOrderNumber(orderNumber);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+        /**
+         * Dashboard statistics for orders.
+         */
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get orders by user", description = "Retrieves all orders for a specific user")

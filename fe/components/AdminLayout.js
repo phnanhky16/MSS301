@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Head from 'next/head';
 import { Layout as AntLayout, Menu, Button } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -31,6 +32,7 @@ const { Header, Sider, Content, Footer } = AntLayout;
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     const check = () => setLoggedIn(!!localStorage.getItem('accessToken'));
@@ -38,6 +40,17 @@ export default function AdminLayout({ children }) {
     window.addEventListener('storage', check);
     return () => window.removeEventListener('storage', check);
   }, []);
+
+  // whenever login status changes, try to parse JWT for profile info
+  useEffect(() => {
+    if (loggedIn) {
+      import('../services/auth').then(mod => {
+        setProfile(mod.getCurrentUser());
+      });
+    } else {
+      setProfile(null);
+    }
+  }, [loggedIn]);
   const selected = router.pathname.startsWith('/admin/coupons')
     ? 'coupons'
     : router.pathname.startsWith('/admin/orders')
@@ -45,6 +58,11 @@ export default function AdminLayout({ children }) {
     : 'dashboard';
 
   return (
+    <>
+      <Head>
+        {/* set favicon explicitly to avoid default /favicon.ico 404 */}
+        <link rel="icon" href="/images.jpg" />
+      </Head>
     <AntLayout style={{ minHeight: '100vh' }}>
       <Sider collapsible>
         <div className="logo" style={{ height: 32, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -72,12 +90,24 @@ export default function AdminLayout({ children }) {
             <img src="/images.jpg" alt="logo" style={{ height: 24, marginRight: 8, objectFit: 'contain' }} />
             <span>Admin Panel</span>
           </div>
-          {loggedIn && (
-            <Button type="link" onClick={async () => {
-              await logout();
-              router.push('/login');
-            }} style={{ marginRight: 16 }}>
-              Logout
+          {loggedIn ? (
+            <div style={{ display: 'flex', alignItems: 'center', marginRight: 16 }}>
+              <span style={{ marginRight: 12 }}>
+                {profile?.fullName || profile?.name || ''}
+              </span>
+              <Button
+                type="link"
+                onClick={async () => {
+                  await logout();
+                  router.push('/login');
+                }}
+              >
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Button type="link" onClick={() => router.push('/login')} style={{ marginRight: 16 }}>
+              Login
             </Button>
           )}
         </Header>
@@ -86,4 +116,5 @@ export default function AdminLayout({ children }) {
       </AntLayout>
     </AntLayout>
   );
+    </>
 }

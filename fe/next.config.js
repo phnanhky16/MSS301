@@ -4,5 +4,15 @@ const nextConfig = {
   compiler: {
     styledComponents: true
   }
+  ,
+  // rewrite favicon requests to our existing image so browsers stop 404ing
+  async rewrites() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/images.jpg',
+      },
+    ];
+  }
 };
 module.exports = nextConfig;

@@ -17,5 +17,9 @@ public interface UserService {
     void changeUserStatus(int id);
     UserResponse changeUserRole(int id, Role role);
     void deleteUser(int id);
+    /**
+     * Return total number of users (for dashboard stats).
+     */
+    long countUsers();
 
 }

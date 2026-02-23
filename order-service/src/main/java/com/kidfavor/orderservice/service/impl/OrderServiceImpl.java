@@ -234,6 +234,25 @@ public class OrderServiceImpl implements OrderService {
                     .map(this::mapToOrderResponse);
     }
 
+        @Override
+        public long countOrders() {
+            return orderRepository.count();
+        }
+
+        @Override
+        public java.util.Map<OrderStatus, Long> countByStatus() {
+            java.util.Map<OrderStatus, Long> map = new java.util.EnumMap<>(OrderStatus.class);
+            for (OrderStatus status : OrderStatus.values()) {
+                map.put(status, orderRepository.countByStatus(status));
+            }
+            return map;
+        }
+
+        @Override
+        public java.math.BigDecimal totalRevenue() {
+            return orderRepository.sumTotalAmount();
+        }
+
     /**
      * Validates all products in the order request and returns validated product data.
      * This method performs fail-fast validation before any order creation.

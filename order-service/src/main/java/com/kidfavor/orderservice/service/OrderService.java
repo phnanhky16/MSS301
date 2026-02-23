@@ -86,4 +86,18 @@ public interface OrderService {
                 java.time.LocalDateTime endDate,
                 OrderStatus status
             );
+        /**
+         * Total number of orders in the system.
+         */
+        long countOrders();
+
+        /**
+         * Counts orders grouped by status.
+         */
+        java.util.Map<OrderStatus, Long> countByStatus();
+
+        /**
+         * Sum of all order totals (revenue).
+         */
+        java.math.BigDecimal totalRevenue();
 }

@@ -53,4 +53,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>,
     Optional<Order> findByIdWithItems(@Param("id") Long id);
 
     boolean existsByOrderNumber(String orderNumber);
+
+    // counts by status for dashboard
+    long countByStatus(OrderStatus status);
+
+    // total revenue across all orders
+    @Query("SELECT COALESCE(SUM(o.totalAmount),0) FROM Order o")
+    java.math.BigDecimal sumTotalAmount();
 }
