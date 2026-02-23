@@ -104,6 +104,32 @@ services:
       - microservices-network
     restart: on-failure
 
+  # --- Review Service ---
+  review-service:
+    build:
+      context: ../review-service
+      dockerfile: Dockerfile
+    container_name: review-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-review:5432/reviewdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      postgres-review:
+        condition: service_started
+      consul:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
   # --- Service Discovery ---
   consul:
     image: hashicorp/consul:latest

@@ -128,9 +128,25 @@ spring:
         - id: review-service
           uri: lb://review-service
           predicates:
-            - Path=/api/reviews/**
+            - Path=/review-service/**
           filters:
-            - StripPrefix=1
+            - RewritePath=/review-service/(?<segment>.*), /${segment}
+
+        # Review Service Swagger API Docs
+        - id: review-service-api-docs
+          uri: lb://review-service
+          predicates:
+            - Path=/review-service/v3/api-docs, /review-service/v3/api-docs/**
+          filters:
+            - RewritePath=/review-service/(?<segment>.*), /${segment}
+
+        # Review Service Swagger UI resources
+        - id: review-service-swagger-ui
+          uri: lb://review-service
+          predicates:
+            - Path=/review-service/swagger-ui/**, /review-service/swagger-ui.html
+          filters:
+            - RewritePath=/review-service/(?<segment>.*), /${segment}
 
   security:
     oauth2:
@@ -164,6 +180,8 @@ springdoc:
         url: /order-service/v3/api-docs
       - name: Product Service
         url: /product-service/v3/api-docs
+      - name: Review Service
+        url: /review-service/v3/api-docs
     urls-primary-name: User Service
 
 management:
