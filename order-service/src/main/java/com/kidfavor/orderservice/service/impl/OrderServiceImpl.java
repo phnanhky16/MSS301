@@ -16,6 +16,7 @@ import com.kidfavor.orderservice.exception.*;
 import com.kidfavor.orderservice.repository.OrderRepository;
 import com.kidfavor.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import com.kidfavor.orderservice.coupon.CouponService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductServiceClient productServiceClient;
     private final UserServiceClient userServiceClient;
     private final ApplicationEventPublisher eventPublisher;
+    private final CouponService couponService;
 
     @Override
     @Transactional
@@ -85,6 +87,15 @@ public class OrderServiceImpl implements OrderService {
         // Step 4: Calculate total amount
         order.calculateTotalAmount();
 
+        // Step 4b: apply coupon if provided
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            BigDecimal discount = couponService.applyCoupon(request.getCouponCode(), order.getTotalAmount());
+            order.setCouponCode(request.getCouponCode());
+            order.setDiscountAmount(discount);
+            // recalc after discount
+            order.calculateTotalAmount();
+        }
+
         // Step 5: Persist order atomically
         Order savedOrder = orderRepository.save(order);
         log.info("Order created successfully. Order ID: {}, Order Number: {}", 
@@ -94,7 +105,14 @@ public class OrderServiceImpl implements OrderService {
         String customerEmail = user.getEmail();
         String customerName = user.getFullName() != null ? user.getFullName()
                 : (user.getFirstName() != null ? user.getFirstName() + " " + user.getLastName() : user.getUsername());
-        eventPublisher.publishEvent(new OrderCreatedDomainEvent(this, savedOrder, customerEmail, customerName));
+        eventPublisher.publishEvent(new OrderCreatedDomainEvent(
+            this,
+            savedOrder,
+            customerEmail,
+            customerName,
+            savedOrder.getCouponCode(),
+            savedOrder.getDiscountAmount()
+        ));
 
         return mapToOrderResponse(savedOrder);
     }
@@ -316,6 +334,8 @@ public class OrderServiceImpl implements OrderService {
                 .phoneNumber(order.getPhoneNumber())
                 .notes(order.getNotes())
                 .items(itemResponses)
+            .couponCode(order.getCouponCode())
+            .discountAmount(order.getDiscountAmount())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();

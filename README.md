@@ -55,6 +55,35 @@ $Env:DOCKER_BUILDKIT=1   # optional, for cache mounts when rebuilding later
 docker compose -f docker\docker-compose.yml up -d --build
 ```
 
+### Coupon support (order-service)
+
+Order service now contains a first‑class coupon domain. you can:
+
+* **create or update** coupons:
+    ```http
+    POST /api/coupons
+    Content-Type: application/json
+
+    {
+        "code":"SPRING10",
+        "discountType":"PERCENT",
+        "discountValue":10,
+        "expiresAt":"2026-12-31T23:59:59",
+        "maxRedemptions":100,
+        "active":true
+    }
+    ```
+* **fetch coupon details:** `GET /api/coupons/{code}`
+* **list all coupons:** `GET /api/coupons`
+* **modify existing coupon:** `PUT /api/coupons/{code}` (body same as create)
+* **delete coupon:** `DELETE /api/coupons/{code}`
+
+When creating an order you may include `couponCode` in the request body;
+the service validates the coupon, applies the discount to the total
+amount, and records both the code and discount amount on the order.
+
+The gateway routes `/api/coupons/**` through to order-service as well.
+
 If you change code you only need to rebuild the affected service(s) with
 Maven and then re-run `docker compose` – the images will pick up the
 updated JARs without having to re-download dependencies.

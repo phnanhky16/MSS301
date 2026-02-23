@@ -64,8 +64,12 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PRODUCT_SERVICE_URL: http://product-service:8083
     depends_on:
+      # wait until the database container reports healthy before starting the
+      # Spring Boot process. the "run all services" button in VS Code invokes
+      # `docker compose up` which does not rebuild images by default, but it
+      # will honour the `depends_on` conditions and healthchecks below.
       postgres-order:
-        condition: service_started
+        condition: service_healthy
       consul:
         condition: service_started
       kafka:
@@ -144,6 +148,14 @@ services:
       - postgres-order-data:/var/lib/postgresql/data
     networks:
       - microservices-network
+    # healthcheck used by depends_on above; the container is considered healthy
+    # once pg_isready succeeds. this allows the order-service to start only
+    # after PostgreSQL has finished initializing the database files.
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U postgres -d orderdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   postgres-product:
     image: postgres:16-alpine

@@ -38,6 +38,14 @@ public class Order {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
+    // coupon that has been applied to this order (null if none)
+    @Column(length = 50)
+    private String couponCode;
+
+    // amount discounted due to coupon (zero if none)
+    @Column(precision = 19, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
     @Column(length = 500)
     private String shippingAddress;
 
@@ -70,7 +78,8 @@ public class Order {
 
     public void calculateTotalAmount() {
         this.totalAmount = items.stream()
-                .map(OrderItem::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            .map(OrderItem::getSubtotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .subtract(discountAmount != null ? discountAmount : BigDecimal.ZERO);
     }
 }

@@ -14,11 +14,16 @@ public class OrderCreatedDomainEvent extends ApplicationEvent {
     private final Order order;
     private final String customerEmail;
     private final String customerName;
+    private final String couponCode;
+    private final java.math.BigDecimal discountAmount;
 
-    public OrderCreatedDomainEvent(Object source, Order order, String customerEmail, String customerName) {
+    public OrderCreatedDomainEvent(Object source, Order order, String customerEmail, String customerName,
+                                    String couponCode, java.math.BigDecimal discountAmount) {
         super(source);
         this.order = order;
         this.customerEmail = customerEmail;
         this.customerName = customerName;
+        this.couponCode = couponCode;
+        this.discountAmount = discountAmount;
     }
 }
