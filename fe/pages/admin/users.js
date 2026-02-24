@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Typography, message, Button } from 'antd';
+import { Table, Typography, message, Button, Input, Select } from 'antd';
 import { fetchUsers, deleteUser } from '../../services/api';
 
 const { Title } = Typography;
@@ -10,9 +10,10 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loadError, setLoadError] = useState(null);
+  const [filters, setFilters] = useState({});
 
   const load = (page = currentPage - 1, size = pageSize) => {
-    fetchUsers(page, size)
+    fetchUsers(page, size, filters)
       .then(response => {
         setUsers(response.content);
         setTotal(response.totalElements);
@@ -31,6 +32,9 @@ export default function UsersPage() {
   useEffect(() => {
     load();
   }, []);
+  useEffect(() => {
+    load(0, pageSize);
+  }, [filters]);
 
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id' },
@@ -70,6 +74,37 @@ export default function UsersPage() {
   return (
     <div>
       <Title level={2}>Users</Title>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Input
+          placeholder="Keyword"
+          style={{ width: 160 }}
+          value={filters.keyword || ''}
+          onChange={e => setFilters(f => ({ ...f, keyword: e.target.value }))}
+        />
+        <Select
+          placeholder="Status"
+          style={{ width: 120 }}
+          allowClear
+          value={filters.status}
+          onChange={val => setFilters(f => ({ ...f, status: val }))}
+        >
+          <Select.Option value={true}>Active</Select.Option>
+          <Select.Option value={false}>Inactive</Select.Option>
+        </Select>
+        <Select
+          placeholder="Role"
+          style={{ width: 160 }}
+          allowClear
+          value={filters.role}
+          onChange={val => setFilters(f => ({ ...f, role: val }))}
+        >
+          <Select.Option value="CUSTOMER">Customer</Select.Option>
+          <Select.Option value="STAFF_FOR_STORE">Store Staff</Select.Option>
+          <Select.Option value="STAFF_FOR_WAREHOUSE">Warehouse Staff</Select.Option>
+          <Select.Option value="ADMIN">Admin</Select.Option>
+        </Select>
+        <Button onClick={() => { setFilters({}); load(0, pageSize); }}>Clear</Button>
+      </div>
       {loadError && (
         <div style={{ marginBottom: 8 }}>
           <Button onClick={() => load(0, pageSize)}>Retry</Button>

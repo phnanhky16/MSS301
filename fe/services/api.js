@@ -46,8 +46,12 @@ export async function request(path, options = {}) {
   return json && json.data !== undefined ? json.data : json;
 }
 
-export function fetchCoupons(page = 0, size = 10) {
-  return request(`/coupons?page=${page}&size=${size}`);
+export function fetchCoupons(page = 0, size = 10, filters = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (filters.code) params.append('code', filters.code);
+  if (filters.active !== undefined) params.append('active', filters.active);
+  if (filters.discountType) params.append('discountType', filters.discountType);
+  return request(`/coupons?${params.toString()}`);
 }
 
 // coupon data object should match backend DTO: {code, discountType, discountValue, expiresAt, maxRedemptions, active}
@@ -89,8 +93,17 @@ export function fetchProducts(page = 0, size = 10, filters = {}) {
   if (filters.keyword) params.append('keyword', filters.keyword);
   if (filters.categoryId) params.append('categoryId', filters.categoryId);
   if (filters.brandId) params.append('brandId', filters.brandId);
+  if (filters.status) params.append('status', filters.status);
   if (filters.sort) params.append('sort', filters.sort);
   return request(`/products?${params.toString()}`);
+}
+
+// convenience helper for public/home pages that should only ever see
+// active products. the backend already treats a missing `status` as
+// ACTIVE, but making the parameter explicit guards against future
+// callers accidentally passing a different value.
+export function fetchActiveProducts(page = 0, size = 10, filters = {}) {
+  return fetchProducts(page, size, { ...filters, status: 'ACTIVE' });
 }
 
 export function fetchCategories() {
@@ -113,8 +126,20 @@ export function deleteProduct(id) {
   return request(`/products/${id}`, { method: 'DELETE' });
 }
 
-export function fetchUsers(page = 0, size = 10) {
-  return request(`/users?page=${page}&size=${size}`);
+// change product status (ACTIVE, INACTIVE, DELETED)
+export function updateProductStatus(id, data) {
+  return request(`/products/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function fetchUsers(page = 0, size = 10, filters = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (filters.keyword) params.append('keyword', filters.keyword);
+  if (filters.status !== undefined) params.append('status', filters.status);
+  if (filters.role) params.append('role', filters.role);
+  return request(`/users?${params.toString()}`);
 }
 
 // dashboard helpers

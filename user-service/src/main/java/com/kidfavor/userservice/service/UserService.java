@@ -10,6 +10,12 @@ import java.util.List;
 @Service
 public interface UserService {
     org.springframework.data.domain.Page<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable);
+
+    // enhanced listing with optional filter/search parameters
+    org.springframework.data.domain.Page<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable,
+                                                                   String keyword,
+                                                                   Boolean status,
+                                                                   Role role);
     UserResponse getUserById(int id);
     List<UserResponse> getUsersByStatus(Boolean status);
     List<UserResponse> getUsersByRole(Role role);

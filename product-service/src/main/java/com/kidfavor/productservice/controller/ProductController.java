@@ -36,8 +36,9 @@ public class ProductController {
             org.springframework.data.domain.Pageable pageable,
             @RequestParam(name="keyword", required=false) String keyword,
             @RequestParam(name="categoryId", required=false) Long categoryId,
-            @RequestParam(name="brandId", required=false) Long brandId) {
-        var page = productService.listProducts(pageable, keyword, categoryId, brandId);
+            @RequestParam(name="brandId", required=false) Long brandId,
+            @RequestParam(name="status", required=false) String status) {
+        var page = productService.listProducts(pageable, keyword, categoryId, brandId, status);
         return ResponseEntity.ok(
             ApiResponse.success("Products retrieved successfully", page)
         );

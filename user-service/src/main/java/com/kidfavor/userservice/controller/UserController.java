@@ -42,12 +42,15 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = ApiResponse.class))
             )
     })
-    @GetMapping
-        public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserResponse>>> getAllUsers(
-                        org.springframework.data.domain.Pageable pageable) {
-                var users = userService.getAllUsers(pageable);
-                return ResponseEntity.ok(ApiResponse.success("Retrieved users successfully", users));
-    }
+        @GetMapping
+                public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserResponse>>> getAllUsers(
+                                                org.springframework.data.domain.Pageable pageable,
+                                                @RequestParam(name="keyword", required=false) String keyword,
+                                                @RequestParam(name="status", required=false) Boolean status,
+                                                @RequestParam(name="role", required=false) Role role) {
+                                var users = userService.getAllUsers(pageable, keyword, status, role);
+                                return ResponseEntity.ok(ApiResponse.success("Retrieved users successfully", users));
+        }
 
         // count endpoint must come before /{id} to avoid treating "count" as an id
         @GetMapping("/count")

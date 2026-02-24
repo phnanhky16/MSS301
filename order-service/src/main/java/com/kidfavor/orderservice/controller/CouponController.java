@@ -65,8 +65,12 @@ public class CouponController {
     }
 
     @GetMapping
-    public org.springframework.data.domain.Page<CouponResponse> list(org.springframework.data.domain.Pageable pageable) {
-        return couponService.listAll(pageable)
+    public org.springframework.data.domain.Page<CouponResponse> list(
+            org.springframework.data.domain.Pageable pageable,
+            @RequestParam(name="code", required=false) String code,
+            @RequestParam(name="active", required=false) Boolean active,
+            @RequestParam(name="discountType", required=false) Coupon.DiscountType discountType) {
+        return couponService.listAll(pageable, code, active, discountType)
                 .map(this::toResponse);
     }
 
