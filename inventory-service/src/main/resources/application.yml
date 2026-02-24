@@ -85,6 +85,10 @@ management:
     health:
       show-details: always
 
+# JWT Configuration
+jwt:
+  secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+
 # Swagger/OpenAPI Configuration
 springdoc:
   api-docs:

@@ -1,4 +1,4 @@
-package com.kidfavor.productservice.config;
+package com.kidfavor.inventoryservice.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -17,7 +17,7 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${server.port:8083}")
+    @Value("${server.port:8084}")
     private String serverPort;
 
     @Bean
@@ -35,9 +35,9 @@ public class OpenApiConfig {
         license.setUrl("https://www.apache.org/licenses/LICENSE-2.0.html");
 
         Info info = new Info()
-                .title("Product Service API")
+                .title("Inventory Service API")
                 .version("1.0.0")
-                .description("API documentation for Product Service - Manage products, categories, and brands")
+                .description("API documentation for Inventory Service - Manage stores, warehouses, and inventory")
                 .contact(contact)
                 .license(license);
 

@@ -1,4 +1,4 @@
-package com.kidfavor.productservice.config;
+package com.kidfavor.inventoryservice.config;
 
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * CORS configuration for Product Service.
+ * CORS configuration for Inventory Service.
  * Allows cross-origin requests from API Gateway and frontend applications.
  */
 @Configuration

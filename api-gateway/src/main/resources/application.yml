@@ -75,7 +75,7 @@ spring:
             - Path=/order-service/swagger-ui/**, /order-service/swagger-ui.html
           filters:
             - RewritePath=/order-service/(?<segment>.*), /${segment}
-        
+
         # Product Service Routes (with /api prefix)
         - id: product-service
           uri: lb://product-service
@@ -107,15 +107,31 @@ spring:
             - Path=/product-service/swagger-ui/**, /product-service/swagger-ui.html
           filters:
             - RewritePath=/product-service/(?<segment>.*), /${segment}
-        
+
         # Inventory Service Routes
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
-            - Path=/api/warehouses/**, /api/stores/**
+            - Path=/api/warehouses/**, /api/stores/**, /api/inventory/**
           filters:
             - StripPrefix=1
-        
+
+        # Inventory Service Swagger API Docs
+        - id: inventory-service-api-docs
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/v3/api-docs, /inventory-service/v3/api-docs/**
+          filters:
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
+        # Inventory Service Swagger UI resources
+        - id: inventory-service-swagger-ui
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/swagger-ui/**, /inventory-service/swagger-ui.html
+          filters:
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
         # Cart Service Routes
         - id: cart-service
           uri: lb://cart-service
@@ -123,7 +139,7 @@ spring:
             - Path=/api/carts/**
           filters:
             - StripPrefix=1
-        
+
         # Review Service Routes
         - id: review-service
           uri: lb://review-service
@@ -153,6 +169,8 @@ springdoc:
         url: /order-service/v3/api-docs
       - name: Product Service
         url: /product-service/v3/api-docs
+      - name: Inventory Service
+        url: /inventory-service/v3/api-docs
     urls-primary-name: User Service
 
 management:
