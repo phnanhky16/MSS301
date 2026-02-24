@@ -36,6 +36,7 @@
         <module>order-service</module>
         <module>product-service</module>
         <module>notification-service</module>
+        <module>review-service</module>
     </modules>
 
     <!-- ===== Centralised Dependency Management ===== -->

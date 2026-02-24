@@ -55,6 +55,7 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers(
                                 "/auth/**",
+                                "/internal/**",  // Allow internal service calls (trust gateway)
                                 "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
