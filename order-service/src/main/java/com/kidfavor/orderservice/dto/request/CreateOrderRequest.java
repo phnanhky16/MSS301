@@ -32,4 +32,7 @@ public class CreateOrderRequest {
 
     @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;
+    
+    @Size(max = 50, message = "Coupon code must not exceed 50 characters")
+    private String couponCode; // optional promotional code
 }

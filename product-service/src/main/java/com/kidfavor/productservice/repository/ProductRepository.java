@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>,
+    org.springframework.data.jpa.repository.JpaSpecificationExecutor<Product> {
     
     // Find by status (parameterized to prevent SQL injection)
     List<Product> findByStatus(EntityStatus status);

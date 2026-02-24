@@ -9,7 +9,7 @@ import java.util.List;
 
 @Service
 public interface UserService {
-    List<UserResponse> getAllUsers();
+    org.springframework.data.domain.Page<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable);
     UserResponse getUserById(int id);
     List<UserResponse> getUsersByStatus(Boolean status);
     List<UserResponse> getUsersByRole(Role role);
@@ -17,5 +17,9 @@ public interface UserService {
     void changeUserStatus(int id);
     UserResponse changeUserRole(int id, Role role);
     void deleteUser(int id);
+    /**
+     * Return total number of users (for dashboard stats).
+     */
+    long countUsers();
 
 }

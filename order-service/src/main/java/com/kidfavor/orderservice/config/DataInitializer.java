@@ -4,6 +4,11 @@ import com.kidfavor.orderservice.entity.Order;
 import com.kidfavor.orderservice.entity.OrderItem;
 import com.kidfavor.orderservice.entity.OrderStatus;
 import com.kidfavor.orderservice.repository.OrderRepository;
+import com.kidfavor.orderservice.entity.Coupon;
+import com.kidfavor.orderservice.repository.CouponRepository;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -26,11 +31,13 @@ import java.util.UUID;
 public class DataInitializer implements CommandLineRunner {
 
     private final OrderRepository orderRepository;
+    private final CouponRepository couponRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
         initSampleOrders();
+        initSampleCoupons();
     }
 
     private void initSampleOrders() {
@@ -110,6 +117,37 @@ public class DataInitializer implements CommandLineRunner {
         log.info("========================================");
     }
 
+    private void initSampleCoupons() {
+        if (couponRepository.count() > 0) {
+            log.info("Coupons already exist, skipping coupon initialization.");
+            return;
+        }
+
+        log.info("Initializing sample coupons...");
+
+        Coupon c1 = Coupon.builder()
+                .code("SPRING10")
+                .active(true)
+                .discountType(Coupon.DiscountType.PERCENT)
+                .discountValue(BigDecimal.valueOf(10))
+                .expiresAt(LocalDateTime.now().plusMonths(3))
+                .maxRedemptions(100)
+                .build();
+
+        Coupon c2 = Coupon.builder()
+                .code("FLAT50")
+                .active(true)
+                .discountType(Coupon.DiscountType.FIXED)
+                .discountValue(BigDecimal.valueOf(50))
+                .expiresAt(LocalDateTime.now().plusMonths(1))
+                .maxRedemptions(50)
+                .build();
+
+        couponRepository.save(c1);
+        couponRepository.save(c2);
+
+        log.info("Created sample coupons: {}, {}", c1.getCode(), c2.getCode());
+    }
     private Order createOrder(Long userId, OrderStatus status, String shippingAddress, String phoneNumber) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String uniqueId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();

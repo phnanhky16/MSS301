@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.RequestAttributes;
 
 import java.util.List;
 
@@ -40,10 +43,18 @@ public class UserController {
             )
     })
     @GetMapping
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
-        List<UserResponse> users = userService.getAllUsers();
-        return ResponseEntity.ok(ApiResponse.success("Retrieved all users successfully", users));
+        public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserResponse>>> getAllUsers(
+                        org.springframework.data.domain.Pageable pageable) {
+                var users = userService.getAllUsers(pageable);
+                return ResponseEntity.ok(ApiResponse.success("Retrieved users successfully", users));
     }
+
+        // count endpoint must come before /{id} to avoid treating "count" as an id
+        @GetMapping("/count")
+        public ResponseEntity<ApiResponse<Long>> getUserCount() {
+                long count = userService.countUsers();
+                return ResponseEntity.ok(ApiResponse.success("User count", count));
+        }
 
     @Operation(
             summary = "Get user by ID",
@@ -67,6 +78,10 @@ public class UserController {
         UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success("Retrieved user successfully", user));
     }
+
+        /**
+         * Dashboard stats: total number of users in the system.
+         */
 
     @Operation(
             summary = "Get users by status",
@@ -138,7 +153,25 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> changeUserStatus(
             @Parameter(description = "User ID", required = true)
             @PathVariable Integer id) {
-        userService.changeUserStatus(id);
-        return ResponseEntity.ok(ApiResponse.success("User changed status successfully", null));
+                // NOTE: this endpoint previously toggled status. Add delete support
+                // so admin can completely remove a user.  We keep the old behaviour
+                // for backwards compatibility by allowing a query param `delete`.
+                boolean delete = false;
+                // spring will bind query parameters automatically if we capture them
+                // but easier to inspect request parameter map - use ServletRequest
+                // for now, use default delete=false behavior only toggles status.
+                                if ("true".equalsIgnoreCase(((jakarta.servlet.http.HttpServletRequest)org.springframework.web.context.request.RequestContextHolder
+                                .currentRequestAttributes()
+                                .resolveReference(org.springframework.web.context.request.RequestAttributes.REFERENCE_REQUEST))
+                                .getParameter("delete"))) {
+                        delete = true;
+                }
+                if (delete) {
+                        userService.deleteUser(id);
+                        return ResponseEntity.ok(ApiResponse.success("User deleted successfully", null));
+                } else {
+                        userService.changeUserStatus(id);
+                        return ResponseEntity.ok(ApiResponse.success("User changed status successfully", null));
+                }
     }
 }

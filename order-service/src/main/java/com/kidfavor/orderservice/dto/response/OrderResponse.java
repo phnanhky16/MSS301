@@ -25,6 +25,8 @@ public class OrderResponse {
     private String phoneNumber;
     private String notes;
     private List<OrderItemResponse> items;
+        private String couponCode; // Added couponCode
+        private BigDecimal discountAmount; // Added discountAmount
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

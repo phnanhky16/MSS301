@@ -68,4 +68,36 @@ public interface OrderService {
      * @return the cancelled order response
      */
     OrderResponse cancelOrder(Long orderId);
+
+    /**
+     * Retrieves all orders in a paged fashion for administrative listing.
+     */
+    org.springframework.data.domain.Page<OrderResponse> listAll(org.springframework.data.domain.Pageable pageable);
+
+        /**
+         * Search orders by various optional criteria; used by UI filtering.
+         */
+            org.springframework.data.domain.Page<OrderResponse> searchOrders(
+                org.springframework.data.domain.Pageable pageable,
+                String orderNumber,
+                java.math.BigDecimal minTotal,
+                java.math.BigDecimal maxTotal,
+                java.time.LocalDateTime startDate,
+                java.time.LocalDateTime endDate,
+                OrderStatus status
+            );
+        /**
+         * Total number of orders in the system.
+         */
+        long countOrders();
+
+        /**
+         * Counts orders grouped by status.
+         */
+        java.util.Map<OrderStatus, Long> countByStatus();
+
+        /**
+         * Sum of all order totals (revenue).
+         */
+        java.math.BigDecimal totalRevenue();
 }
