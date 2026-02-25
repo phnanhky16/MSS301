@@ -6,6 +6,9 @@ import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,17 +27,25 @@ public class StoreInventoryController {
     private final StoreInventoryService storeInventoryService;
 
     @GetMapping("/{storeId}/inventory")
-    @Operation(summary = "Get all inventory in a store")
-    public ResponseEntity<ResponseWrapper<List<StoreInventoryResponse>>> getInventoryByStore(@PathVariable Long storeId) {
+    @Operation(summary = "Get all inventory in a store", description = "Retrieve all product inventory for a specific store")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved inventory")
+    })
+    public ResponseEntity<ResponseWrapper<List<StoreInventoryResponse>>> getInventoryByStore(
+            @Parameter(description = "Store ID") @PathVariable Long storeId) {
         List<StoreInventoryResponse> inventory = storeInventoryService.getInventoryByStore(storeId);
         return ResponseEntity.ok(ResponseWrapper.success("Retrieved store inventory successfully", inventory));
     }
 
     @GetMapping("/{storeId}/inventory/{productId}")
-    @Operation(summary = "Get specific product inventory in a store")
+    @Operation(summary = "Get specific product inventory in a store", description = "Retrieve inventory for a specific product in a store")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Inventory found"),
+        @ApiResponse(responseCode = "404", description = "Inventory not found")
+    })
     public ResponseEntity<ResponseWrapper<StoreInventoryResponse>> getStoreInventory(
-            @PathVariable Long storeId,
-            @PathVariable Long productId) {
+            @Parameter(description = "Store ID") @PathVariable Long storeId,
+            @Parameter(description = "Product ID") @PathVariable Long productId) {
         StoreInventoryResponse inventory = storeInventoryService.getStoreInventory(storeId, productId);
         return ResponseEntity.ok(ResponseWrapper.success("Inventory retrieved successfully", inventory));
     }
@@ -56,9 +67,14 @@ public class StoreInventoryController {
     }
 
     @PostMapping("/{storeId}/inventory")
-    @Operation(summary = "Add or update product inventory in store")
+    @Operation(summary = "Add or update product inventory in store", description = "Add a new product to inventory or update existing inventory")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Inventory created/updated successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid input"),
+        @ApiResponse(responseCode = "404", description = "Store or product not found")
+    })
     public ResponseEntity<ResponseWrapper<StoreInventoryResponse>> addOrUpdateInventory(
-            @PathVariable Long storeId,
+            @Parameter(description = "Store ID") @PathVariable Long storeId,
             @Valid @RequestBody StoreInventoryRequest request) {
         request.setStoreId(storeId);
         StoreInventoryResponse inventory = storeInventoryService.addOrUpdateInventory(request);
@@ -67,10 +83,15 @@ public class StoreInventoryController {
     }
 
     @PutMapping("/{storeId}/inventory/{productId}")
-    @Operation(summary = "Update stock quantity for a product in store")
+    @Operation(summary = "Update stock quantity for a product in store", description = "Update the stock quantity for a specific product")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Stock updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Inventory not found"),
+        @ApiResponse(responseCode = "400", description = "Invalid stock operation")
+    })
     public ResponseEntity<ResponseWrapper<StoreInventoryResponse>> updateStock(
-            @PathVariable Long storeId,
-            @PathVariable Long productId,
+            @Parameter(description = "Store ID") @PathVariable Long storeId,
+            @Parameter(description = "Product ID") @PathVariable Long productId,
             @Valid @RequestBody StockUpdateRequest request) {
         request.setProductId(productId);
         StoreInventoryResponse inventory = storeInventoryService.updateStock(storeId, request);
@@ -78,10 +99,14 @@ public class StoreInventoryController {
     }
 
     @DeleteMapping("/{storeId}/inventory/{productId}")
-    @Operation(summary = "Remove product from store inventory")
+    @Operation(summary = "Remove product from store inventory", description = "Remove a product from the store's inventory")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Inventory removed successfully"),
+        @ApiResponse(responseCode = "404", description = "Inventory not found")
+    })
     public ResponseEntity<ResponseWrapper<Void>> removeInventory(
-            @PathVariable Long storeId,
-            @PathVariable Long productId) {
+            @Parameter(description = "Store ID") @PathVariable Long storeId,
+            @Parameter(description = "Product ID") @PathVariable Long productId) {
         storeInventoryService.removeInventory(storeId, productId);
         return ResponseEntity.ok(ResponseWrapper.success("Inventory removed successfully", null));
     }

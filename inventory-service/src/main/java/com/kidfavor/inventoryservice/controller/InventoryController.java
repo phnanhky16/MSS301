@@ -6,6 +6,8 @@ import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
 import com.kidfavor.inventoryservice.service.WarehouseProductService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +29,11 @@ public class InventoryController {
     private final StoreInventoryService storeInventoryService;
 
     @GetMapping("/low-stock")
-    @Operation(summary = "Get all low stock products across warehouses and stores")
+    @Operation(summary = "Get all low stock products across warehouses and stores", 
+               description = "Retrieve all products with low stock levels from both warehouses and stores")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved low stock products")
+    })
     public ResponseEntity<ResponseWrapper<Map<String, Object>>> getAllLowStockProducts() {
         List<WarehouseProductResponse> warehouseLowStock = warehouseProductService.getLowStockProducts();
         List<StoreInventoryResponse> storeLowStock = storeInventoryService.getLowStockProducts();
