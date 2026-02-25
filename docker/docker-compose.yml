@@ -114,7 +114,7 @@ services:
       dockerfile: Dockerfile
     container_name: review-service
     ports:
-      - "8084:8084"
+      - "8086:8086"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-review:5432/reviewdb
       SPRING_DATASOURCE_USERNAME: postgres
@@ -125,6 +125,9 @@ services:
     depends_on:
       postgres-review:
         condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
   # --- Inventory Service ---
   inventory-service:
     build:
@@ -144,6 +147,9 @@ services:
     depends_on:
       postgres-inventory:
         condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
 
   # --- Notification Service ---
   notification-service:
@@ -152,7 +158,7 @@ services:
       dockerfile: notification-service/Dockerfile
     container_name: notification-service
     ports:
-      - "8086:8086"
+      - "8087:8087"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SPRING_CLOUD_CONSUL_HOST: consul
@@ -161,6 +167,37 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-qhjj mrhl yyba gfly}
     depends_on:
 
+      consul:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
+  # --- Cart Service ---
+  cart-service:
+    build:
+      context: ..
+      dockerfile: cart-service/Dockerfile
+    container_name: cart-service
+    ports:
+      - "8085:8085"
+    environment:
+      DB_HOST: postgres-cart
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      postgres-cart:
+        condition: service_started
+      redis:
+        condition: service_started
       consul:
         condition: service_started
       kafka:
