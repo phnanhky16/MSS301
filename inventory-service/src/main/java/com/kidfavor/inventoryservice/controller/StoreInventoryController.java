@@ -83,11 +83,11 @@ public class StoreInventoryController {
     }
 
     @PutMapping("/{storeId}/inventory/{productId}")
-    @Operation(summary = "Update stock quantity for a product in store", description = "Update the stock quantity for a specific product")
+    @Operation(summary = "Update stock quantity for a product in store", description = "Set the stock quantity to a specific value (not incremental)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Stock updated successfully"),
         @ApiResponse(responseCode = "404", description = "Inventory not found"),
-        @ApiResponse(responseCode = "400", description = "Invalid stock operation")
+        @ApiResponse(responseCode = "400", description = "Invalid quantity (must be >= 0)")
     })
     public ResponseEntity<ResponseWrapper<StoreInventoryResponse>> updateStock(
             @Parameter(description = "Store ID") @PathVariable Long storeId,

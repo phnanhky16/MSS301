@@ -19,5 +19,6 @@ public class WarehouseProductResponse {
     private Integer minStockLevel;
     private Integer maxStockLevel;
     private String locationCode;
+    private String updatedBy;
     private LocalDateTime lastUpdated;
 }

@@ -5,7 +5,6 @@ import com.kidfavor.inventoryservice.dto.WarehouseProductRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
 import com.kidfavor.inventoryservice.entity.Warehouse;
 import com.kidfavor.inventoryservice.entity.WarehouseProduct;
-import com.kidfavor.inventoryservice.exception.InsufficientStockException;
 import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
 import com.kidfavor.inventoryservice.repository.WarehouseProductRepository;
@@ -13,6 +12,8 @@ import com.kidfavor.inventoryservice.service.WarehouseProductService;
 import com.kidfavor.inventoryservice.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,14 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
     private final WarehouseProductRepository warehouseProductRepository;
     private final WarehouseService warehouseService;
     private final InventoryMapper mapper;
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return authentication.getName();
+        }
+        return "system";
+    }
 
     @Override
     public List<WarehouseProductResponse> getProductsByWarehouse(Long warehouseId) {
@@ -80,6 +89,7 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
         warehouseProduct.setMinStockLevel(request.getMinStockLevel());
         warehouseProduct.setMaxStockLevel(request.getMaxStockLevel());
         warehouseProduct.setLocationCode(request.getLocationCode());
+        warehouseProduct.setUpdatedBy(getCurrentUsername());
 
         WarehouseProduct saved = warehouseProductRepository.save(warehouseProduct);
         log.info("Product {} updated in warehouse {}", request.getProductId(), request.getWarehouseId());
@@ -98,19 +108,12 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Product " + request.getProductId() + " not found in warehouse " + warehouseId));
 
-        int newQuantity = warehouseProduct.getQuantity() + request.getQuantityChange();
-        
-        if (newQuantity < 0) {
-            throw new InsufficientStockException(
-                    "Insufficient stock for product " + request.getProductId() + 
-                    " in warehouse " + warehouseId + ". Available: " + warehouseProduct.getQuantity());
-        }
-
-        warehouseProduct.setQuantity(newQuantity);
+        warehouseProduct.setQuantity(request.getQuantity());
+        warehouseProduct.setUpdatedBy(getCurrentUsername());
         WarehouseProduct saved = warehouseProductRepository.save(warehouseProduct);
         
         log.info("Stock updated for product {} in warehouse {}. New quantity: {}", 
-                request.getProductId(), warehouseId, newQuantity);
+                request.getProductId(), warehouseId, request.getQuantity());
         
         return mapper.toWarehouseProductResponse(saved);
     }

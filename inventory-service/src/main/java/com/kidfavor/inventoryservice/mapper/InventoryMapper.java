@@ -21,6 +21,7 @@ public class InventoryMapper {
                 .capacity(warehouse.getCapacity())
                 .warehouseType(warehouse.getWarehouseType())
                 .isActive(warehouse.getIsActive())
+                .updatedBy(warehouse.getUpdatedBy())
                 .createdAt(warehouse.getCreatedAt())
                 .updatedAt(warehouse.getUpdatedAt())
                 .build();
@@ -53,6 +54,7 @@ public class InventoryMapper {
                 .phone(store.getPhone())
                 .managerName(store.getManagerName())
                 .isActive(store.getIsActive())
+                .updatedBy(store.getUpdatedBy())
                 .createdAt(store.getCreatedAt())
                 .updatedAt(store.getUpdatedAt())
                 .build();
@@ -82,6 +84,7 @@ public class InventoryMapper {
                 .minStockLevel(wp.getMinStockLevel())
                 .maxStockLevel(wp.getMaxStockLevel())
                 .locationCode(wp.getLocationCode())
+                .updatedBy(wp.getUpdatedBy())
                 .lastUpdated(wp.getLastUpdated())
                 .build();
     }
@@ -96,6 +99,7 @@ public class InventoryMapper {
                 .quantity(si.getQuantity())
                 .minStockLevel(si.getMinStockLevel())
                 .shelfLocation(si.getShelfLocation())
+                .updatedBy(si.getUpdatedBy())
                 .lastUpdated(si.getLastUpdated())
                 .build();
     }

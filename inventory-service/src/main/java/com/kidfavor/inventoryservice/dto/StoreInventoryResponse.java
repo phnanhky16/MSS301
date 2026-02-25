@@ -18,5 +18,6 @@ public class StoreInventoryResponse {
     private Integer quantity;
     private Integer minStockLevel;
     private String shelfLocation;
+    private String updatedBy;
     private LocalDateTime lastUpdated;
 }

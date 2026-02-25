@@ -10,6 +10,8 @@ import com.kidfavor.inventoryservice.repository.StoreRepository;
 import com.kidfavor.inventoryservice.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,14 @@ public class StoreServiceImpl implements StoreService {
 
     private final StoreRepository storeRepository;
     private final InventoryMapper mapper;
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return authentication.getName();
+        }
+        return "system";
+    }
 
     @Override
     public List<StoreResponse> getAllStores() {
@@ -94,6 +104,7 @@ public class StoreServiceImpl implements StoreService {
         store.setPhone(request.getPhone());
         store.setManagerName(request.getManagerName());
         store.setIsActive(request.getIsActive());
+        store.setUpdatedBy(getCurrentUsername());
 
         Store updatedStore = storeRepository.save(store);
         log.info("Store updated successfully with id: {}", id);

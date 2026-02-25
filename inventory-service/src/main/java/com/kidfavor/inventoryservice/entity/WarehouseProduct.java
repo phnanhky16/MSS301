@@ -38,6 +38,9 @@ public class WarehouseProduct {
     @Column(name = "location_code", length = 50)
     private String locationCode;
 
+    @Column(name = "updated_by", length = 100)
+    private String updatedBy;
+
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 

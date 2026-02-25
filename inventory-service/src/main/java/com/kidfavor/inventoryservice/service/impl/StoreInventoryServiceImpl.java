@@ -5,7 +5,6 @@ import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
 import com.kidfavor.inventoryservice.entity.Store;
 import com.kidfavor.inventoryservice.entity.StoreInventory;
-import com.kidfavor.inventoryservice.exception.InsufficientStockException;
 import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
 import com.kidfavor.inventoryservice.repository.StoreInventoryRepository;
@@ -13,6 +12,8 @@ import com.kidfavor.inventoryservice.service.StoreInventoryService;
 import com.kidfavor.inventoryservice.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,14 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     private final StoreInventoryRepository storeInventoryRepository;
     private final StoreService storeService;
     private final InventoryMapper mapper;
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return authentication.getName();
+        }
+        return "system";
+    }
 
     @Override
     public List<StoreInventoryResponse> getInventoryByStore(Long storeId) {
@@ -79,6 +88,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         storeInventory.setQuantity(request.getQuantity());
         storeInventory.setMinStockLevel(request.getMinStockLevel());
         storeInventory.setShelfLocation(request.getShelfLocation());
+        storeInventory.setUpdatedBy(getCurrentUsername());
 
         StoreInventory saved = storeInventoryRepository.save(storeInventory);
         log.info("Product {} updated in store {}", request.getProductId(), request.getStoreId());
@@ -97,19 +107,12 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Product " + request.getProductId() + " not found in store " + storeId));
 
-        int newQuantity = storeInventory.getQuantity() + request.getQuantityChange();
-        
-        if (newQuantity < 0) {
-            throw new InsufficientStockException(
-                    "Insufficient stock for product " + request.getProductId() + 
-                    " in store " + storeId + ". Available: " + storeInventory.getQuantity());
-        }
-
-        storeInventory.setQuantity(newQuantity);
+        storeInventory.setQuantity(request.getQuantity());
+        storeInventory.setUpdatedBy(getCurrentUsername());
         StoreInventory saved = storeInventoryRepository.save(storeInventory);
         
         log.info("Stock updated for product {} in store {}. New quantity: {}", 
-                request.getProductId(), storeId, newQuantity);
+                request.getProductId(), storeId, request.getQuantity());
         
         return mapper.toStoreInventoryResponse(saved);
     }

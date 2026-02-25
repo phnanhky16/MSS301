@@ -10,6 +10,8 @@ import com.kidfavor.inventoryservice.repository.WarehouseRepository;
 import com.kidfavor.inventoryservice.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,14 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     private final WarehouseRepository warehouseRepository;
     private final InventoryMapper mapper;
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return authentication.getName();
+        }
+        return "system";
+    }
 
     @Override
     public List<WarehouseResponse> getAllWarehouses() {
@@ -97,6 +107,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setCapacity(request.getCapacity());
         warehouse.setWarehouseType(request.getWarehouseType());
         warehouse.setIsActive(request.getIsActive());
+        warehouse.setUpdatedBy(getCurrentUsername());
 
         Warehouse updatedWarehouse = warehouseRepository.save(warehouse);
         log.info("Warehouse updated successfully with id: {}", id);
