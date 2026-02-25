@@ -1,6 +1,6 @@
 package com.kidfavor.inventoryservice.controller;
 
-import com.kidfavor.inventoryservice.dto.ApiResponse;
+import com.kidfavor.inventoryservice.dto.ResponseWrapper;
 import com.kidfavor.inventoryservice.dto.WarehouseRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseResponse;
 import com.kidfavor.inventoryservice.service.WarehouseService;
@@ -24,53 +24,53 @@ public class WarehouseController {
 
     @GetMapping
     @Operation(summary = "Get all warehouses")
-    public ResponseEntity<ApiResponse<List<WarehouseResponse>>> getAllWarehouses() {
+    public ResponseEntity<ResponseWrapper<List<WarehouseResponse>>> getAllWarehouses() {
         List<WarehouseResponse> warehouses = warehouseService.getAllWarehouses();
-        return ResponseEntity.ok(ApiResponse.success("Retrieved all warehouses successfully", warehouses));
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved all warehouses successfully", warehouses));
     }
 
     @GetMapping("/active")
     @Operation(summary = "Get all active warehouses")
-    public ResponseEntity<ApiResponse<List<WarehouseResponse>>> getActiveWarehouses() {
+    public ResponseEntity<ResponseWrapper<List<WarehouseResponse>>> getActiveWarehouses() {
         List<WarehouseResponse> warehouses = warehouseService.getActiveWarehouses();
-        return ResponseEntity.ok(ApiResponse.success("Retrieved active warehouses successfully", warehouses));
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved active warehouses successfully", warehouses));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get warehouse by ID")
-    public ResponseEntity<ApiResponse<WarehouseResponse>> getWarehouseById(@PathVariable Long id) {
+    public ResponseEntity<ResponseWrapper<WarehouseResponse>> getWarehouseById(@PathVariable Long id) {
         WarehouseResponse warehouse = warehouseService.getWarehouseById(id);
-        return ResponseEntity.ok(ApiResponse.success("Warehouse retrieved successfully", warehouse));
+        return ResponseEntity.ok(ResponseWrapper.success("Warehouse retrieved successfully", warehouse));
     }
 
     @GetMapping("/code/{code}")
     @Operation(summary = "Get warehouse by code")
-    public ResponseEntity<ApiResponse<WarehouseResponse>> getWarehouseByCode(@PathVariable String code) {
+    public ResponseEntity<ResponseWrapper<WarehouseResponse>> getWarehouseByCode(@PathVariable String code) {
         WarehouseResponse warehouse = warehouseService.getWarehouseByCode(code);
-        return ResponseEntity.ok(ApiResponse.success("Warehouse retrieved successfully", warehouse));
+        return ResponseEntity.ok(ResponseWrapper.success("Warehouse retrieved successfully", warehouse));
     }
 
     @PostMapping
     @Operation(summary = "Create new warehouse")
-    public ResponseEntity<ApiResponse<WarehouseResponse>> createWarehouse(@Valid @RequestBody WarehouseRequest request) {
+    public ResponseEntity<ResponseWrapper<WarehouseResponse>> createWarehouse(@Valid @RequestBody WarehouseRequest request) {
         WarehouseResponse warehouse = warehouseService.createWarehouse(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created("Warehouse created successfully", warehouse));
+                .body(ResponseWrapper.created("Warehouse created successfully", warehouse));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update warehouse")
-    public ResponseEntity<ApiResponse<WarehouseResponse>> updateWarehouse(
+    public ResponseEntity<ResponseWrapper<WarehouseResponse>> updateWarehouse(
             @PathVariable Long id,
             @Valid @RequestBody WarehouseRequest request) {
         WarehouseResponse warehouse = warehouseService.updateWarehouse(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Warehouse updated successfully", warehouse));
+        return ResponseEntity.ok(ResponseWrapper.success("Warehouse updated successfully", warehouse));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete warehouse")
-    public ResponseEntity<ApiResponse<Void>> deleteWarehouse(@PathVariable Long id) {
+    public ResponseEntity<ResponseWrapper<Void>> deleteWarehouse(@PathVariable Long id) {
         warehouseService.deleteWarehouse(id);
-        return ResponseEntity.ok(ApiResponse.success("Warehouse deleted successfully", null));
+        return ResponseEntity.ok(ResponseWrapper.success("Warehouse deleted successfully", null));
     }
 }

@@ -1,6 +1,6 @@
 package com.kidfavor.inventoryservice.controller;
 
-import com.kidfavor.inventoryservice.dto.ApiResponse;
+import com.kidfavor.inventoryservice.dto.ResponseWrapper;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
 import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
@@ -28,7 +28,7 @@ public class InventoryController {
 
     @GetMapping("/low-stock")
     @Operation(summary = "Get all low stock products across warehouses and stores")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getAllLowStockProducts() {
+    public ResponseEntity<ResponseWrapper<Map<String, Object>>> getAllLowStockProducts() {
         List<WarehouseProductResponse> warehouseLowStock = warehouseProductService.getLowStockProducts();
         List<StoreInventoryResponse> storeLowStock = storeInventoryService.getLowStockProducts();
         
@@ -38,6 +38,6 @@ public class InventoryController {
         data.put("totalWarehouseProducts", warehouseLowStock.size());
         data.put("totalStoreProducts", storeLowStock.size());
         
-        return ResponseEntity.ok(ApiResponse.success("Low stock products retrieved successfully", data));
+        return ResponseEntity.ok(ResponseWrapper.success("Low stock products retrieved successfully", data));
     }
 }
