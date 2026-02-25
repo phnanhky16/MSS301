@@ -136,9 +136,25 @@ spring:
         - id: cart-service
           uri: lb://cart-service
           predicates:
-            - Path=/api/carts/**
+            - Path=/cart-service/**
           filters:
-            - StripPrefix=1
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
+
+        # Cart Service Swagger API Docs
+        - id: cart-service-api-docs
+          uri: lb://cart-service
+          predicates:
+            - Path=/cart-service/v3/api-docs, /cart-service/v3/api-docs/**
+          filters:
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
+
+        # Cart Service Swagger UI resources
+        - id: cart-service-swagger-ui
+          uri: lb://cart-service
+          predicates:
+            - Path=/cart-service/swagger-ui/**, /cart-service/swagger-ui.html
+          filters:
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
 
         # Review Service Routes
         - id: review-service
