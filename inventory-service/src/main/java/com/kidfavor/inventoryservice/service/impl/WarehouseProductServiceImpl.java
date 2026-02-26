@@ -3,6 +3,8 @@ package com.kidfavor.inventoryservice.service.impl;
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
+import com.kidfavor.inventoryservice.dto.WarehouseTransferRequest;
+import com.kidfavor.inventoryservice.dto.WarehouseTransferResponse;
 import com.kidfavor.inventoryservice.entity.Warehouse;
 import com.kidfavor.inventoryservice.entity.WarehouseProduct;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
@@ -18,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -193,5 +196,79 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
         return warehouseProductRepository.findByWarehouseAndProductId(warehouse, productId)
                 .map(WarehouseProduct::getQuantity)
                 .orElse(0);
+    }
+
+    @Override
+    @Transactional
+    public WarehouseTransferResponse transferBetweenWarehouses(WarehouseTransferRequest request) {
+        log.info("Transferring {} units of product {} from warehouse {} to warehouse {}", 
+                request.getQuantity(), request.getProductId(), 
+                request.getFromWarehouseId(), request.getToWarehouseId());
+
+        // Validate warehouses are different
+        if (request.getFromWarehouseId().equals(request.getToWarehouseId())) {
+            throw new IllegalArgumentException("Source and destination warehouses must be different");
+        }
+
+        // Get warehouses
+        Warehouse fromWarehouse = warehouseService.getWarehouseEntityById(request.getFromWarehouseId());
+        Warehouse toWarehouse = warehouseService.getWarehouseEntityById(request.getToWarehouseId());
+
+        // Get source warehouse product
+        WarehouseProduct fromProduct = warehouseProductRepository
+                .findByWarehouseAndProductId(fromWarehouse, request.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product " + request.getProductId() + " not found in source warehouse " + request.getFromWarehouseId()));
+
+        // Check if source has enough stock
+        if (fromProduct.getQuantity() < request.getQuantity()) {
+            throw new IllegalArgumentException(
+                    String.format("Insufficient stock in source warehouse. Available: %d, Requested: %d", 
+                            fromProduct.getQuantity(), request.getQuantity()));
+        }
+
+        // Get or create destination warehouse product
+        WarehouseProduct toProduct = warehouseProductRepository
+                .findByWarehouseAndProductId(toWarehouse, request.getProductId())
+                .orElse(WarehouseProduct.builder()
+                        .warehouse(toWarehouse)
+                        .productId(request.getProductId())
+                        .productName(fromProduct.getProductName())
+                        .quantity(0)
+                        .minStockLevel(fromProduct.getMinStockLevel())
+                        .maxStockLevel(fromProduct.getMaxStockLevel())
+                        .build());
+
+        // Update quantities
+        String currentUser = getCurrentUsername();
+        fromProduct.setQuantity(fromProduct.getQuantity() - request.getQuantity());
+        fromProduct.setUpdatedBy(currentUser);
+        
+        toProduct.setQuantity(toProduct.getQuantity() + request.getQuantity());
+        toProduct.setUpdatedBy(currentUser);
+
+        // Save both products
+        WarehouseProduct savedFromProduct = warehouseProductRepository.save(fromProduct);
+        WarehouseProduct savedToProduct = warehouseProductRepository.save(toProduct);
+
+        log.info("Transfer completed. Product {} - From warehouse {} remaining: {}, To warehouse {} new stock: {}", 
+                request.getProductId(), request.getFromWarehouseId(), savedFromProduct.getQuantity(),
+                request.getToWarehouseId(), savedToProduct.getQuantity());
+
+        // Build response
+        return WarehouseTransferResponse.builder()
+                .fromWarehouseId(fromWarehouse.getWarehouseId())
+                .fromWarehouseName(fromWarehouse.getWarehouseName())
+                .toWarehouseId(toWarehouse.getWarehouseId())
+                .toWarehouseName(toWarehouse.getWarehouseName())
+                .productId(request.getProductId())
+                .productName(fromProduct.getProductName())
+                .quantity(request.getQuantity())
+                .fromWarehouseRemainingStock(savedFromProduct.getQuantity())
+                .toWarehouseNewStock(savedToProduct.getQuantity())
+                .transferredBy(currentUser)
+                .transferredAt(LocalDateTime.now())
+                .notes(request.getNotes())
+                .build();
     }
 }

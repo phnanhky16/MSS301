@@ -1,6 +1,7 @@
 package com.kidfavor.inventoryservice.service.impl;
 
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
+import com.kidfavor.inventoryservice.dto.StoreAvailabilityResponse;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
 import com.kidfavor.inventoryservice.entity.Store;
@@ -192,5 +193,46 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         return storeInventoryRepository.findByStoreAndProductId(store, productId)
                 .map(StoreInventory::getQuantity)
                 .orElse(0);
+    }
+
+    @Override
+    public List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity) {
+        log.info("Checking availability for product {} with required quantity: {}", productId, requiredQuantity);
+        
+        // Get all store inventory for this product
+        List<StoreInventory> inventoryList = storeInventoryRepository.findByProductId(productId);
+        
+        if (inventoryList.isEmpty()) {
+            log.warn("Product {} not found in any store", productId);
+            return List.of();
+        }
+        
+        // Convert to availability response
+        return inventoryList.stream()
+                .map(inventory -> {
+                    Store store = inventory.getStore();
+                    boolean hasEnoughStock = inventory.getQuantity() >= requiredQuantity;
+                    
+                    return StoreAvailabilityResponse.builder()
+                            .storeId(store.getStoreId())
+                            .storeCode(store.getStoreCode())
+                            .storeName(store.getStoreName())
+                            .address(store.getAddress())
+                            .productId(productId)
+                            .productName(inventory.getProductName())
+                            .availableQuantity(inventory.getQuantity())
+                            .requestedQuantity(requiredQuantity)
+                            .hasEnoughStock(hasEnoughStock)
+                            .shelfLocation(inventory.getShelfLocation())
+                            .build();
+                })
+                .sorted((a, b) -> {
+                    // Sort by: 1. Has enough stock first, 2. Then by available quantity descending
+                    if (a.getHasEnoughStock() != b.getHasEnoughStock()) {
+                        return a.getHasEnoughStock() ? -1 : 1;
+                    }
+                    return b.getAvailableQuantity().compareTo(a.getAvailableQuantity());
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -1,6 +1,7 @@
 package com.kidfavor.inventoryservice.service;
 
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
+import com.kidfavor.inventoryservice.dto.StoreAvailabilityResponse;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
@@ -36,4 +37,6 @@ public interface StoreInventoryService {
     void removeInventory(Long storeId, Long productId);
     
     Integer getAvailableStock(Long storeId, Long productId);
+    
+    List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity);
 }

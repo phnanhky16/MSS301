@@ -4,6 +4,8 @@ import com.kidfavor.inventoryservice.dto.ResponseWrapper;
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
+import com.kidfavor.inventoryservice.dto.WarehouseTransferRequest;
+import com.kidfavor.inventoryservice.dto.WarehouseTransferResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.service.WarehouseProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -133,5 +135,19 @@ public class WarehouseProductController {
             @Parameter(description = "Product ID") @PathVariable Long productId) {
         warehouseProductService.removeProduct(warehouseId, productId);
         return ResponseEntity.ok(ResponseWrapper.success("Product removed successfully", null));
+    }
+
+    @PostMapping("/transfer")
+    @Operation(summary = "Transfer products between warehouses", 
+               description = "Transfer a specified quantity of a product from one warehouse to another")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Transfer completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request or insufficient stock"),
+        @ApiResponse(responseCode = "404", description = "Warehouse or product not found")
+    })
+    public ResponseEntity<ResponseWrapper<WarehouseTransferResponse>> transferBetweenWarehouses(
+            @Valid @RequestBody WarehouseTransferRequest request) {
+        WarehouseTransferResponse response = warehouseProductService.transferBetweenWarehouses(request);
+        return ResponseEntity.ok(ResponseWrapper.success("Transfer completed successfully", response));
     }
 }
