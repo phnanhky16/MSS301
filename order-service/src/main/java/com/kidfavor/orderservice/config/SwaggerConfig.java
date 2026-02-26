@@ -20,7 +20,7 @@ public class SwaggerConfig {
     public OpenAPI orderServiceOpenAPI() {
         // Gateway server should be first (default)
         Server gatewayServer = new Server();
-        gatewayServer.setUrl("http://localhost:8080/api");
+        gatewayServer.setUrl("http://localhost:8080/order-service");
         gatewayServer.setDescription("API Gateway Server");
 
         Server localServer = new Server();
