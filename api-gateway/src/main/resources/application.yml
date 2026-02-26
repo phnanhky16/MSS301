@@ -136,9 +136,25 @@ spring:
         - id: cart-service
           uri: lb://cart-service
           predicates:
-            - Path=/api/carts/**
+            - Path=/cart-service/**
           filters:
-            - StripPrefix=1
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
+
+        # Cart Service Swagger API Docs
+        - id: cart-service-api-docs
+          uri: lb://cart-service
+          predicates:
+            - Path=/cart-service/v3/api-docs, /cart-service/v3/api-docs/**
+          filters:
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
+
+        # Cart Service Swagger UI resources
+        - id: cart-service-swagger-ui
+          uri: lb://cart-service
+          predicates:
+            - Path=/cart-service/swagger-ui/**, /cart-service/swagger-ui.html
+          filters:
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
 
         # Review Service Routes
         - id: review-service
@@ -171,16 +187,10 @@ spring:
           issuer-uri: http://localhost:8180/realms/kidfavor
           jwk-set-uri: http://localhost:8180/realms/kidfavor/protocol/openid-connect/certs
 
-# explicitly configure CORS on the gateway so it does not send a wildcard
-# value. downstream services already perform CORS checks, so the gateway
-# should simply mirror the origin header when it proxies.  the filter below
-# will clean up any duplicates if they still occur.
-  webflux:
-    cors:
-      allowed-origins: "http://localhost:3000"
-      allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
-      allowed-headers: "*"
-      allow-credentials: true
+# the gateway no longer performs any per-route CORS configuration.  instead a
+# global filter adds a wildcard header on every response, effectively disabling
+# browser CORS restrictions during development.  downstream services should
+# not set CORS headers at all (they were cleaned up earlier).
 
 # Swagger/OpenAPI Configuration for Gateway aggregation
 springdoc:

@@ -1,4 +1,4 @@
-package com.kidfavor.reviewservice;
+package com.kidfavor.cartservice;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Contact;
@@ -8,27 +8,24 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.kafka.annotation.EnableKafka;
-import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @EnableFeignClients
 @EnableKafka
-@EnableAsync
 @OpenAPIDefinition(
     info = @Info(
-        title = "Review Service API",
+        title = "Cart Service API",
         version = "1.0",
-        description = "API for managing product reviews",
+        description = "API for managing shopping carts",
         contact = @Contact(name = "KidFavor Team", email = "support@kidfavor.com")
     ),
     servers = {
-        @Server(url = "http://localhost:8080/review-service", description = "API Gateway (Production)"),
-        @Server(url = "http://localhost:8086", description = "Review Service (Direct - Development)")
+        @Server(url = "http://localhost:8080/cart-service", description = "API Gateway"),
+        @Server(url = "http://localhost:8085", description = "Direct")
     }
 )
-public class ReviewServiceApplication {
-
+public class CartServiceApplication {
     public static void main(String[] args) {
-        SpringApplication.run(ReviewServiceApplication.class, args);
+        SpringApplication.run(CartServiceApplication.class, args);
     }
 }

@@ -19,12 +19,16 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         http
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeExchange(exchanges -> exchanges
-                        // All requests are permitted - let downstream services handle auth
-                        .anyExchange().permitAll()
-                );
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
+            // we no longer configure "cors" here; a dedicated global filter
+            // (AddCorsHeaderFilter) unconditionally injects a wildcard
+            // Access-Control-Allow-Origin header on every response.  keeping a
+            // cors() spec in security would actually trigger Spring's built-in
+            // CORS machinery and could conflict with the simple header we add.
+            .authorizeExchange(exchanges -> exchanges
+                // All requests are permitted - let downstream services handle auth
+                .anyExchange().permitAll()
+            );
 
         return http.build();
     }

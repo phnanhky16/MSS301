@@ -16,38 +16,12 @@ import java.util.List;
  * Allows cross-origin requests from Gateway and frontend applications.
  */
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
-
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(
-                        "http://localhost:8080",
-                        "http://localhost:8082",
-                        "http://localhost:3000",
-                        "http://127.0.0.1:8080",
-                        "http://127.0.0.1:8082",
-                        "*"
-                )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                .allowedHeaders("*")
-                .exposedHeaders("Authorization", "Content-Type")
-                .allowCredentials(false)
-                .maxAge(3600L);
-    }
-
-    @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
-        configuration.setAllowCredentials(false);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return new CorsFilter(source);
-    }
+public class WebConfig {
+    // CORS is not configured in individual services.  All cross-origin
+    // header handling is delegated to the API gateway; if this class were to
+    // register filters/mappings the gateway would receive duplicate
+    // Access-Control-Allow-Origin values and browsers would reject requests.
+    //
+    // The class remains present to satisfy any component-scan requirements, but
+    // it contains no active beans or overrides.
 }

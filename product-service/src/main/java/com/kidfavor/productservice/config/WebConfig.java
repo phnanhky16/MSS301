@@ -18,59 +18,18 @@ import java.util.List;
 @Configuration
 public class WebConfig {
 
+    // CORS handling has been moved to the API gateway; downstream services
+    // must not send their own Access-Control-Allow-Origin header.  The
+    // previous incarnation of this method returned `null`, which caused Spring
+    // to throw an IllegalStateException during start-up when it tried to
+    // register the bean.  Instead we register a disabled filter so that the
+    // bean exists but never executes, eliminating startup errors while still
+    // documenting the intended state.
     @Bean
     public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        
-        // Allow requests from these origins
-        corsConfiguration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:8080",      // API Gateway
-                "http://localhost:3000",      // React frontend
-                "http://localhost:4200",      // Angular frontend
-                "http://localhost:5173",      // Vite frontend
-                "http://127.0.0.1:8080",
-                "http://127.0.0.1:3000"
-        ));
-        
-        // Allow all origins in development (comment out in production)
-        corsConfiguration.setAllowedOriginPatterns(List.of("*"));
-        
-        // Allow these HTTP methods
-        corsConfiguration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"
-        ));
-        
-        // Allow these headers
-        corsConfiguration.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin",
-                "X-Requested-With",
-                "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
-        ));
-        
-        // Expose these headers to the client
-        corsConfiguration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "X-Total-Count",
-                "X-Page-Number",
-                "X-Page-Size"
-        ));
-        
-        // Allow credentials (cookies, authorization headers)
-        corsConfiguration.setAllowCredentials(true);
-        
-        // Cache preflight response for 1 hour
-        corsConfiguration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfiguration);
-        
-        FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        return bean;
+        FilterRegistrationBean<CorsFilter> registration = new FilterRegistrationBean<>(
+                new CorsFilter(new UrlBasedCorsConfigurationSource()));
+        registration.setEnabled(false);
+        return registration;
     }
 }

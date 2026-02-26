@@ -1,5 +1,5 @@
 server:
-  port: 8084
+  port: 8086
 
 spring:
   application:
@@ -66,9 +66,9 @@ springdoc:
     path: /swagger-ui.html
   # Server URL for API Gateway access
   servers:
-    - url: http://localhost:8080/api
+    - url: http://localhost:8080/review-service
       description: API Gateway (Production)
-    - url: http://localhost:8084
+    - url: http://localhost:8086
       description: Review Service (Direct - Development)
 
 # Kafka Topics
