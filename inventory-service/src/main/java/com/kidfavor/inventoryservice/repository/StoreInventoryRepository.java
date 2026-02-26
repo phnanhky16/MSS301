@@ -27,4 +27,18 @@ public interface StoreInventoryRepository extends JpaRepository<StoreInventory, 
     
     @Query("SELECT si FROM StoreInventory si WHERE si.store.storeId = :storeId AND si.quantity < si.minStockLevel")
     List<StoreInventory> findLowStockProductsByStore(@Param("storeId") Long storeId);
+    
+    // Out of stock products (quantity = 0)
+    @Query("SELECT si FROM StoreInventory si WHERE si.quantity = 0")
+    List<StoreInventory> findOutOfStockProducts();
+    
+    @Query("SELECT si FROM StoreInventory si WHERE si.store.storeId = :storeId AND si.quantity = 0")
+    List<StoreInventory> findOutOfStockProductsByStore(@Param("storeId") Long storeId);
+    
+    // In stock products (quantity >= minStockLevel)
+    @Query("SELECT si FROM StoreInventory si WHERE si.quantity >= si.minStockLevel")
+    List<StoreInventory> findInStockProducts();
+    
+    @Query("SELECT si FROM StoreInventory si WHERE si.store.storeId = :storeId AND si.quantity >= si.minStockLevel")
+    List<StoreInventory> findInStockProductsByStore(@Param("storeId") Long storeId);
 }

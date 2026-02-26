@@ -1,5 +1,6 @@
 package com.kidfavor.inventoryservice.entity;
 
+import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -48,5 +49,15 @@ public class StoreInventory {
     @PreUpdate
     public void updateLastUpdated() {
         this.lastUpdated = LocalDateTime.now();
+    }
+
+    public ProductStockStatus getStockStatus() {
+        if (quantity == null || quantity == 0) {
+            return ProductStockStatus.OUT_OF_STOCK;
+        }
+        if (minStockLevel != null && quantity < minStockLevel) {
+            return ProductStockStatus.LOW_STOCK;
+        }
+        return ProductStockStatus.IN_STOCK;
     }
 }

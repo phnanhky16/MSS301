@@ -27,4 +27,18 @@ public interface WarehouseProductRepository extends JpaRepository<WarehouseProdu
     
     @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.warehouse.warehouseId = :warehouseId AND wp.quantity < wp.minStockLevel")
     List<WarehouseProduct> findLowStockProductsByWarehouse(@Param("warehouseId") Long warehouseId);
+    
+    // Out of stock products (quantity = 0)
+    @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.quantity = 0")
+    List<WarehouseProduct> findOutOfStockProducts();
+    
+    @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.warehouse.warehouseId = :warehouseId AND wp.quantity = 0")
+    List<WarehouseProduct> findOutOfStockProductsByWarehouse(@Param("warehouseId") Long warehouseId);
+    
+    // In stock products (quantity >= minStockLevel)
+    @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.quantity >= wp.minStockLevel")
+    List<WarehouseProduct> findInStockProducts();
+    
+    @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.warehouse.warehouseId = :warehouseId AND wp.quantity >= wp.minStockLevel")
+    List<WarehouseProduct> findInStockProductsByWarehouse(@Param("warehouseId") Long warehouseId);
 }

@@ -5,6 +5,7 @@ import com.kidfavor.inventoryservice.dto.WarehouseProductRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
 import com.kidfavor.inventoryservice.entity.Warehouse;
 import com.kidfavor.inventoryservice.entity.WarehouseProduct;
+import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
 import com.kidfavor.inventoryservice.repository.WarehouseProductRepository;
@@ -69,6 +70,58 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
         return warehouseProductRepository.findLowStockProductsByWarehouse(warehouseId).stream()
                 .map(mapper::toWarehouseProductResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<WarehouseProductResponse> getOutOfStockProducts() {
+        log.info("Fetching out of stock products in all warehouses");
+        return warehouseProductRepository.findOutOfStockProducts().stream()
+                .map(mapper::toWarehouseProductResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<WarehouseProductResponse> getOutOfStockProductsByWarehouse(Long warehouseId) {
+        log.info("Fetching out of stock products in warehouse: {}", warehouseId);
+        return warehouseProductRepository.findOutOfStockProductsByWarehouse(warehouseId).stream()
+                .map(mapper::toWarehouseProductResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<WarehouseProductResponse> getInStockProducts() {
+        log.info("Fetching in stock products in all warehouses");
+        return warehouseProductRepository.findInStockProducts().stream()
+                .map(mapper::toWarehouseProductResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<WarehouseProductResponse> getInStockProductsByWarehouse(Long warehouseId) {
+        log.info("Fetching in stock products in warehouse: {}", warehouseId);
+        return warehouseProductRepository.findInStockProductsByWarehouse(warehouseId).stream()
+                .map(mapper::toWarehouseProductResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<WarehouseProductResponse> getProductsByStatus(ProductStockStatus status) {
+        log.info("Fetching products with status: {}", status);
+        return switch (status) {
+            case OUT_OF_STOCK -> getOutOfStockProducts();
+            case LOW_STOCK -> getLowStockProducts();
+            case IN_STOCK -> getInStockProducts();
+        };
+    }
+
+    @Override
+    public List<WarehouseProductResponse> getProductsByStatusAndWarehouse(Long warehouseId, ProductStockStatus status) {
+        log.info("Fetching products with status {} in warehouse: {}", status, warehouseId);
+        return switch (status) {
+            case OUT_OF_STOCK -> getOutOfStockProductsByWarehouse(warehouseId);
+            case LOW_STOCK -> getLowStockProductsByWarehouse(warehouseId);
+            case IN_STOCK -> getInStockProductsByWarehouse(warehouseId);
+        };
     }
 
     @Override

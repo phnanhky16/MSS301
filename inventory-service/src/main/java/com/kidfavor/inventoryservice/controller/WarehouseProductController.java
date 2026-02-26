@@ -4,6 +4,7 @@ import com.kidfavor.inventoryservice.dto.ResponseWrapper;
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
+import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.service.WarehouseProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -64,6 +65,29 @@ public class WarehouseProductController {
     public ResponseEntity<ResponseWrapper<List<WarehouseProductResponse>>> getLowStockProductsByWarehouse(@PathVariable Long warehouseId) {
         List<WarehouseProductResponse> products = warehouseProductService.getLowStockProductsByWarehouse(warehouseId);
         return ResponseEntity.ok(ResponseWrapper.success("Low stock products retrieved successfully", products));
+    }
+
+    @GetMapping("/{warehouseId}/out-of-stock")
+    @Operation(summary = "Get out of stock products in a warehouse")
+    public ResponseEntity<ResponseWrapper<List<WarehouseProductResponse>>> getOutOfStockProductsByWarehouse(@PathVariable Long warehouseId) {
+        List<WarehouseProductResponse> products = warehouseProductService.getOutOfStockProductsByWarehouse(warehouseId);
+        return ResponseEntity.ok(ResponseWrapper.success("Out of stock products retrieved successfully", products));
+    }
+
+    @GetMapping("/{warehouseId}/in-stock")
+    @Operation(summary = "Get in stock products in a warehouse")
+    public ResponseEntity<ResponseWrapper<List<WarehouseProductResponse>>> getInStockProductsByWarehouse(@PathVariable Long warehouseId) {
+        List<WarehouseProductResponse> products = warehouseProductService.getInStockProductsByWarehouse(warehouseId);
+        return ResponseEntity.ok(ResponseWrapper.success("In stock products retrieved successfully", products));
+    }
+
+    @GetMapping("/{warehouseId}/products/status/{status}")
+    @Operation(summary = "Get products by stock status in a warehouse", description = "Retrieve products by status: OUT_OF_STOCK, LOW_STOCK, or IN_STOCK")
+    public ResponseEntity<ResponseWrapper<List<WarehouseProductResponse>>> getProductsByStatus(
+            @Parameter(description = "Warehouse ID") @PathVariable Long warehouseId,
+            @Parameter(description = "Stock status (OUT_OF_STOCK, LOW_STOCK, IN_STOCK)") @PathVariable ProductStockStatus status) {
+        List<WarehouseProductResponse> products = warehouseProductService.getProductsByStatusAndWarehouse(warehouseId, status);
+        return ResponseEntity.ok(ResponseWrapper.success("Products with status " + status + " retrieved successfully", products));
     }
 
     @PostMapping("/{warehouseId}/products")

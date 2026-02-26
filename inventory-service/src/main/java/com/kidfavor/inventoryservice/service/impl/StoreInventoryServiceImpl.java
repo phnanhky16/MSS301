@@ -5,6 +5,7 @@ import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
 import com.kidfavor.inventoryservice.entity.Store;
 import com.kidfavor.inventoryservice.entity.StoreInventory;
+import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
 import com.kidfavor.inventoryservice.repository.StoreInventoryRepository;
@@ -69,6 +70,58 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         return storeInventoryRepository.findLowStockProductsByStore(storeId).stream()
                 .map(mapper::toStoreInventoryResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StoreInventoryResponse> getOutOfStockProducts() {
+        log.info("Fetching out of stock products in all stores");
+        return storeInventoryRepository.findOutOfStockProducts().stream()
+                .map(mapper::toStoreInventoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StoreInventoryResponse> getOutOfStockProductsByStore(Long storeId) {
+        log.info("Fetching out of stock products in store: {}", storeId);
+        return storeInventoryRepository.findOutOfStockProductsByStore(storeId).stream()
+                .map(mapper::toStoreInventoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StoreInventoryResponse> getInStockProducts() {
+        log.info("Fetching in stock products in all stores");
+        return storeInventoryRepository.findInStockProducts().stream()
+                .map(mapper::toStoreInventoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StoreInventoryResponse> getInStockProductsByStore(Long storeId) {
+        log.info("Fetching in stock products in store: {}", storeId);
+        return storeInventoryRepository.findInStockProductsByStore(storeId).stream()
+                .map(mapper::toStoreInventoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StoreInventoryResponse> getProductsByStatus(ProductStockStatus status) {
+        log.info("Fetching products with status: {}", status);
+        return switch (status) {
+            case OUT_OF_STOCK -> getOutOfStockProducts();
+            case LOW_STOCK -> getLowStockProducts();
+            case IN_STOCK -> getInStockProducts();
+        };
+    }
+
+    @Override
+    public List<StoreInventoryResponse> getProductsByStatusAndStore(Long storeId, ProductStockStatus status) {
+        log.info("Fetching products with status {} in store: {}", status, storeId);
+        return switch (status) {
+            case OUT_OF_STOCK -> getOutOfStockProductsByStore(storeId);
+            case LOW_STOCK -> getLowStockProductsByStore(storeId);
+            case IN_STOCK -> getInStockProductsByStore(storeId);
+        };
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.kidfavor.inventoryservice.dto.ResponseWrapper;
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
+import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -64,6 +65,29 @@ public class StoreInventoryController {
     public ResponseEntity<ResponseWrapper<List<StoreInventoryResponse>>> getLowStockProductsByStore(@PathVariable Long storeId) {
         List<StoreInventoryResponse> products = storeInventoryService.getLowStockProductsByStore(storeId);
         return ResponseEntity.ok(ResponseWrapper.success("Low stock products retrieved successfully", products));
+    }
+
+    @GetMapping("/{storeId}/out-of-stock")
+    @Operation(summary = "Get out of stock products in a store")
+    public ResponseEntity<ResponseWrapper<List<StoreInventoryResponse>>> getOutOfStockProductsByStore(@PathVariable Long storeId) {
+        List<StoreInventoryResponse> products = storeInventoryService.getOutOfStockProductsByStore(storeId);
+        return ResponseEntity.ok(ResponseWrapper.success("Out of stock products retrieved successfully", products));
+    }
+
+    @GetMapping("/{storeId}/in-stock")
+    @Operation(summary = "Get in stock products in a store")
+    public ResponseEntity<ResponseWrapper<List<StoreInventoryResponse>>> getInStockProductsByStore(@PathVariable Long storeId) {
+        List<StoreInventoryResponse> products = storeInventoryService.getInStockProductsByStore(storeId);
+        return ResponseEntity.ok(ResponseWrapper.success("In stock products retrieved successfully", products));
+    }
+
+    @GetMapping("/{storeId}/inventory/status/{status}")
+    @Operation(summary = "Get products by stock status in a store", description = "Retrieve products by status: OUT_OF_STOCK, LOW_STOCK, or IN_STOCK")
+    public ResponseEntity<ResponseWrapper<List<StoreInventoryResponse>>> getProductsByStatus(
+            @Parameter(description = "Store ID") @PathVariable Long storeId,
+            @Parameter(description = "Stock status (OUT_OF_STOCK, LOW_STOCK, IN_STOCK)") @PathVariable ProductStockStatus status) {
+        List<StoreInventoryResponse> products = storeInventoryService.getProductsByStatusAndStore(storeId, status);
+        return ResponseEntity.ok(ResponseWrapper.success("Products with status " + status + " retrieved successfully", products));
     }
 
     @PostMapping("/{storeId}/inventory")

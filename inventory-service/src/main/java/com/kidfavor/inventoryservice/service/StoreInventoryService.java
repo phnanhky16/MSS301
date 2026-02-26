@@ -3,6 +3,7 @@ package com.kidfavor.inventoryservice.service;
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
+import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 
 import java.util.List;
 
@@ -15,6 +16,18 @@ public interface StoreInventoryService {
     List<StoreInventoryResponse> getLowStockProducts();
     
     List<StoreInventoryResponse> getLowStockProductsByStore(Long storeId);
+    
+    List<StoreInventoryResponse> getOutOfStockProducts();
+    
+    List<StoreInventoryResponse> getOutOfStockProductsByStore(Long storeId);
+    
+    List<StoreInventoryResponse> getInStockProducts();
+    
+    List<StoreInventoryResponse> getInStockProductsByStore(Long storeId);
+    
+    List<StoreInventoryResponse> getProductsByStatus(ProductStockStatus status);
+    
+    List<StoreInventoryResponse> getProductsByStatusAndStore(Long storeId, ProductStockStatus status);
     
     StoreInventoryResponse addOrUpdateInventory(StoreInventoryRequest request);
     
