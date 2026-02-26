@@ -86,6 +86,7 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
                         .build());
 
         warehouseProduct.setQuantity(request.getQuantity());
+        warehouseProduct.setProductName(request.getProductName());
         warehouseProduct.setMinStockLevel(request.getMinStockLevel());
         warehouseProduct.setMaxStockLevel(request.getMaxStockLevel());
         warehouseProduct.setLocationCode(request.getLocationCode());

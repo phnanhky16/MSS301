@@ -75,14 +75,9 @@ public class InventoryMapper {
 
     public WarehouseProductResponse toWarehouseProductResponse(WarehouseProduct wp) {
         return WarehouseProductResponse.builder()
-                .id(wp.getId())
-                .warehouseId(wp.getWarehouse().getWarehouseId())
-                .warehouseCode(wp.getWarehouse().getWarehouseCode())
-                .warehouseName(wp.getWarehouse().getWarehouseName())
                 .productId(wp.getProductId())
+                .productName(wp.getProductName())
                 .quantity(wp.getQuantity())
-                .minStockLevel(wp.getMinStockLevel())
-                .maxStockLevel(wp.getMaxStockLevel())
                 .locationCode(wp.getLocationCode())
                 .updatedBy(wp.getUpdatedBy())
                 .lastUpdated(wp.getLastUpdated())
@@ -91,13 +86,9 @@ public class InventoryMapper {
 
     public StoreInventoryResponse toStoreInventoryResponse(StoreInventory si) {
         return StoreInventoryResponse.builder()
-                .id(si.getId())
-                .storeId(si.getStore().getStoreId())
-                .storeCode(si.getStore().getStoreCode())
-                .storeName(si.getStore().getStoreName())
                 .productId(si.getProductId())
+                .productName(si.getProductName())
                 .quantity(si.getQuantity())
-                .minStockLevel(si.getMinStockLevel())
                 .shelfLocation(si.getShelfLocation())
                 .updatedBy(si.getUpdatedBy())
                 .lastUpdated(si.getLastUpdated())

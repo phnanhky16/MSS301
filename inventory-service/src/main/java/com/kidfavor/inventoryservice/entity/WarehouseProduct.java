@@ -26,6 +26,9 @@ public class WarehouseProduct {
     @Column(name = "product_id", nullable = false)
     private Long productId;
 
+    @Column(name = "product_name", length = 255)
+    private String productName;
+
     @Column(name = "quantity", nullable = false)
     private Integer quantity = 0;
 

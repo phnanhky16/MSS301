@@ -10,14 +10,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class WarehouseProductResponse {
-    private Long id;
-    private Long warehouseId;
-    private String warehouseCode;
-    private String warehouseName;
     private Long productId;
+    private String productName;
     private Integer quantity;
-    private Integer minStockLevel;
-    private Integer maxStockLevel;
     private String locationCode;
     private String updatedBy;
     private LocalDateTime lastUpdated;

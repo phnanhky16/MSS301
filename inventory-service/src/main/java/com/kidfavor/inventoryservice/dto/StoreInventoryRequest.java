@@ -16,6 +16,9 @@ public class StoreInventoryRequest {
     @NotNull(message = "Product ID is required")
     private Long productId;
 
+    @Size(max = 255, message = "Product name must not exceed 255 characters")
+    private String productName;
+
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity must be non-negative")
     private Integer quantity;

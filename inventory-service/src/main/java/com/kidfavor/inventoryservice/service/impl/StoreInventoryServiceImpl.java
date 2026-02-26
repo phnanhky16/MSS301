@@ -86,6 +86,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                         .build());
 
         storeInventory.setQuantity(request.getQuantity());
+        storeInventory.setProductName(request.getProductName());
         storeInventory.setMinStockLevel(request.getMinStockLevel());
         storeInventory.setShelfLocation(request.getShelfLocation());
         storeInventory.setUpdatedBy(getCurrentUsername());
