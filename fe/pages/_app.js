@@ -7,11 +7,14 @@ import AdminLayout from '../components/AdminLayout';
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const isAdmin = router.pathname.startsWith('/admin');
+  const isLogin = router.pathname === '/login';
   const Wrapper = isAdmin ? AdminLayout : Layout;
   return (
-    <Wrapper>
-      <Component {...pageProps} />
-    </Wrapper>
+    <>
+      <Wrapper isLogin={isLogin}>
+        <Component {...pageProps} />
+      </Wrapper>
+    </>
   );
 }
 

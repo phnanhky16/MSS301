@@ -92,7 +92,19 @@ export default function ProductsPage() {
             updateProductStatus(record.id, { status: newStatus })
               .then(() => {
                 message.success('Status updated');
-                load();
+                  // instead of reloading the entire page we just update the
+                  // state for this row.  calling `load()` causes the table to
+                  // refetch from the server and therefore re‑sort/paginate the
+                  // results; on older items this often meant the row would
+                  // disappear from the current page and show up at the end of
+                  // the dataset (seen as "moved to the last page").  when all
+                  // statuses are requested we don't care about the backend
+                  // filtering so there's no need to refetch at all.
+                  setProducts(prev =>
+                    prev.map(p =>
+                      p.id === record.id ? { ...p, status: newStatus } : p
+                    )
+                  );
               })
               .catch(() => message.error('Update failed'));
           }}
