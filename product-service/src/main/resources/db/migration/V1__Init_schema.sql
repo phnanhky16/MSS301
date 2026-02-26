@@ -35,7 +35,6 @@ CREATE TABLE products (
     price DECIMAL(19,2) NOT NULL,
     category_id BIGINT,
     brand_id BIGINT,
-    stock INTEGER DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     status_changed_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -110,45 +109,45 @@ INSERT INTO categories (name, description, parent_id, status, created_at, update
 
 -- Insert Products
 -- Educational Toys
-INSERT INTO products (name, description, price, category_id, brand_id, stock, status, created_at, updated_at) VALUES
-('Laugh & Learn Smart Stages Puppy', 'Interactive learning toy that teaches first words, letters, and numbers', 29.99, 6, 1, 50, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('VTech Touch and Learn Activity Desk', 'Interactive desk with activities for letters, numbers, and music', 89.99, 6, 8, 25, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Melissa & Doug Wooden Building Blocks', 'Classic wooden blocks set with 100 pieces', 34.99, 6, 7, 40, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
+('Laugh & Learn Smart Stages Puppy', 'Interactive learning toy that teaches first words, letters, and numbers', 29.99, 6, 1, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('VTech Touch and Learn Activity Desk', 'Interactive desk with activities for letters, numbers, and music', 89.99, 6, 8, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Melissa & Doug Wooden Building Blocks', 'Classic wooden blocks set with 100 pieces', 34.99, 6, 7, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Building Blocks
-INSERT INTO products (name, description, price, category_id, brand_id, stock, status, created_at, updated_at) VALUES
-('LEGO Classic Large Creative Brick Box', '790 pieces of colorful LEGO bricks for creative building', 59.99, 7, 2, 60, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('LEGO DUPLO My First Number Train', 'Learning toy for toddlers to learn numbers', 24.99, 7, 2, 45, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('LEGO City Fire Station', 'Complete fire station set with vehicles and figures', 89.99, 7, 2, 30, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
+('LEGO Classic Large Creative Brick Box', '790 pieces of colorful LEGO bricks for creative building', 59.99, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('LEGO DUPLO My First Number Train', 'Learning toy for toddlers to learn numbers', 24.99, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('LEGO City Fire Station', 'Complete fire station set with vehicles and figures', 89.99, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Stuffed Animals
-INSERT INTO products (name, description, price, category_id, brand_id, stock, status, created_at, updated_at) VALUES
-('Fisher-Price Soothe & Glow Seahorse', 'Soft plush seahorse with soothing music and lights', 19.99, 8, 1, 55, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Melissa & Doug Giant Teddy Bear', 'Large stuffed teddy bear, perfect for hugs', 44.99, 8, 7, 20, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
+('Fisher-Price Soothe & Glow Seahorse', 'Soft plush seahorse with soothing music and lights', 19.99, 8, 1, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Melissa & Doug Giant Teddy Bear', 'Large stuffed teddy bear, perfect for hugs', 44.99, 8, 7, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Diapers
-INSERT INTO products (name, description, price, category_id, brand_id, stock, status, created_at, updated_at) VALUES
-('Pampers Swaddlers Newborn Diapers Size 1', 'Soft and absorbent diapers for newborns, 198 count', 49.99, 9, 3, 100, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Pampers Baby Dry Size 3', 'Overnight protection diapers, 162 count', 44.99, 9, 3, 85, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Huggies Little Snugglers Size 2', 'Gentle care diapers for sensitive skin, 180 count', 47.99, 9, 4, 90, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Huggies Pull-Ups Training Pants', 'Training pants for potty training, 84 count', 34.99, 9, 4, 70, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
+('Pampers Swaddlers Newborn Diapers Size 1', 'Soft and absorbent diapers for newborns, 198 count', 49.99, 9, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Pampers Baby Dry Size 3', 'Overnight protection diapers, 162 count', 44.99, 9, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Huggies Little Snugglers Size 2', 'Gentle care diapers for sensitive skin, 180 count', 47.99, 9, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Huggies Pull-Ups Training Pants', 'Training pants for potty training, 84 count', 34.99, 9, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Baby Wipes
-INSERT INTO products (name, description, price, category_id, brand_id, stock, status, created_at, updated_at) VALUES
-('Pampers Sensitive Water Baby Wipes', 'Gentle and hypoallergenic wipes, 9 packs (576 total)', 24.99, 10, 3, 120, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Huggies Natural Care Baby Wipes', 'Thick and gentle wipes, 8 packs (560 total)', 22.99, 10, 4, 110, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
+('Pampers Sensitive Water Baby Wipes', 'Gentle and hypoallergenic wipes, 9 packs (576 total)', 24.99, 10, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Huggies Natural Care Baby Wipes', 'Thick and gentle wipes, 8 packs (560 total)', 22.99, 10, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Baby Bottles
-INSERT INTO products (name, description, price, category_id, brand_id, stock, status, created_at, updated_at) VALUES
-('Chicco Natural Feeling Bottle Set', 'Anti-colic bottles with natural nipple, 4-pack', 29.99, 11, 6, 65, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Chicco Well-Being Silicone Bottle', 'Silicone feeding bottle with physiological nipple', 19.99, 11, 6, 75, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
+('Chicco Natural Feeling Bottle Set', 'Anti-colic bottles with natural nipple, 4-pack', 29.99, 11, 6, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Chicco Well-Being Silicone Bottle', 'Silicone feeding bottle with physiological nipple', 19.99, 11, 6, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Baby Formula & Food
-INSERT INTO products (name, description, price, category_id, brand_id, stock, status, created_at, updated_at) VALUES
-('Gerber Good Start Gentle Infant Formula', 'Easy-to-digest infant formula, 12.7 oz', 32.99, 12, 5, 80, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Gerber 1st Foods Banana Baby Food', 'Single ingredient banana puree, 6 jars', 6.99, 13, 5, 150, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Gerber 2nd Foods Variety Pack', 'Mixed vegetables and fruits, 12 jars', 14.99, 13, 5, 100, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Gerber Puffs Cereal Snack', 'Melt-in-mouth snacks for babies, 4 pack', 12.99, 13, 5, 95, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
+('Gerber Good Start Gentle Infant Formula', 'Easy-to-digest infant formula, 12.7 oz', 32.99, 12, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Gerber 1st Foods Banana Baby Food', 'Single ingredient banana puree, 6 jars', 6.99, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Gerber 2nd Foods Variety Pack', 'Mixed vegetables and fruits, 12 jars', 14.99, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Gerber Puffs Cereal Snack', 'Melt-in-mouth snacks for babies, 4 pack', 12.99, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Insert Product Images
 -- Educational Toys Images
