@@ -137,88 +137,87 @@ public class DataInitializer implements CommandLineRunner {
         // Milk & Formula Products
         createProduct("Similac Pro-Advance Stage 1", 
                 "Premium infant formula with 2'-FL HMO for immune support, 0-12 months",
-                new BigDecimal("450000"), milkFormula, abbott, 100);
+                new BigDecimal("450000"), milkFormula, abbott);
         createProduct("Similac Pro-Sensitive Stage 1",
                 "Formula for sensitive tummies with 2'-FL HMO, 0-12 months",
-                new BigDecimal("480000"), milkFormula, abbott, 75);
+                new BigDecimal("480000"), milkFormula, abbott);
         createProduct("NAN Optipro 1",
                 "Premium infant formula with optimized protein, 0-6 months",
-                new BigDecimal("420000"), milkFormula, nestle, 120);
+                new BigDecimal("420000"), milkFormula, nestle);
         createProduct("NAN Optipro 2",
                 "Follow-on formula for growing babies, 6-12 months",
-                new BigDecimal("380000"), milkFormula, nestle, 90);
+                new BigDecimal("380000"), milkFormula, nestle);
         createProduct("Similac Gain Plus Stage 3",
                 "Growing up milk for toddlers 1-3 years with brain development nutrients",
-                new BigDecimal("520000"), milkFormula, abbott, 60);
+                new BigDecimal("520000"), milkFormula, abbott);
 
         // Diapers Products
         createProduct("Pampers Premium Care Size M",
                 "Ultra-soft diapers with air channels, 52 pcs, 6-11kg",
-                new BigDecimal("320000"), diapers, pampers, 200);
+                new BigDecimal("320000"), diapers, pampers);
         createProduct("Pampers Premium Care Size L",
                 "Ultra-soft diapers with air channels, 46 pcs, 9-14kg",
-                new BigDecimal("340000"), diapers, pampers, 180);
+                new BigDecimal("340000"), diapers, pampers);
         createProduct("Huggies Natural Soft Size M",
                 "Natural cotton soft diapers, 56 pcs, 5-10kg",
-                new BigDecimal("290000"), diapers, huggies, 150);
+                new BigDecimal("290000"), diapers, huggies);
         createProduct("Huggies Natural Soft Size L",
                 "Natural cotton soft diapers, 48 pcs, 9-14kg",
-                new BigDecimal("310000"), diapers, huggies, 140);
+                new BigDecimal("310000"), diapers, huggies);
         createProduct("Pampers Baby Wipes Sensitive",
                 "Gentle cleansing wipes for sensitive skin, 80 pcs",
-                new BigDecimal("85000"), diapers, pampers, 300);
+                new BigDecimal("85000"), diapers, pampers);
 
         // Feeding Products
         createProduct("Pigeon SofTouch Wide Neck Bottle 160ml",
                 "Anti-colic bottle with natural latch nipple",
-                new BigDecimal("180000"), feeding, pigeon, 80);
+                new BigDecimal("180000"), feeding, pigeon);
         createProduct("Pigeon SofTouch Wide Neck Bottle 240ml",
                 "Anti-colic bottle with natural latch nipple, larger size",
-                new BigDecimal("200000"), feeding, pigeon, 70);
+                new BigDecimal("200000"), feeding, pigeon);
         createProduct("Pigeon Silicone Pacifier S",
                 "Orthodontic silicone pacifier for 0-5 months",
-                new BigDecimal("75000"), feeding, pigeon, 120);
+                new BigDecimal("75000"), feeding, pigeon);
         createProduct("Pigeon Breast Pump Manual",
                 "Comfortable manual breast pump with soft cushion",
-                new BigDecimal("650000"), feeding, pigeon, 40);
+                new BigDecimal("650000"), feeding, pigeon);
 
         // Bath & Skincare Products
         createProduct("Johnson's Baby Shampoo 500ml",
                 "No more tears formula, gentle for daily use",
-                new BigDecimal("95000"), bathing, johnson, 150);
+                new BigDecimal("95000"), bathing, johnson);
         createProduct("Johnson's Baby Lotion 200ml",
                 "24-hour moisturizing lotion for baby's delicate skin",
-                new BigDecimal("85000"), bathing, johnson, 160);
+                new BigDecimal("85000"), bathing, johnson);
         createProduct("Johnson's Baby Bath 500ml",
                 "Gentle cleansing for baby's head to toe",
-                new BigDecimal("110000"), bathing, johnson, 140);
+                new BigDecimal("110000"), bathing, johnson);
         createProduct("Johnson's Baby Oil 200ml",
                 "Pure mineral oil for baby massage",
-                new BigDecimal("75000"), bathing, johnson, 130);
+                new BigDecimal("75000"), bathing, johnson);
 
         // Toys Products
         createProduct("Fisher-Price Laugh & Learn Smart Stages Chair",
                 "Interactive learning chair with songs and phrases, 12m+",
-                new BigDecimal("890000"), toys, fisher, 30);
+                new BigDecimal("890000"), toys, fisher);
         createProduct("Fisher-Price Rock-a-Stack",
                 "Classic stacking rings toy for motor skill development, 6m+",
-                new BigDecimal("180000"), toys, fisher, 50);
+                new BigDecimal("180000"), toys, fisher);
         createProduct("Fisher-Price Baby's First Blocks",
                 "Colorful blocks for shape sorting, 6m+",
-                new BigDecimal("220000"), toys, fisher, 45);
+                new BigDecimal("220000"), toys, fisher);
 
         log.info("Created {} products", productRepository.count());
     }
 
     private Product createProduct(String name, String description, BigDecimal price, 
-                                   Category category, Brand brand, Integer stock) {
+                                   Category category, Brand brand) {
         Product product = new Product();
         product.setName(name);
         product.setDescription(description);
         product.setPrice(price);
         product.setCategory(category);
         product.setBrand(brand);
-        product.setStock(stock);
         product.setStatus(EntityStatus.ACTIVE);
         return productRepository.save(product);
     }

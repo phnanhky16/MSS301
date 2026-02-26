@@ -32,9 +32,6 @@ public class Product {
     @Column(nullable = false)
     private BigDecimal price;
     
-    @Column(nullable = false)
-    private Integer stock = 0;
-    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EntityStatus status = EntityStatus.ACTIVE;

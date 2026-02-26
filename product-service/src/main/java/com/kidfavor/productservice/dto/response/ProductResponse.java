@@ -20,7 +20,6 @@ public class ProductResponse {
     private String name;
     private String description;
     private BigDecimal price;
-    private Integer stock;
     private EntityStatus status;
     private LocalDateTime statusChangedAt;
     private CategoryResponse category;
