@@ -2,6 +2,8 @@ package com.kidfavor.orderservice.service.impl;
 
 import com.kidfavor.orderservice.client.ProductServiceClient;
 import com.kidfavor.orderservice.client.UserServiceClient;
+import com.kidfavor.orderservice.client.dto.ApiResponse;
+import com.kidfavor.orderservice.client.dto.EntityStatus;
 import com.kidfavor.orderservice.client.dto.ProductDto;
 import com.kidfavor.orderservice.client.dto.UserDto;
 import com.kidfavor.orderservice.dto.request.CreateOrderRequest;
@@ -87,13 +89,22 @@ public class OrderServiceImpl implements OrderService {
         // Step 4: Calculate total amount
         order.calculateTotalAmount();
 
-        // Step 4b: apply coupon if provided
-        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
-            BigDecimal discount = couponService.applyCoupon(request.getCouponCode(), order.getTotalAmount());
-            order.setCouponCode(request.getCouponCode());
-            order.setDiscountAmount(discount);
-            // recalc after discount
-            order.calculateTotalAmount();
+        // Step 4b: apply coupon if provided (skip if null, empty, or "string" default value)
+        if (request.getCouponCode() != null 
+                && !request.getCouponCode().isBlank() 
+                && !request.getCouponCode().equalsIgnoreCase("string")) {
+            try {
+                BigDecimal discount = couponService.applyCoupon(request.getCouponCode(), order.getTotalAmount());
+                order.setCouponCode(request.getCouponCode());
+                order.setDiscountAmount(discount);
+                // recalc after discount
+                order.calculateTotalAmount();
+                log.info("Coupon {} applied successfully. Discount: {}", request.getCouponCode(), discount);
+            } catch (Exception e) {
+                log.warn("Failed to apply coupon {}: {}. Order will proceed without discount.", 
+                        request.getCouponCode(), e.getMessage());
+                // Continue without coupon - don't fail the order
+            }
         }
 
         // Step 5: Persist order atomically
@@ -266,11 +277,12 @@ public class OrderServiceImpl implements OrderService {
                 .map(this::fetchAndValidateProduct)
                 .collect(Collectors.toMap(ProductDto::getId, Function.identity()));
 
+        // TODO: Stock validation should be done via inventory-service
         // Validate stock for each item
-        for (OrderItemRequest item : items) {
-            ProductDto product = productMap.get(item.getProductId());
-            validateStock(product, item.getQuantity());
-        }
+        // for (OrderItemRequest item : items) {
+        //     ProductDto product = productMap.get(item.getProductId());
+        //     validateStock(product, item.getQuantity());
+        // }
 
         log.debug("All products validated successfully");
         return productMap;
@@ -287,35 +299,37 @@ public class OrderServiceImpl implements OrderService {
         // ProductServiceClient sẽ throw exception nếu:
         // - Product Service không available -> ProductServiceUnavailableException
         // - Product không tồn tại -> ProductNotFoundException (từ ErrorDecoder)
-        ProductDto product = productServiceClient.getProductById(productId);
+        ApiResponse<ProductDto> response = productServiceClient.getProductById(productId);
         
-        // Null check phòng trường hợp response rỗng
-        if (product == null) {
+        // Validate response
+        if (response == null || response.getData() == null) {
             throw new ProductNotFoundException(productId);
         }
+        
+        ProductDto product = response.getData();
 
         // Validate product is active
-        if (product.getActive() == null || !product.getActive()) {
+        if (product.getStatus() == null || product.getStatus() != EntityStatus.ACTIVE) {
             throw new ProductInactiveException(productId);
         }
-
         return product;
     }
 
     /**
      * Validates that sufficient stock is available for the requested quantity.
+     * TODO: This should call inventory-service instead of checking product stock
      */
-    private void validateStock(ProductDto product, Integer requestedQuantity) {
-        Integer availableStock = product.getStock() != null ? product.getStock() : 0;
-        
-        if (availableStock < requestedQuantity) {
-            throw new InsufficientStockException(
-                    product.getId(), 
-                    requestedQuantity, 
-                    availableStock
-            );
-        }
-    }
+    // private void validateStock(ProductDto product, Integer requestedQuantity) {
+    //     Integer availableStock = product.getStock() != null ? product.getStock() : 0;
+    //     
+    //     if (availableStock < requestedQuantity) {
+    //         throw new InsufficientStockException(
+    //                 product.getId(), 
+    //                 requestedQuantity, 
+    //                 availableStock
+    //         );
+    //     }
+    // }
 
     /**
      * Validates that the user exists and is active. Returns the fetched UserDto.

@@ -1,5 +1,6 @@
 package com.kidfavor.productservice.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kidfavor.productservice.enums.EntityStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,4 +28,12 @@ public class ProductResponse {
     private List<String> imageUrls;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    /**
+     * Computed field for backward compatibility with order-service.
+     * Returns true if status is ACTIVE, false otherwise.
+     */
+    public Boolean getActive() {
+        return status == EntityStatus.ACTIVE;
+    }
 }

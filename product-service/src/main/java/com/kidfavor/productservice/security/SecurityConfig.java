@@ -40,6 +40,9 @@ public class SecurityConfig {
                         // Actuator - public
                         .requestMatchers("/actuator/**").permitAll()
                         
+                        // Internal endpoints - public (for microservice communication)
+                        .requestMatchers("/internal/**").permitAll()
+                        
                         // OPTIONS - permit all for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
