@@ -22,6 +22,12 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
+        // Gateway server - use this when accessing via Swagger UI through API Gateway
+        Server gatewayServer = new Server();
+        gatewayServer.setUrl("http://localhost:8080/product-service");
+        gatewayServer.setDescription("API Gateway Server");
+        
+        // Direct server - for direct service access
         Server localServer = new Server();
         localServer.setUrl("http://localhost:" + serverPort);
         localServer.setDescription("Local Development Server");
@@ -55,7 +61,7 @@ public class OpenApiConfig {
 
         return new OpenAPI()
                 .info(info)
-                .servers(List.of(localServer))
+                .servers(List.of(gatewayServer, localServer))
                 .components(new Components().addSecuritySchemes("Bearer Authentication", securityScheme))
                 .addSecurityItem(securityRequirement);
     }

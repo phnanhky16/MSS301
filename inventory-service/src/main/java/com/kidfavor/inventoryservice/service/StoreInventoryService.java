@@ -1,8 +1,11 @@
 package com.kidfavor.inventoryservice.service;
 
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
+import com.kidfavor.inventoryservice.dto.StoreAvailabilityResponse;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
+import com.kidfavor.inventoryservice.dto.StoreRestockRequest;
+import com.kidfavor.inventoryservice.dto.StoreRestockResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 
 import java.util.List;
@@ -36,4 +39,8 @@ public interface StoreInventoryService {
     void removeInventory(Long storeId, Long productId);
     
     Integer getAvailableStock(Long storeId, Long productId);
+    
+    List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity);
+    
+    StoreRestockResponse restockFromWarehouse(StoreRestockRequest request);
 }

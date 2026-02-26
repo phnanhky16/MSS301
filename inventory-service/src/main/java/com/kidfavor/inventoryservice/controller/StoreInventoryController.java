@@ -2,8 +2,11 @@ package com.kidfavor.inventoryservice.controller;
 
 import com.kidfavor.inventoryservice.dto.ResponseWrapper;
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
+import com.kidfavor.inventoryservice.dto.StoreAvailabilityResponse;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
+import com.kidfavor.inventoryservice.dto.StoreRestockRequest;
+import com.kidfavor.inventoryservice.dto.StoreRestockResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -133,5 +136,36 @@ public class StoreInventoryController {
             @Parameter(description = "Product ID") @PathVariable Long productId) {
         storeInventoryService.removeInventory(storeId, productId);
         return ResponseEntity.ok(ResponseWrapper.success("Inventory removed successfully", null));
+    }
+
+    @GetMapping("/availability")
+    @Operation(summary = "Check which stores have a product in stock",
+               description = "Find all stores that have a specific product and check if they have enough quantity. Returns stores sorted by: 1. Has enough stock first, 2. Available quantity descending")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Store availability retrieved successfully")
+    })
+    public ResponseEntity<ResponseWrapper<List<StoreAvailabilityResponse>>> checkStoreAvailability(
+            @Parameter(description = "Product ID to check", required = true) 
+            @RequestParam Long productId,
+            @Parameter(description = "Required quantity", required = true) 
+            @RequestParam Integer requiredQuantity) {
+        List<StoreAvailabilityResponse> availability = storeInventoryService.checkStoreAvailability(productId, requiredQuantity);
+        return ResponseEntity.ok(ResponseWrapper.success(
+                String.format("Found %d store(s) with product %d", availability.size(), productId), 
+                availability));
+    }
+
+    @PostMapping("/restock")
+    @Operation(summary = "Restock store from warehouse", 
+               description = "Transfer products from warehouse to store. This will decrease warehouse stock and increase store stock.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Restock completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request or insufficient stock"),
+        @ApiResponse(responseCode = "404", description = "Warehouse, store, or product not found")
+    })
+    public ResponseEntity<ResponseWrapper<StoreRestockResponse>> restockFromWarehouse(
+            @Valid @RequestBody StoreRestockRequest request) {
+        StoreRestockResponse response = storeInventoryService.restockFromWarehouse(request);
+        return ResponseEntity.ok(ResponseWrapper.success("Store restocked successfully", response));
     }
 }

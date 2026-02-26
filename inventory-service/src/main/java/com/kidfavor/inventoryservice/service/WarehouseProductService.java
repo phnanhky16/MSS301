@@ -3,6 +3,8 @@ package com.kidfavor.inventoryservice.service;
 import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseProductResponse;
+import com.kidfavor.inventoryservice.dto.WarehouseTransferRequest;
+import com.kidfavor.inventoryservice.dto.WarehouseTransferResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 
 import java.util.List;
@@ -36,4 +38,6 @@ public interface WarehouseProductService {
     void removeProduct(Long warehouseId, Long productId);
     
     Integer getAvailableStock(Long warehouseId, Long productId);
+    
+    WarehouseTransferResponse transferBetweenWarehouses(WarehouseTransferRequest request);
 }
