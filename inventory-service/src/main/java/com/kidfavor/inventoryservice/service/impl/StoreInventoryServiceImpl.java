@@ -4,14 +4,20 @@ import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.StoreAvailabilityResponse;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
+import com.kidfavor.inventoryservice.dto.StoreRestockRequest;
+import com.kidfavor.inventoryservice.dto.StoreRestockResponse;
 import com.kidfavor.inventoryservice.entity.Store;
 import com.kidfavor.inventoryservice.entity.StoreInventory;
+import com.kidfavor.inventoryservice.entity.Warehouse;
+import com.kidfavor.inventoryservice.entity.WarehouseProduct;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
 import com.kidfavor.inventoryservice.repository.StoreInventoryRepository;
+import com.kidfavor.inventoryservice.repository.WarehouseProductRepository;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
 import com.kidfavor.inventoryservice.service.StoreService;
+import com.kidfavor.inventoryservice.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -19,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +36,8 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
     private final StoreInventoryRepository storeInventoryRepository;
     private final StoreService storeService;
+    private final WarehouseService warehouseService;
+    private final WarehouseProductRepository warehouseProductRepository;
     private final InventoryMapper mapper;
 
     private String getCurrentUsername() {
@@ -234,5 +243,73 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                     return b.getAvailableQuantity().compareTo(a.getAvailableQuantity());
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public StoreRestockResponse restockFromWarehouse(StoreRestockRequest request) {
+        log.info("Restocking store {} from warehouse {} - Product {}, Quantity: {}", 
+                request.getToStoreId(), request.getFromWarehouseId(), 
+                request.getProductId(), request.getQuantity());
+
+        // Get warehouse and store
+        Warehouse warehouse = warehouseService.getWarehouseEntityById(request.getFromWarehouseId());
+        Store store = storeService.getStoreEntityById(request.getToStoreId());
+
+        // Get warehouse product
+        WarehouseProduct warehouseProduct = warehouseProductRepository
+                .findByWarehouseAndProductId(warehouse, request.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product " + request.getProductId() + " not found in warehouse " + request.getFromWarehouseId()));
+
+        // Check if warehouse has enough stock
+        if (warehouseProduct.getQuantity() < request.getQuantity()) {
+            throw new IllegalArgumentException(
+                    String.format("Insufficient stock in warehouse. Available: %d, Requested: %d", 
+                            warehouseProduct.getQuantity(), request.getQuantity()));
+        }
+
+        // Get or create store inventory
+        StoreInventory storeInventory = storeInventoryRepository
+                .findByStoreAndProductId(store, request.getProductId())
+                .orElse(StoreInventory.builder()
+                        .store(store)
+                        .productId(request.getProductId())
+                        .productName(warehouseProduct.getProductName())
+                        .quantity(0)
+                        .minStockLevel(warehouseProduct.getMinStockLevel())
+                        .build());
+
+        // Update quantities
+        String currentUser = getCurrentUsername();
+        warehouseProduct.setQuantity(warehouseProduct.getQuantity() - request.getQuantity());
+        warehouseProduct.setUpdatedBy(currentUser);
+        
+        storeInventory.setQuantity(storeInventory.getQuantity() + request.getQuantity());
+        storeInventory.setUpdatedBy(currentUser);
+
+        // Save both
+        WarehouseProduct savedWarehouseProduct = warehouseProductRepository.save(warehouseProduct);
+        StoreInventory savedStoreInventory = storeInventoryRepository.save(storeInventory);
+
+        log.info("Restock completed. Product {} - Warehouse {} remaining: {}, Store {} new stock: {}", 
+                request.getProductId(), request.getFromWarehouseId(), savedWarehouseProduct.getQuantity(),
+                request.getToStoreId(), savedStoreInventory.getQuantity());
+
+        // Build response
+        return StoreRestockResponse.builder()
+                .fromWarehouseId(warehouse.getWarehouseId())
+                .fromWarehouseName(warehouse.getWarehouseName())
+                .toStoreId(store.getStoreId())
+                .toStoreName(store.getStoreName())
+                .productId(request.getProductId())
+                .productName(warehouseProduct.getProductName())
+                .quantity(request.getQuantity())
+                .warehouseRemainingStock(savedWarehouseProduct.getQuantity())
+                .storeNewStock(savedStoreInventory.getQuantity())
+                .transferredBy(currentUser)
+                .transferredAt(LocalDateTime.now())
+                .notes(request.getNotes())
+                .build();
     }
 }

@@ -84,15 +84,7 @@ spring:
           filters:
             - StripPrefix=1
 
-        # Product Service Routes (direct paths for Swagger)
-        - id: product-service-direct
-          uri: lb://product-service
-          predicates:
-            - Path=/products/**, /categories/**, /brands/**
-          filters:
-            - StripPrefix=0
-
-        # Product Service Swagger API Docs
+        # Product Service Swagger API Docs (more specific, must come before general route)
         - id: product-service-api-docs
           uri: lb://product-service
           predicates:
@@ -108,19 +100,57 @@ spring:
           filters:
             - RewritePath=/product-service/(?<segment>.*), /${segment}
 
+        # Product Service Routes (via service prefix for Swagger UI - general catch-all)
+        - id: product-service-prefixed
+          uri: lb://product-service
+          predicates:
+            - Path=/product-service/**
+          filters:
+            - RewritePath=/product-service/(?<segment>.*), /${segment}
+
+        # Product Service Routes (direct paths for Swagger)
+        - id: product-service-direct
+          uri: lb://product-service
+          predicates:
+            - Path=/products/**, /categories/**, /brands/**
+          filters:
+            - StripPrefix=0
+
+        # Product Service Swagger UI resources
+        - id: product-service-swagger-ui
+          uri: lb://product-service
+          predicates:
+            - Path=/product-service/swagger-ui/**, /product-service/swagger-ui.html
+          filters:
+            - RewritePath=/product-service/(?<segment>.*), /${segment}
+
         # Inventory Service Routes
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
             - Path=/api/warehouses/**, /api/stores/**, /api/inventory/**
-          filters:
-            - StripPrefix=1
 
-        # Inventory Service Swagger API Docs
+        # Inventory Service Swagger API Docs (more specific, must come before general route)
         - id: inventory-service-api-docs
           uri: lb://inventory-service
           predicates:
             - Path=/inventory-service/v3/api-docs, /inventory-service/v3/api-docs/**
+          filters:
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
+        # Inventory Service Swagger UI resources
+        - id: inventory-service-swagger-ui
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/swagger-ui/**, /inventory-service/swagger-ui.html
+          filters:
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
+        # Inventory Service Routes (via service prefix for Swagger UI - general catch-all)
+        - id: inventory-service-prefixed
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/**
           filters:
             - RewritePath=/inventory-service/(?<segment>.*), /${segment}
 
@@ -200,16 +230,16 @@ springdoc:
     enabled: true
     path: /webjars/swagger-ui/index.html
     urls:
-      - name: User Service
-        url: /user-service/v3/api-docs
+      - name: Inventory Service
+        url: /inventory-service/v3/api-docs
       - name: Order Service
         url: /order-service/v3/api-docs
       - name: Product Service
         url: /product-service/v3/api-docs
-      - name: Inventory Service
-        url: /inventory-service/v3/api-docs
       - name: Review Service
         url: /review-service/v3/api-docs
+      - name: User Service
+        url: /user-service/v3/api-docs
     urls-primary-name: User Service
 
 management:

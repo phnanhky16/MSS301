@@ -13,14 +13,11 @@ import java.util.List;
 
 /**
  * CORS configuration for Inventory Service.
- * Allows cross-origin requests from API Gateway and frontend applications.
+ * CORS is handled by API Gateway, not by individual services.
  */
 @Configuration
 public class WebConfig {
 
-    // Gateway handles all CORS headers. this bean is intentionally disabled to
-    // prevent duplicate Access-Control-Allow-Origin values in proxied responses.
-    // returning null caused a startup failure, so we register it but disable it.
     @Bean
     public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
         FilterRegistrationBean<CorsFilter> registration = new FilterRegistrationBean<>(

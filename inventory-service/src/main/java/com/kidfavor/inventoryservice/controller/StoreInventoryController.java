@@ -5,6 +5,8 @@ import com.kidfavor.inventoryservice.dto.StockUpdateRequest;
 import com.kidfavor.inventoryservice.dto.StoreAvailabilityResponse;
 import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
+import com.kidfavor.inventoryservice.dto.StoreRestockRequest;
+import com.kidfavor.inventoryservice.dto.StoreRestockResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -151,5 +153,19 @@ public class StoreInventoryController {
         return ResponseEntity.ok(ResponseWrapper.success(
                 String.format("Found %d store(s) with product %d", availability.size(), productId), 
                 availability));
+    }
+
+    @PostMapping("/restock")
+    @Operation(summary = "Restock store from warehouse", 
+               description = "Transfer products from warehouse to store. This will decrease warehouse stock and increase store stock.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Restock completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request or insufficient stock"),
+        @ApiResponse(responseCode = "404", description = "Warehouse, store, or product not found")
+    })
+    public ResponseEntity<ResponseWrapper<StoreRestockResponse>> restockFromWarehouse(
+            @Valid @RequestBody StoreRestockRequest request) {
+        StoreRestockResponse response = storeInventoryService.restockFromWarehouse(request);
+        return ResponseEntity.ok(ResponseWrapper.success("Store restocked successfully", response));
     }
 }
