@@ -405,13 +405,18 @@ services:
     restart: on-failure
 
   # --- Ensure Maven base image is available ---
-  # this dummy service doesn't run anything, it just pulls the
-  # Maven image when you `docker compose up` or `docker compose pull`.
-  # once the image is in the local cache, all of the build stages in
-  # the other services that say `FROM maven:3.9.0-eclipse-temurin-17`
-  # will use the pulled copy and never hit the network again.
+  # This dummy service doesn't run anything, it just pulls whatever
+  # Maven image our Dockerfiles reference when you `docker compose up` or
+  # `docker compose pull`.  Having the image cached locally avoids the
+  # frequent TLS handshake/timeout errors that were occurring during
+  # the build phase.
+  #
+  # Historically the codebase used 3.9.0 in one Dockerfile while the
+  # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
+  # didn't help when a service still tried to pull 3.9.6.  The simplest
+  # fix is to standardize on the newer 3.9.6 tag and pull it here.
   maven-base:
-    image: maven:3.9.0-eclipse-temurin-17
+    image: maven:3.9.6-eclipse-temurin-17
     entrypoint: ["true"]          # immediately exit successfully
     networks:
       - microservices-network
