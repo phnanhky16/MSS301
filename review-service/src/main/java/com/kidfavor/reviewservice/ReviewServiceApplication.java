@@ -23,7 +23,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
     ),
     servers = {
         @Server(url = "http://localhost:8080/review-service", description = "API Gateway (Production)"),
-        @Server(url = "http://localhost:8084", description = "Review Service (Direct - Development)")
+        @Server(url = "http://localhost:8086", description = "Review Service (Direct - Development)")
     }
 )
 public class ReviewServiceApplication {
