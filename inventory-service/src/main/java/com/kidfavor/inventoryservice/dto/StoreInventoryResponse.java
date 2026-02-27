@@ -1,5 +1,6 @@
 package com.kidfavor.inventoryservice.dto;
 
+import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -10,13 +11,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class StoreInventoryResponse {
-    private Long id;
-    private Long storeId;
-    private String storeCode;
-    private String storeName;
     private Long productId;
+    private String productName;
     private Integer quantity;
-    private Integer minStockLevel;
+    private ProductStockStatus status;
     private String shelfLocation;
+    private String updatedBy;
     private LocalDateTime lastUpdated;
 }

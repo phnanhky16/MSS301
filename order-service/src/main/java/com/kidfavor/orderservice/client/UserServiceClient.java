@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 /**
  * Feign client for communicating with User Service.
  * Uses Consul service discovery to locate the user-service.
+ * Uses internal endpoint to bypass authentication.
  */
 @FeignClient(
         name = "user-service",
@@ -17,6 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 )
 public interface UserServiceClient {
 
-    @GetMapping("/users/{id}")
+    @GetMapping("/internal/users/{id}")
     UserDto getUserById(@PathVariable("id") Long id);
 }

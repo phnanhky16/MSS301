@@ -75,7 +75,7 @@ spring:
             - Path=/order-service/swagger-ui/**, /order-service/swagger-ui.html
           filters:
             - RewritePath=/order-service/(?<segment>.*), /${segment}
-        
+
         # Product Service Routes (with /api prefix)
         - id: product-service
           uri: lb://product-service
@@ -84,15 +84,7 @@ spring:
           filters:
             - StripPrefix=1
 
-        # Product Service Routes (direct paths for Swagger)
-        - id: product-service-direct
-          uri: lb://product-service
-          predicates:
-            - Path=/products/**, /categories/**, /brands/**
-          filters:
-            - StripPrefix=0
-
-        # Product Service Swagger API Docs
+        # Product Service Swagger API Docs (more specific, must come before general route)
         - id: product-service-api-docs
           uri: lb://product-service
           predicates:
@@ -107,23 +99,93 @@ spring:
             - Path=/product-service/swagger-ui/**, /product-service/swagger-ui.html
           filters:
             - RewritePath=/product-service/(?<segment>.*), /${segment}
-        
+
+        # Product Service Routes (via service prefix for Swagger UI - general catch-all)
+        - id: product-service-prefixed
+          uri: lb://product-service
+          predicates:
+            - Path=/product-service/**
+          filters:
+            - RewritePath=/product-service/(?<segment>.*), /${segment}
+
+        # Product Service Routes (direct paths for Swagger)
+        - id: product-service-direct
+          uri: lb://product-service
+          predicates:
+            - Path=/products/**, /categories/**, /brands/**
+          filters:
+            - StripPrefix=0
+
+        # Product Service Swagger UI resources
+        - id: product-service-swagger-ui
+          uri: lb://product-service
+          predicates:
+            - Path=/product-service/swagger-ui/**, /product-service/swagger-ui.html
+          filters:
+            - RewritePath=/product-service/(?<segment>.*), /${segment}
+
         # Inventory Service Routes
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
-            - Path=/api/warehouses/**, /api/stores/**
+            - Path=/api/warehouses/**, /api/stores/**, /api/inventory/**
+
+        # Inventory Service Swagger API Docs (more specific, must come before general route)
+        - id: inventory-service-api-docs
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/v3/api-docs, /inventory-service/v3/api-docs/**
           filters:
-            - StripPrefix=1
-        
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
+        # Inventory Service Swagger UI resources
+        - id: inventory-service-swagger-ui
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/swagger-ui/**, /inventory-service/swagger-ui.html
+          filters:
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
+        # Inventory Service Routes (via service prefix for Swagger UI - general catch-all)
+        - id: inventory-service-prefixed
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/**
+          filters:
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
+        # Inventory Service Swagger UI resources
+        - id: inventory-service-swagger-ui
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/swagger-ui/**, /inventory-service/swagger-ui.html
+          filters:
+            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
+
         # Cart Service Routes
         - id: cart-service
           uri: lb://cart-service
           predicates:
-            - Path=/api/carts/**
+            - Path=/cart-service/**
           filters:
-            - StripPrefix=1
-        
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
+
+        # Cart Service Swagger API Docs
+        - id: cart-service-api-docs
+          uri: lb://cart-service
+          predicates:
+            - Path=/cart-service/v3/api-docs, /cart-service/v3/api-docs/**
+          filters:
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
+
+        # Cart Service Swagger UI resources
+        - id: cart-service-swagger-ui
+          uri: lb://cart-service
+          predicates:
+            - Path=/cart-service/swagger-ui/**, /cart-service/swagger-ui.html
+          filters:
+            - RewritePath=/cart-service/(?<segment>.*), /${segment}
+
         # Review Service Routes
         - id: review-service
           uri: lb://review-service
@@ -155,16 +217,10 @@ spring:
           issuer-uri: http://localhost:8180/realms/kidfavor
           jwk-set-uri: http://localhost:8180/realms/kidfavor/protocol/openid-connect/certs
 
-# explicitly configure CORS on the gateway so it does not send a wildcard
-# value. downstream services already perform CORS checks, so the gateway
-# should simply mirror the origin header when it proxies.  the filter below
-# will clean up any duplicates if they still occur.
-  webflux:
-    cors:
-      allowed-origins: "http://localhost:3000"
-      allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
-      allowed-headers: "*"
-      allow-credentials: true
+# the gateway no longer performs any per-route CORS configuration.  instead a
+# global filter adds a wildcard header on every response, effectively disabling
+# browser CORS restrictions during development.  downstream services should
+# not set CORS headers at all (they were cleaned up earlier).
 
 # Swagger/OpenAPI Configuration for Gateway aggregation
 springdoc:
@@ -174,14 +230,16 @@ springdoc:
     enabled: true
     path: /webjars/swagger-ui/index.html
     urls:
-      - name: User Service
-        url: /user-service/v3/api-docs
+      - name: Inventory Service
+        url: /inventory-service/v3/api-docs
       - name: Order Service
         url: /order-service/v3/api-docs
       - name: Product Service
         url: /product-service/v3/api-docs
       - name: Review Service
         url: /review-service/v3/api-docs
+      - name: User Service
+        url: /user-service/v3/api-docs
     urls-primary-name: User Service
 
 management:

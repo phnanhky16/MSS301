@@ -83,6 +83,12 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     doc-expansion: none
+  # Server URLs for API Gateway and Direct access
+  servers:
+    - url: http://localhost:8080/order-service
+      description: API Gateway Server
+    - url: http://localhost:8082
+      description: Local Development Server
 
 # OpenFeign Configuration
 feign:

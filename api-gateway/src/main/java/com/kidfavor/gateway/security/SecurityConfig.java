@@ -17,18 +17,18 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     @Bean
-    // renamed bean to avoid conflict with Spring Boot's auto-configured
-    // SecurityWebFilterChain (which also declares a bean named
-    // "springSecurityFilterChain"). Spring will pick up any
-    // SecurityWebFilterChain bean, so the name is not significant.
-    public SecurityWebFilterChain customSecurityFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         http
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeExchange(exchanges -> exchanges
-                        // All requests are permitted - let downstream services handle auth
-                        .anyExchange().permitAll()
-                );
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
+            // we no longer configure "cors" here; a dedicated global filter
+            // (AddCorsHeaderFilter) unconditionally injects a wildcard
+            // Access-Control-Allow-Origin header on every response.  keeping a
+            // cors() spec in security would actually trigger Spring's built-in
+            // CORS machinery and could conflict with the simple header we add.
+            .authorizeExchange(exchanges -> exchanges
+                // All requests are permitted - let downstream services handle auth
+                .anyExchange().permitAll()
+            );
 
         return http.build();
     }
@@ -36,13 +36,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // don't use wildcard here; it will combine with downstream headers
-        // and browsers will reject the duplicate value. explicit origins avoid
-        // the problem altogether.
-        configuration.setAllowedOrigins(List.of(
-            "http://localhost:3000",
-            "http://127.0.0.1:3000"
-        ));
+        configuration.setAllowedOrigins(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));

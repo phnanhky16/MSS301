@@ -17,10 +17,11 @@ import java.util.List;
  */
 @Configuration
 public class WebConfig {
-    // CORS configuration has been moved to the API gateway. the gateway is the
-    // only external entry point for browser traffic, so the service should not
-    // attempt to add its own Access-Control-* headers. leaving this class
-    // around keeps the package structure consistent for other shared
-    // configuration but it no longer implements WebMvcConfigurer or
-    // registers any beans.
+    // CORS is not configured in individual services.  All cross-origin
+    // header handling is delegated to the API gateway; if this class were to
+    // register filters/mappings the gateway would receive duplicate
+    // Access-Control-Allow-Origin values and browsers would reject requests.
+    //
+    // The class remains present to satisfy any component-scan requirements, but
+    // it contains no active beans or overrides.
 }

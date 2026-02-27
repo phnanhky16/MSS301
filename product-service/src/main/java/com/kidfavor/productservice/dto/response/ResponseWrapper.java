@@ -1,4 +1,4 @@
-package com.kidfavor.productservice.dto;
+package com.kidfavor.productservice.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,15 +12,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ApiResponse<T> {
+public class ResponseWrapper<T> {
     private boolean success;
     private int status;
     private String message;
     private T data;
     private LocalDateTime timestamp;
 
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> success(String message, T data) {
+        return ResponseWrapper.<T>builder()
                 .success(true)
                 .status(HttpStatus.OK.value())
                 .message(message)
@@ -29,8 +29,8 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> created(String message, T data) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> created(String message, T data) {
+        return ResponseWrapper.<T>builder()
                 .success(true)
                 .status(HttpStatus.CREATED.value())
                 .message(message)
@@ -39,8 +39,8 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> noContent(String message) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> noContent(String message) {
+        return ResponseWrapper.<T>builder()
                 .success(true)
                 .status(HttpStatus.NO_CONTENT.value())
                 .message(message)
@@ -49,8 +49,8 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> error(String message) {
+        return ResponseWrapper.<T>builder()
                 .success(false)
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message(message)

@@ -13,8 +13,9 @@ public class StockUpdateRequest {
     @NotNull(message = "Product ID is required")
     private Long productId;
 
-    @NotNull(message = "Quantity change is required")
-    private Integer quantityChange;
+    @NotNull(message = "Quantity is required")
+    @Min(value = 0, message = "Quantity must be greater than or equal to 0")
+    private Integer quantity;
 
     private String reason;
 }

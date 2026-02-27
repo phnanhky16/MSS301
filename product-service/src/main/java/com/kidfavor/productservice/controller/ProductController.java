@@ -1,6 +1,6 @@
 package com.kidfavor.productservice.controller;
 
-import com.kidfavor.productservice.dto.ApiResponse;
+import com.kidfavor.productservice.dto.response.ResponseWrapper;
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
 import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
@@ -8,6 +8,7 @@ import com.kidfavor.productservice.dto.response.ProductResponse;
 import com.kidfavor.productservice.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,34 +27,34 @@ public class ProductController {
     
     private final ProductService productService;
     
-    // paged listing with optional filtering by keyword, category, brand
     @GetMapping
     @Operation(summary = "List products", description = "Retrieve products (paged) with optional filters")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved products")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
     })
-    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ProductResponse>>> getAllProducts(
+    public ResponseEntity<ResponseWrapper<org.springframework.data.domain.Page<ProductResponse>>> getAllProducts(
             org.springframework.data.domain.Pageable pageable,
             @RequestParam(name="keyword", required=false) String keyword,
             @RequestParam(name="categoryId", required=false) Long categoryId,
-            @RequestParam(name="brandId", required=false) Long brandId) {
-        var page = productService.listProducts(pageable, keyword, categoryId, brandId);
+            @RequestParam(name="brandId", required=false) Long brandId,
+            @RequestParam(name="status", required=false) String status) {
+        var page = productService.listProducts(pageable, keyword, categoryId, brandId, status);
         return ResponseEntity.ok(
-            ApiResponse.success("Products retrieved successfully", page)
+            ResponseWrapper.success("Products retrieved successfully", page)
         );
     }
     
     @GetMapping("/{id}")
     @Operation(summary = "Get product by ID", description = "Retrieve a specific product by its ID")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product found"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product not found")
+        @ApiResponse(responseCode = "200", description = "Product found"),
+        @ApiResponse(responseCode = "404", description = "Product not found")
     })
-    public ResponseEntity<ApiResponse<ProductResponse>> getProductById(
+    public ResponseEntity<ResponseWrapper<ProductResponse>> getProductById(
             @Parameter(description = "Product ID") @PathVariable Long id) {
         return productService.getProductById(id)
                 .map(product -> ResponseEntity.ok(
-                    ApiResponse.success("Product retrieved successfully", product)
+                    ResponseWrapper.success("Product retrieved successfully", product)
                 ))
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -62,13 +63,13 @@ public class ProductController {
     @GetMapping("/category/{categoryId}")
     @Operation(summary = "Get products by category", description = "Retrieve all products in a specific category")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved products")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
     })
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getProductsByCategory(
+    public ResponseEntity<ResponseWrapper<List<ProductResponse>>> getProductsByCategory(
             @Parameter(description = "Category ID") @PathVariable Long categoryId) {
         List<ProductResponse> products = productService.getProductsByCategory(categoryId);
         return ResponseEntity.ok(
-            ApiResponse.success("Products retrieved successfully", products)
+            ResponseWrapper.success("Products retrieved successfully", products)
         );
     }
     
@@ -76,13 +77,13 @@ public class ProductController {
     @GetMapping("/brand/{brandId}")
     @Operation(summary = "Get products by brand", description = "Retrieve all products of a specific brand")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved products")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
     })
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getProductsByBrand(
+    public ResponseEntity<ResponseWrapper<List<ProductResponse>>> getProductsByBrand(
             @Parameter(description = "Brand ID") @PathVariable Long brandId) {
         List<ProductResponse> products = productService.getProductsByBrand(brandId);
         return ResponseEntity.ok(
-            ApiResponse.success("Products retrieved successfully", products)
+            ResponseWrapper.success("Products retrieved successfully", products)
         );
     }
     
@@ -90,72 +91,72 @@ public class ProductController {
     @GetMapping("/search")
     @Operation(summary = "Search products", description = "Search products by keyword in name or description")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved products")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
     })
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> searchProducts(
+    public ResponseEntity<ResponseWrapper<List<ProductResponse>>> searchProducts(
             @Parameter(description = "Search keyword") @RequestParam String keyword) {
         List<ProductResponse> products = productService.searchProducts(keyword);
         return ResponseEntity.ok(
-            ApiResponse.success("Products retrieved successfully", products)
+            ResponseWrapper.success("Products retrieved successfully", products)
         );
     }
     
     @PostMapping
     @Operation(summary = "Create product", description = "Create a new product")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Product created successfully"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input")
+        @ApiResponse(responseCode = "201", description = "Product created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid input")
     })
-    public ResponseEntity<ApiResponse<ProductResponse>> createProduct(@Valid @RequestBody ProductCreateRequest request) {
+    public ResponseEntity<ResponseWrapper<ProductResponse>> createProduct(@Valid @RequestBody ProductCreateRequest request) {
         ProductResponse created = productService.createProduct(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(
-            ApiResponse.created("Product created successfully", created)
+            ResponseWrapper.created("Product created successfully", created)
         );
     }
     
     @PutMapping("/{id}")
     @Operation(summary = "Update product", description = "Update an existing product")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product updated successfully"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product not found"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input")
+        @ApiResponse(responseCode = "200", description = "Product updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Product not found"),
+        @ApiResponse(responseCode = "400", description = "Invalid input")
     })
-    public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
+    public ResponseEntity<ResponseWrapper<ProductResponse>> updateProduct(
             @Parameter(description = "Product ID") @PathVariable Long id, 
             @Valid @RequestBody ProductUpdateRequest request) {
         ProductResponse updated = productService.updateProduct(id, request);
         return ResponseEntity.ok(
-            ApiResponse.success("Product updated successfully", updated)
+            ResponseWrapper.success("Product updated successfully", updated)
         );
     }
     
     @PutMapping("/{id}/status")
     @Operation(summary = "Update product status", description = "Change product status (ACTIVE, INACTIVE, DELETED)")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product status updated successfully"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product not found"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid status")
+        @ApiResponse(responseCode = "200", description = "Product status updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Product not found"),
+        @ApiResponse(responseCode = "400", description = "Invalid status")
     })
-    public ResponseEntity<ApiResponse<ProductResponse>> updateProductStatus(
+    public ResponseEntity<ResponseWrapper<ProductResponse>> updateProductStatus(
             @Parameter(description = "Product ID") @PathVariable Long id,
             @Valid @RequestBody StatusUpdateRequest request) {
         ProductResponse updated = productService.updateProductStatus(id, request);
         return ResponseEntity.ok(
-            ApiResponse.success("Product status updated successfully", updated)
+            ResponseWrapper.success("Product status updated successfully", updated)
         );
     }
     
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete product", description = "Delete a product by ID (sets status to DELETED)")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product deleted successfully"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product not found")
+        @ApiResponse(responseCode = "200", description = "Product deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "Product not found")
     })
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+    public ResponseEntity<ResponseWrapper<Void>> deleteProduct(
             @Parameter(description = "Product ID") @PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.ok(
-            ApiResponse.noContent("Product deleted successfully")
+            ResponseWrapper.noContent("Product deleted successfully")
         );
     }
 }

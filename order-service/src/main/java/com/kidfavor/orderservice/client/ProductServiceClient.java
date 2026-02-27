@@ -1,5 +1,6 @@
 package com.kidfavor.orderservice.client;
 
+import com.kidfavor.orderservice.client.dto.ApiResponse;
 import com.kidfavor.orderservice.client.dto.ProductDto;
 import com.kidfavor.orderservice.config.FeignClientConfig;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -17,6 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 )
 public interface ProductServiceClient {
 
-    @GetMapping("/products/{id}")
-    ProductDto getProductById(@PathVariable("id") Long id);
+    @GetMapping("/internal/products/{id}")
+    ApiResponse<ProductDto> getProductById(@PathVariable("id") Long id);
 }

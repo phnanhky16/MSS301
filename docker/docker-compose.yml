@@ -36,12 +36,15 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       postgres-user:
         condition: service_healthy
       redis:
         condition: service_started
       consul:
+        condition: service_started
+      kafka:
         condition: service_started
     networks:
       - microservices-network
@@ -69,7 +72,7 @@ services:
       # `docker compose up` which does not rebuild images by default, but it
       # will honour the `depends_on` conditions and healthchecks below.
       postgres-order:
-        condition: service_healthy
+        condition: service_started
       consul:
         condition: service_started
       kafka:
@@ -111,7 +114,7 @@ services:
       dockerfile: Dockerfile
     container_name: review-service
     ports:
-      - "8084:8084"
+      - "8086:8086"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-review:5432/reviewdb
       SPRING_DATASOURCE_USERNAME: postgres
@@ -121,6 +124,79 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       postgres-review:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+  # --- Inventory Service ---
+  inventory-service:
+    build:
+      context: ../inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-inventory:5432/inventorydb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PRODUCT_SERVICE_URL: http://product-service:8083
+    depends_on:
+      postgres-inventory:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
+  # --- Notification Service ---
+  notification-service:
+    build:
+      context: ..
+      dockerfile: notification-service/Dockerfile
+    container_name: notification-service
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+      MAIL_USERNAME: ${MAIL_USERNAME:-testpersonality134@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-qhjj mrhl yyba gfly}
+    depends_on:
+
+      consul:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
+  # --- Cart Service ---
+  cart-service:
+    build:
+      context: ..
+      dockerfile: cart-service/Dockerfile
+    container_name: cart-service
+    ports:
+      - "8085:8085"
+    environment:
+      DB_HOST: postgres-cart
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      postgres-cart:
+        condition: service_started
+      redis:
         condition: service_started
       consul:
         condition: service_started
@@ -329,13 +405,18 @@ services:
     restart: on-failure
 
   # --- Ensure Maven base image is available ---
-  # this dummy service doesn't run anything, it just pulls the
-  # Maven image when you `docker compose up` or `docker compose pull`.
-  # once the image is in the local cache, all of the build stages in
-  # the other services that say `FROM maven:3.9.0-eclipse-temurin-17`
-  # will use the pulled copy and never hit the network again.
+  # This dummy service doesn't run anything, it just pulls whatever
+  # Maven image our Dockerfiles reference when you `docker compose up` or
+  # `docker compose pull`.  Having the image cached locally avoids the
+  # frequent TLS handshake/timeout errors that were occurring during
+  # the build phase.
+  #
+  # Historically the codebase used 3.9.0 in one Dockerfile while the
+  # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
+  # didn't help when a service still tried to pull 3.9.6.  The simplest
+  # fix is to standardize on the newer 3.9.6 tag and pull it here.
   maven-base:
-    image: maven:3.9.0-eclipse-temurin-17
+    image: maven:3.9.6-eclipse-temurin-17
     entrypoint: ["true"]          # immediately exit successfully
     networks:
       - microservices-network

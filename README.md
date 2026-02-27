@@ -7,52 +7,61 @@ This project implements a microservices architecture for a Kids Store Management
 ### Services:
 
 1. **api-gateway** (Port 8080) - API Gateway with Spring Cloud Gateway
-2. **user-service** (Port 8081) - User and Shipment management
-3. **order-service** (Port 8082) - Order, OrderItem, Payment, Coupon management
-4. **product-service** (Port 8083) - Product, Category, Brand, ProductImage, ProductPackage, Package management
+2. **product-service** (Port 8081) - Product, Category, Brand, ProductImage, ProductPackage, Package management
+3. **user-service** (Port 8082) - User and Shipment management
+4. **order-service** (Port 8083) - Order, OrderItem, Payment, Coupon management
 5. **inventory-service** (Port 8084) - Warehouse and Store management
 6. **cart-service** (Port 8085) - Shopping Cart and CartItem management
 7. **review-service** (Port 8086) - Product Review management
+8. **notification-service** (Port 8087) - Notification management
 
 ### Technology Stack:
-- Spring Boot 4.0.2
-- Spring Cloud 2025.1.0
-- Java 21
+- Spring Boot 3.2.5
+- Spring Cloud 2023.0.0
+- Java 17
 - Consul for Service Discovery
 - PostgreSQL/MySQL for Database
 - Maven for Build Management
 
 ### Prerequisites:
-- Java 21
-- Maven 3.8+
-- Consul running on localhost:8500
+- Java 17
+- Maven 3.9+
+- Docker & Docker Compose
+- Consul running on localhost:8500 (included in docker-compose)
 
 ### Building & Running with Docker
 
-The Dockerfiles in this repo **no longer compile the projects**; they
-expect that a JAR has been produced by Maven on the host.  This change
-prevents intermittent network failures during image build (containers
-cannot reliably reach Maven Central), and makes the Docker images much
-smaller and faster to rebuild.
+The Dockerfiles use **multi-stage builds** that compile the projects inside the container.
+This approach uses Maven cache and builds everything in a consistent environment.
 
-Before you start the containers you must build each service once:
+**Build all services:**
 
-```powershell
-cd api-gateway      && mvn clean package -DskipTests
-cd user-service     && mvn clean package -DskipTests
-cd order-service    && mvn clean package -DskipTests
-cd product-service  && mvn clean package -DskipTests
-cd inventory-service&& mvn clean package -DskipTests
-cd cart-service     && mvn clean package -DskipTests
-cd review-service   && mvn clean package -DskipTests
+```bash
+docker-compose -f docker/docker-compose.yml build
 ```
 
-After the JAR files exist in the `target/` directories you can start the
-whole stack with Docker Compose:
+**Start all containers:**
 
-```powershell
-$Env:DOCKER_BUILDKIT=1   # optional, for cache mounts when rebuilding later
-docker compose -f docker\docker-compose.yml up -d --build
+```bash
+docker-compose -f docker/docker-compose.yml up -d
+```
+
+**Stop all containers:**
+
+```bash
+docker-compose -f docker/docker-compose.yml down
+```
+
+**View logs:**
+
+```bash
+docker-compose -f docker/docker-compose.yml logs -f [service-name]
+```
+
+**Rebuild specific service:**
+
+```bash
+docker-compose -f docker/docker-compose.yml build [service-name]
 ```
 
 ### Coupon support (order-service)
@@ -90,12 +99,13 @@ updated JARs without having to re-download dependencies.
 
 ### API Gateway Endpoints:
 
-- `/api/users/**` -> User Service
-- `/api/orders/**` -> Order Service
-- `/api/products/**` -> Product Service
-- `/api/inventory/**` -> Inventory Service
-- `/api/cart/**` -> Cart Service
-- `/api/reviews/**` -> Review Service
+- `/product-service/**` -> Product Service (Port 8081)
+- `/user-service/**` -> User Service (Port 8082)
+- `/order-service/**` -> Order Service (Port 8083)
+- `/inventory-service/**` -> Inventory Service (Port 8084)
+- `/cart-service/**` -> Cart Service (Port 8085)
+- `/review-service/**` -> Review Service (Port 8086)
+- `/notification-service/**` -> Notification Service (Port 8087)
 
 ### Service Discovery:
 

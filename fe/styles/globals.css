@@ -1,15 +1,23 @@
-/* global styles can go here */
+/* ============================================================
+   Global base
+   ============================================================ */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
 }
 
-/* round off various Ant Design components for a softer, more modern look */
+/* ============================================================
+   Ant Design border-radius overrides
+   ============================================================ */
 .ant-layout-header,
 .ant-table,
-.ant-table-thead > tr > th,
-.ant-table-tbody > tr > td,
+.ant-table-thead>tr>th,
+.ant-table-tbody>tr>td,
 .ant-btn,
 .ant-card,
 .ant-modal-content,
@@ -18,9 +26,194 @@ body {
   border-radius: 8px !important;
 }
 
-/* smooth transitions for interactive elements */
+/* ============================================================
+   Header – sky-blue palette derived from the login image
+   ============================================================ */
+.ant-layout-header {
+  background: linear-gradient(90deg, #1a6e8a 0%, #2596be 60%, #3ab4d8 100%) !important;
+  box-shadow: 0 2px 12px rgba(0, 80, 110, 0.35);
+  transition: background 0.3s ease;
+  position: relative;
+  z-index: 100;
+}
+
+/* Menu items inside sky-blue header */
+.ant-layout-header .ant-menu.ant-menu-dark {
+  background: transparent !important;
+}
+
+.ant-layout-header .ant-menu-item a,
+.ant-layout-header .ant-menu-item a:visited {
+  color: #e8f6fb !important;
+  transition: color 0.2s ease;
+}
+
+.ant-layout-header .ant-menu-dark .ant-menu-item-selected,
+.ant-layout-header .ant-menu-item:hover,
+.ant-layout-header .ant-menu-item-active {
+  background: rgba(255, 255, 255, 0.18) !important;
+  transform: scale(1.02);
+  transition: transform 0.25s ease, background 0.2s ease;
+}
+
+/* Login / Logout button in header */
+.ant-layout-header .ant-btn-link {
+  color: #e8f6fb !important;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.25s ease;
+}
+
+.ant-layout-header .ant-btn-link:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   General smooth transitions
+   ============================================================ */
 button,
 .ant-table td,
 .ant-menu-item {
   transition: all 0.2s ease-in-out;
+}
+
+/* ============================================================
+   Login page – full-viewport background image
+   ============================================================ */
+
+/*
+  The login page background covers the ENTIRE viewport (including
+  under the header) using a fixed pseudo-element on the html element
+  scoped via the .login-page class added to <html> by login.js.
+  
+  Fallback: the body also carries the background so it works even
+  without JS class injection.
+*/
+.login-page {
+  background: url('/img-login.jpeg') no-repeat center center / cover fixed;
+}
+
+/* Only on the login page: make the Ant Layout transparent so the
+   fixed background image shows through */
+.login-page .ant-layout,
+.login-page .ant-layout-content {
+  background: transparent !important;
+}
+
+/* Make the header semi-transparent / frosted on the login page */
+.login-page .ant-layout-header {
+  background: linear-gradient(90deg,
+      rgba(26, 110, 138, 0.78) 0%,
+      rgba(37, 150, 190, 0.72) 60%,
+      rgba(58, 180, 216, 0.68) 100%) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Remove bottom margin/padding injected by Ant Layout Content on login */
+.login-page .ant-layout-content {
+  padding: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Hide the footer on the login page for a cleaner look */
+.login-page .ant-layout-footer {
+  display: none;
+}
+
+/* ============================================================
+   Login wrapper – two-column layout
+   ============================================================ */
+.login-wrapper {
+  display: flex;
+  /* full viewport minus the 64 px header */
+  min-height: calc(100vh - 64px);
+  width: 100%;
+  margin: 0;
+  position: relative;
+}
+
+/* make child columns sit above any overlay */
+.login-wrapper>div {
+  position: relative;
+  z-index: 1;
+}
+
+/* Left column – holds the card, centered */
+.login-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  padding: 0 24px;
+}
+
+/* Right column – transparent so the body bg image shows */
+.login-right {
+  flex: 1;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Login card
+   ============================================================ */
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 80, 110, 0.22);
+  padding: 40px 32px;
+  background: rgba(255, 255, 255, 0.93) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-2px) scale(1.003);
+  box-shadow: 0 18px 48px rgba(0, 80, 110, 0.28);
+}
+
+.login-welcome {
+  text-align: center;
+  margin-bottom: 16px;
+  color: #5b9eb5;
+  font-weight: 500;
+}
+
+.login-title {
+  text-align: center;
+  white-space: nowrap;
+  color: #1a6e8a !important;
+}
+
+.login-links {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.login-links.signup {
+  margin-top: 16px;
+}
+
+/* Button interactions */
+.login-card .ant-btn-primary {
+  background: linear-gradient(90deg, #1a6e8a, #2596be) !important;
+  border-color: transparent !important;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.login-card .ant-btn-primary:hover {
+  background: linear-gradient(90deg, #155f78, #1f7fa3) !important;
+  box-shadow: 0 4px 14px rgba(26, 110, 138, 0.4);
+  transform: translateY(-1px);
+}
+
+.login-card .ant-btn:active {
+  transform: scale(0.98);
 }

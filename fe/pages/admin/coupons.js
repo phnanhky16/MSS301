@@ -80,9 +80,10 @@ export default function CouponsPage() {
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [filters, setFilters] = useState({});
 
   const load = (page = currentPage - 1, size = pageSize) => {
-    fetchCoupons(page, size)
+    fetchCoupons(page, size, filters)
       .then(response => {
         setCoupons(response.content);
         setTotal(response.totalElements);
@@ -92,6 +93,10 @@ export default function CouponsPage() {
       .catch(e => message.error('Failed to load'));;
   };
   useEffect(() => { load(); }, []);
+  // reload when filters change
+  useEffect(() => {
+    load(0, pageSize);
+  }, [filters]);
 
   const handleCreate = data => {
     // serialize date
@@ -164,6 +169,42 @@ export default function CouponsPage() {
         <TagOutlined style={{ marginRight: 8 }} />
         Coupons
       </Title>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Input
+          placeholder="Code"
+          style={{ width: 160 }}
+          value={filters.code || ''}
+          onChange={e => setFilters(f => ({ ...f, code: e.target.value }))}
+        />
+        <Select
+          placeholder="Active"
+          style={{ width: 120 }}
+          allowClear
+          value={filters.active}
+          onChange={val => setFilters(f => ({ ...f, active: val }))}
+        >
+          <Select.Option value={true}>Yes</Select.Option>
+          <Select.Option value={false}>No</Select.Option>
+        </Select>
+        <Select
+          placeholder="Type"
+          style={{ width: 140 }}
+          allowClear
+          value={filters.discountType}
+          onChange={val => setFilters(f => ({ ...f, discountType: val }))}
+        >
+          <Select.Option value="PERCENT">Percent</Select.Option>
+          <Select.Option value="FIXED">Fixed</Select.Option>
+        </Select>
+        <Button
+          onClick={() => {
+            setFilters({});
+            load(0, pageSize);
+          }}
+        >
+          Clear
+        </Button>
+      </div>
       <Button type="primary" onClick={() => setModalVisible(true)} style={{ marginBottom: 16 }}>
         New Coupon
       </Button>

@@ -51,10 +51,16 @@ export default function AdminLayout({ children }) {
       setProfile(null);
     }
   }, [loggedIn]);
+  // determine which menu item should be highlighted based on the current path
+  // note: Next.js router.pathname is the route template (no query string)
   const selected = router.pathname.startsWith('/admin/coupons')
     ? 'coupons'
     : router.pathname.startsWith('/admin/orders')
     ? 'orders'
+    : router.pathname.startsWith('/admin/products')
+    ? 'products'
+    : router.pathname.startsWith('/admin/users')
+    ? 'users'
     : 'dashboard';
 
   return (
@@ -65,9 +71,9 @@ export default function AdminLayout({ children }) {
       </Head>
       <AntLayout style={{ minHeight: '100vh' }}>
       <Sider collapsible>
-        <div className="logo" style={{ height: 32, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* use public/images.jpg as application icon */}
-          <img src="/images.jpg" alt="logo" style={{ height: 32, objectFit: 'contain' }} />
+        <div className="logo" style={{ height: 48, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* use public/images.jpg as application icon; make it larger */}
+          <img src="/images.jpg" alt="logo" style={{ height: 48, objectFit: 'contain' }} />
         </div>
         <Menu theme="dark" defaultSelectedKeys={[selected]} mode="inline">
           <Menu.Item key="dashboard" icon={<HomeOutlined />}>
@@ -90,7 +96,7 @@ export default function AdminLayout({ children }) {
       <AntLayout>
         <Header style={{ background: '#fff', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
-            <img src="/images.jpg" alt="logo" style={{ height: 24, marginRight: 8, objectFit: 'contain' }} />
+            <img src="/images.jpg" alt="logo" style={{ height: 32, marginRight: 8, objectFit: 'contain' }} />
             <span>Admin Panel</span>
           </div>
           {loggedIn ? (

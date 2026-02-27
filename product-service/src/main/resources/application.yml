@@ -58,6 +58,10 @@ logging:
   level:
     com.kidfavor.productservice: DEBUG
 
+# JWT Configuration
+jwt:
+  secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+
 springdoc:
   api-docs:
     path: /v3/api-docs

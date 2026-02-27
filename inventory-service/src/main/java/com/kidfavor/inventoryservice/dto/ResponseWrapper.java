@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
+public class ResponseWrapper<T> {
     
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
@@ -25,8 +25,8 @@ public class ApiResponse<T> {
     private String path;
     
     // Success responses
-    public static <T> ApiResponse<T> success(T data) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> success(T data) {
+        return ResponseWrapper.<T>builder()
                 .timestamp(LocalDateTime.now())
                 .status(200)
                 .message("Success")
@@ -34,8 +34,8 @@ public class ApiResponse<T> {
                 .build();
     }
     
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> success(String message, T data) {
+        return ResponseWrapper.<T>builder()
                 .timestamp(LocalDateTime.now())
                 .status(200)
                 .message(message)
@@ -43,8 +43,8 @@ public class ApiResponse<T> {
                 .build();
     }
     
-    public static <T> ApiResponse<T> created(String message, T data) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> created(String message, T data) {
+        return ResponseWrapper.<T>builder()
                 .timestamp(LocalDateTime.now())
                 .status(201)
                 .message(message)
@@ -52,8 +52,8 @@ public class ApiResponse<T> {
                 .build();
     }
     
-    public static <T> ApiResponse<T> noContent(String message) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> noContent(String message) {
+        return ResponseWrapper.<T>builder()
                 .timestamp(LocalDateTime.now())
                 .status(204)
                 .message(message)
@@ -61,8 +61,8 @@ public class ApiResponse<T> {
     }
     
     // Error responses
-    public static <T> ApiResponse<T> error(int status, String error, String message, String path) {
-        return ApiResponse.<T>builder()
+    public static <T> ResponseWrapper<T> error(int status, String error, String message, String path) {
+        return ResponseWrapper.<T>builder()
                 .timestamp(LocalDateTime.now())
                 .status(status)
                 .error(error)
@@ -71,19 +71,19 @@ public class ApiResponse<T> {
                 .build();
     }
     
-    public static <T> ApiResponse<T> badRequest(String message, String path) {
+    public static <T> ResponseWrapper<T> badRequest(String message, String path) {
         return error(400, "Bad Request", message, path);
     }
     
-    public static <T> ApiResponse<T> notFound(String message, String path) {
+    public static <T> ResponseWrapper<T> notFound(String message, String path) {
         return error(404, "Not Found", message, path);
     }
     
-    public static <T> ApiResponse<T> conflict(String message, String path) {
+    public static <T> ResponseWrapper<T> conflict(String message, String path) {
         return error(409, "Conflict", message, path);
     }
     
-    public static <T> ApiResponse<T> internalError(String message, String path) {
+    public static <T> ResponseWrapper<T> internalError(String message, String path) {
         return error(500, "Internal Server Error", message, path);
     }
 }

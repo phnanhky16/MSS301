@@ -64,7 +64,6 @@ public class ProductMapper {
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
-                .stock(product.getStock())
                 .status(product.getStatus())
                 .statusChangedAt(product.getStatusChangedAt())
                 .category(product.getCategory() != null ? categoryMapper.toResponse(product.getCategory()) : null)

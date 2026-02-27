@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Table, Typography, message, Input, Select, Button, Modal, Form, InputNumber } from 'antd';
-import { fetchProducts, fetchCategories, fetchBrands, createProduct, updateProduct, deleteProduct } from '../../services/api';
+import { Table, Typography, message, Input, Select, Button, Modal, Form, InputNumber, Switch } from 'antd';
+import { fetchProducts, fetchCategories, fetchBrands, createProduct, updateProduct, deleteProduct, updateProductStatus } from '../../services/api';
 
 const { Title } = Typography;
 
@@ -9,7 +9,8 @@ export default function ProductsPage() {
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [filters, setFilters] = useState({});
+  // keep status=ALL so admin sees every product
+  const [filters, setFilters] = useState({ status: 'ALL' });
   const [sort, setSort] = useState('createdAt,desc');
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -17,7 +18,13 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState(null);
 
   const load = (page = currentPage - 1, size = pageSize) => {
-    fetchProducts(page, size, { ...filters, sort })
+    // always request every status when loading the admin table
+    // send `ALL` explicitly but still allow the user to change the sort column
+    // if they click a header – that sort value is passed back into load()
+    // onChange (see table config) and the contract with the BE is that the
+    // server will ignore it when status=ALL, preventing inactive items from
+    // jumping around.
+    fetchProducts(page, size, { ...filters, sort, status: 'ALL' })
       .then(response => {
         setProducts(response.content);
         setTotal(response.totalElements);
@@ -38,7 +45,18 @@ export default function ProductsPage() {
   }, [filters.keyword, filters.categoryId, filters.brandId, sort]);
 
   function openForm(item) {
-    setEditing(item);
+    if (item) {
+      // backend returns product with nested category/brand objects; our form
+      // expects categoryId/brandId fields. convert here so the fields populate
+      // correctly when the modal opens.
+      setEditing({
+        ...item,
+        categoryId: item.category ? item.category.id : undefined,
+        brandId: item.brand ? item.brand.id : undefined,
+      });
+    } else {
+      setEditing(null);
+    }
     setFormVisible(true);
   }
 
@@ -60,7 +78,39 @@ export default function ProductsPage() {
     { title: 'Price', dataIndex: 'price', key: 'price', render: v => `$${v}` },
     { title: 'Category', dataIndex: ['category', 'name'], key: 'category' },
     { title: 'Brand', dataIndex: ['brand', 'name'], key: 'brand' },
-    { title: 'Status', dataIndex: 'status', key: 'status' },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status, record) => (
+        <Switch
+          checked={status === 'ACTIVE'}
+          checkedChildren="Active"
+          unCheckedChildren="Inactive"
+          onChange={checked => {
+            const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
+            updateProductStatus(record.id, { status: newStatus })
+              .then(() => {
+                message.success('Status updated');
+                  // instead of reloading the entire page we just update the
+                  // state for this row.  calling `load()` causes the table to
+                  // refetch from the server and therefore re‑sort/paginate the
+                  // results; on older items this often meant the row would
+                  // disappear from the current page and show up at the end of
+                  // the dataset (seen as "moved to the last page").  when all
+                  // statuses are requested we don't care about the backend
+                  // filtering so there's no need to refetch at all.
+                  setProducts(prev =>
+                    prev.map(p =>
+                      p.id === record.id ? { ...p, status: newStatus } : p
+                    )
+                  );
+              })
+              .catch(() => message.error('Update failed'));
+          }}
+        />
+      ),
+    },
     {
       title: 'Actions',
       key: 'actions',
@@ -115,7 +165,7 @@ export default function ProductsPage() {
           <Select.Option value="price,asc">Low price</Select.Option>
           <Select.Option value="price,desc">High price</Select.Option>
         </Select>
-        <Button onClick={() => { setFilters({}); setSort('createdAt,desc'); load(0,pageSize); }}>Clear</Button>
+        <Button onClick={() => { setFilters({ status: 'ALL' }); setSort('createdAt,desc'); load(0,pageSize); }}>Clear</Button>
         <Button type="primary" onClick={() => openForm(null)}>New Product</Button>
       </div>
       <Table

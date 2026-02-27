@@ -1,5 +1,6 @@
 package com.kidfavor.orderservice.client;
 
+import com.kidfavor.orderservice.client.dto.ApiResponse;
 import com.kidfavor.orderservice.client.dto.ProductDto;
 import com.kidfavor.orderservice.exception.ProductNotFoundException;
 import com.kidfavor.orderservice.exception.ProductServiceUnavailableException;
@@ -22,7 +23,7 @@ public class ProductServiceClientFallbackFactory implements FallbackFactory<Prod
         
         return new ProductServiceClient() {
             @Override
-            public ProductDto getProductById(Long id) {
+            public ApiResponse<ProductDto> getProductById(Long id) {
                 log.warn("Fallback: Unable to fetch product with ID {}. Cause: {}", id, cause.getMessage());
                 
                 // Check if it's a 404 error (product not found)

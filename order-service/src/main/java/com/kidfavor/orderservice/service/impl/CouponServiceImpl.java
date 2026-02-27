@@ -69,6 +69,29 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Coupon> listAll(org.springframework.data.domain.Pageable pageable,
+                                                              String code,
+                                                              Boolean active,
+                                                              Coupon.DiscountType discountType) {
+        // build specification dynamically
+        org.springframework.data.jpa.domain.Specification<Coupon> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+            if (code != null && !code.isEmpty()) {
+                preds.add(cb.like(cb.lower(root.get("code")), "%" + code.toLowerCase() + "%"));
+            }
+            if (active != null) {
+                preds.add(cb.equal(root.get("active"), active));
+            }
+            if (discountType != null) {
+                preds.add(cb.equal(root.get("discountType"), discountType));
+            }
+            return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return repository.findAll(spec, pageable);
+    }
+
+    @Override
     public Coupon save(Coupon coupon) {
         return repository.save(coupon);
     }
