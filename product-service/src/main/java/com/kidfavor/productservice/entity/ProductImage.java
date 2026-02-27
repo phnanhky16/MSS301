@@ -24,5 +24,11 @@ public class ProductImage {
     
     @Column(nullable = false)
     private String imageUrl;
+    
+    @Column(name = "is_primary", nullable = false)
+    private Boolean isPrimary = false;
+    
+    @Column(name = "display_order", nullable = false)
+    private Integer displayOrder = 0;
 
 }
