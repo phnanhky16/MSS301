@@ -26,6 +26,8 @@ public class OrderPlacedEvent {
     private String customerName;
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
+    private String couponCode;
+    private BigDecimal discountAmount;
     private String eventVersion;
     private List<OrderItemEvent> items;
 

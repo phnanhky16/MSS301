@@ -57,6 +57,16 @@ public class OrderPlacedEvent {
     private LocalDateTime createdAt;
 
     /**
+     * Coupon code applied to the order (nullable).
+     */
+    private String couponCode;
+
+    /**
+     * Discount amount from the coupon (nullable).
+     */
+    private BigDecimal discountAmount;
+
+    /**
      * Version of the event schema for forward compatibility.
      */
     @Builder.Default

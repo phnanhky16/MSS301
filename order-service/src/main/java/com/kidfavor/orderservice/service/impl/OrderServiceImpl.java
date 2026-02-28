@@ -74,7 +74,7 @@ public class OrderServiceImpl implements OrderService {
         // Step 3: Create order items with validated product data
         for (OrderItemRequest itemRequest : request.getItems()) {
             ProductDto product = validatedProducts.get(itemRequest.getProductId());
-            
+
             OrderItem orderItem = OrderItem.builder()
                     .productId(product.getId())
                     .productName(product.getName())
@@ -82,16 +82,17 @@ public class OrderServiceImpl implements OrderService {
                     .quantity(itemRequest.getQuantity())
                     .subtotal(product.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity())))
                     .build();
-            
+
             order.addItem(orderItem);
         }
 
         // Step 4: Calculate total amount
         order.calculateTotalAmount();
 
-        // Step 4b: apply coupon if provided (skip if null, empty, or "string" default value)
-        if (request.getCouponCode() != null 
-                && !request.getCouponCode().isBlank() 
+        // Step 4b: apply coupon if provided (skip if null, empty, or "string" default
+        // value)
+        if (request.getCouponCode() != null
+                && !request.getCouponCode().isBlank()
                 && !request.getCouponCode().equalsIgnoreCase("string")) {
             try {
                 BigDecimal discount = couponService.applyCoupon(request.getCouponCode(), order.getTotalAmount());
@@ -101,7 +102,7 @@ public class OrderServiceImpl implements OrderService {
                 order.calculateTotalAmount();
                 log.info("Coupon {} applied successfully. Discount: {}", request.getCouponCode(), discount);
             } catch (Exception e) {
-                log.warn("Failed to apply coupon {}: {}. Order will proceed without discount.", 
+                log.warn("Failed to apply coupon {}: {}. Order will proceed without discount.",
                         request.getCouponCode(), e.getMessage());
                 // Continue without coupon - don't fail the order
             }
@@ -109,7 +110,7 @@ public class OrderServiceImpl implements OrderService {
 
         // Step 5: Persist order atomically
         Order savedOrder = orderRepository.save(order);
-        log.info("Order created successfully. Order ID: {}, Order Number: {}", 
+        log.info("Order created successfully. Order ID: {}, Order Number: {}",
                 savedOrder.getId(), savedOrder.getOrderNumber());
 
         // Step 6: Publish domain event (will be sent to Kafka AFTER_COMMIT)
@@ -117,13 +118,12 @@ public class OrderServiceImpl implements OrderService {
         String customerName = user.getFullName() != null ? user.getFullName()
                 : (user.getFirstName() != null ? user.getFirstName() + " " + user.getLastName() : user.getUsername());
         eventPublisher.publishEvent(new OrderCreatedDomainEvent(
-            this,
-            savedOrder,
-            customerEmail,
-            customerName,
-            savedOrder.getCouponCode(),
-            savedOrder.getDiscountAmount()
-        ));
+                this,
+                savedOrder,
+                customerEmail,
+                customerName,
+                savedOrder.getCouponCode(),
+                savedOrder.getDiscountAmount()));
 
         return mapToOrderResponse(savedOrder);
     }
@@ -170,13 +170,13 @@ public class OrderServiceImpl implements OrderService {
         log.info("Updating order {} status to {}", orderId, status);
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
-        
+
         validateStatusTransition(order.getStatus(), status);
         order.setStatus(status);
-        
+
         Order updatedOrder = orderRepository.save(order);
         log.info("Order {} status updated to {}", orderId, status);
-        
+
         return mapToOrderResponse(updatedOrder);
     }
 
@@ -186,22 +186,23 @@ public class OrderServiceImpl implements OrderService {
         log.info("Cancelling order: {}", orderId);
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
-        
+
         if (!canBeCancelled(order.getStatus())) {
             throw new IllegalArgumentException(
                     "Order cannot be cancelled. Current status: " + order.getStatus());
         }
-        
+
         order.setStatus(OrderStatus.CANCELLED);
         Order cancelledOrder = orderRepository.save(order);
         log.info("Order {} cancelled successfully", orderId);
-        
+
         return mapToOrderResponse(cancelledOrder);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<OrderResponse> listAll(org.springframework.data.domain.Pageable pageable) {
+    public org.springframework.data.domain.Page<OrderResponse> listAll(
+            org.springframework.data.domain.Pageable pageable) {
         // simply delegate to repository paging and convert entities to DTO
         return orderRepository.findAll(pageable)
                 .map(this::mapToOrderResponse);
@@ -209,7 +210,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-        public org.springframework.data.domain.Page<OrderResponse> searchOrders(
+    public org.springframework.data.domain.Page<OrderResponse> searchOrders(
             org.springframework.data.domain.Pageable pageable,
             String orderNumber,
             java.math.BigDecimal minTotal,
@@ -217,55 +218,55 @@ public class OrderServiceImpl implements OrderService {
             java.time.LocalDateTime startDate,
             java.time.LocalDateTime endDate,
             OrderStatus status) {
-            // Build a dynamic Specification to avoid JPQL null/typing problems.
-            org.springframework.data.jpa.domain.Specification<Order> spec =
-                (root, query, cb) -> {
-                    java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
-                        if (orderNumber != null && !orderNumber.isEmpty()) {
-                            preds.add(cb.like(root.get("orderNumber"), "%" + orderNumber + "%"));
-                        }
-                        if (minTotal != null) {
-                            preds.add(cb.ge(root.get("totalAmount"), minTotal));
-                        }
-                        if (maxTotal != null) {
-                            preds.add(cb.le(root.get("totalAmount"), maxTotal));
-                        }
-                        if (startDate != null) {
-                            preds.add(cb.greaterThanOrEqualTo(root.get("createdAt"), startDate));
-                        }
-                        if (endDate != null) {
-                            preds.add(cb.lessThanOrEqualTo(root.get("createdAt"), endDate));
-                        }
-                        if (status != null) {
-                            preds.add(cb.equal(root.get("status"), status));
-                        }
-                        return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
-                    };
-            return orderRepository.findAll(spec, pageable)
-                    .map(this::mapToOrderResponse);
+        // Build a dynamic Specification to avoid JPQL null/typing problems.
+        org.springframework.data.jpa.domain.Specification<Order> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+            if (orderNumber != null && !orderNumber.isEmpty()) {
+                preds.add(cb.like(root.get("orderNumber"), "%" + orderNumber + "%"));
+            }
+            if (minTotal != null) {
+                preds.add(cb.ge(root.get("totalAmount"), minTotal));
+            }
+            if (maxTotal != null) {
+                preds.add(cb.le(root.get("totalAmount"), maxTotal));
+            }
+            if (startDate != null) {
+                preds.add(cb.greaterThanOrEqualTo(root.get("createdAt"), startDate));
+            }
+            if (endDate != null) {
+                preds.add(cb.lessThanOrEqualTo(root.get("createdAt"), endDate));
+            }
+            if (status != null) {
+                preds.add(cb.equal(root.get("status"), status));
+            }
+            return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return orderRepository.findAll(spec, pageable)
+                .map(this::mapToOrderResponse);
     }
 
-        @Override
-        public long countOrders() {
-            return orderRepository.count();
-        }
+    @Override
+    public long countOrders() {
+        return orderRepository.count();
+    }
 
-        @Override
-        public java.util.Map<OrderStatus, Long> countByStatus() {
-            java.util.Map<OrderStatus, Long> map = new java.util.EnumMap<>(OrderStatus.class);
-            for (OrderStatus status : OrderStatus.values()) {
-                map.put(status, orderRepository.countByStatus(status));
-            }
-            return map;
+    @Override
+    public java.util.Map<OrderStatus, Long> countByStatus() {
+        java.util.Map<OrderStatus, Long> map = new java.util.EnumMap<>(OrderStatus.class);
+        for (OrderStatus status : OrderStatus.values()) {
+            map.put(status, orderRepository.countByStatus(status));
         }
+        return map;
+    }
 
-        @Override
-        public java.math.BigDecimal totalRevenue() {
-            return orderRepository.sumTotalAmount();
-        }
+    @Override
+    public java.math.BigDecimal totalRevenue() {
+        return orderRepository.sumTotalAmount();
+    }
 
     /**
-     * Validates all products in the order request and returns validated product data.
+     * Validates all products in the order request and returns validated product
+     * data.
      * This method performs fail-fast validation before any order creation.
      */
     private Map<Long, ProductDto> validateAndFetchProducts(List<OrderItemRequest> items) {
@@ -280,8 +281,8 @@ public class OrderServiceImpl implements OrderService {
         // TODO: Stock validation should be done via inventory-service
         // Validate stock for each item
         // for (OrderItemRequest item : items) {
-        //     ProductDto product = productMap.get(item.getProductId());
-        //     validateStock(product, item.getQuantity());
+        // ProductDto product = productMap.get(item.getProductId());
+        // validateStock(product, item.getQuantity());
         // }
 
         log.debug("All products validated successfully");
@@ -295,17 +296,17 @@ public class OrderServiceImpl implements OrderService {
      */
     private ProductDto fetchAndValidateProduct(Long productId) {
         log.debug("Fetching product: {}", productId);
-        
+
         // ProductServiceClient sẽ throw exception nếu:
         // - Product Service không available -> ProductServiceUnavailableException
         // - Product không tồn tại -> ProductNotFoundException (từ ErrorDecoder)
         ApiResponse<ProductDto> response = productServiceClient.getProductById(productId);
-        
+
         // Validate response
         if (response == null || response.getData() == null) {
             throw new ProductNotFoundException(productId);
         }
-        
+
         ProductDto product = response.getData();
 
         // Validate product is active
@@ -320,15 +321,15 @@ public class OrderServiceImpl implements OrderService {
      * TODO: This should call inventory-service instead of checking product stock
      */
     // private void validateStock(ProductDto product, Integer requestedQuantity) {
-    //     Integer availableStock = product.getStock() != null ? product.getStock() : 0;
-    //     
-    //     if (availableStock < requestedQuantity) {
-    //         throw new InsufficientStockException(
-    //                 product.getId(), 
-    //                 requestedQuantity, 
-    //                 availableStock
-    //         );
-    //     }
+    // Integer availableStock = product.getStock() != null ? product.getStock() : 0;
+    //
+    // if (availableStock < requestedQuantity) {
+    // throw new InsufficientStockException(
+    // product.getId(),
+    // requestedQuantity,
+    // availableStock
+    // );
+    // }
     // }
 
     /**
@@ -339,11 +340,13 @@ public class OrderServiceImpl implements OrderService {
      */
     private UserDto validateUser(Long userId) {
         log.debug("Validating user: {}", userId);
-        UserDto user = userServiceClient.getUserById(userId);
+        com.kidfavor.orderservice.client.dto.ApiResponse<UserDto> response = userServiceClient.getUserById(userId);
 
-        if (user == null) {
+        if (response == null || response.getData() == null) {
             throw new UserNotFoundException(userId);
         }
+
+        UserDto user = response.getData();
 
         // Support both isActive and status fields from different UserResponse shapes
         boolean active = (user.getIsActive() != null && user.getIsActive())
@@ -352,7 +355,7 @@ public class OrderServiceImpl implements OrderService {
             throw new UserInactiveException(userId);
         }
 
-        log.debug("User validated successfully: {}", userId);
+        log.debug("User validated successfully: {} (email: {})", userId, user.getEmail());
         return user;
     }
 
@@ -374,7 +377,7 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException(
                     "Cannot change status of a " + currentStatus + " order");
         }
-        
+
         if (currentStatus == OrderStatus.DELIVERED && newStatus != OrderStatus.REFUNDED) {
             throw new IllegalArgumentException(
                     "Delivered orders can only be transitioned to REFUNDED status");
@@ -413,8 +416,8 @@ public class OrderServiceImpl implements OrderService {
                 .phoneNumber(order.getPhoneNumber())
                 .notes(order.getNotes())
                 .items(itemResponses)
-            .couponCode(order.getCouponCode())
-            .discountAmount(order.getDiscountAmount())
+                .couponCode(order.getCouponCode())
+                .discountAmount(order.getDiscountAmount())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();

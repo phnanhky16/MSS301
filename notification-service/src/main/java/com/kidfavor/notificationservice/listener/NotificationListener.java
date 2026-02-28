@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Kafka listener for consuming notification events.
- * Handles OrderPlacedEvent from order-service and UserRegisteredEvent from user-service.
+ * Handles OrderPlacedEvent from order-service and UserRegisteredEvent from
+ * user-service.
  */
 @Slf4j
 @Component
@@ -22,27 +23,14 @@ public class NotificationListener {
     /**
      * Consumes order-placed events and sends order confirmation emails.
      */
-    @KafkaListener(
-            topics = "${app.kafka.topics.order-placed}",
-            groupId = "${spring.kafka.consumer.group-id}",
-            containerFactory = "kafkaListenerContainerFactory"
-    )
+    @KafkaListener(topics = "${app.kafka.topics.order-placed}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
     public void handleOrderPlacedEvent(OrderPlacedEvent event) {
         try {
             log.info("Received OrderPlacedEvent for order: {}, customer: {}",
                     event.getOrderNumber(), event.getCustomerEmail());
 
             if (event.getCustomerEmail() != null && !event.getCustomerEmail().isBlank()) {
-                String totalAmount = event.getTotalAmount() != null
-                        ? event.getTotalAmount().toPlainString()
-                        : "N/A";
-                String customerName = event.getCustomerName() != null ? event.getCustomerName() : "Customer";
-                emailService.sendOrderConfirmationEmail(
-                        event.getCustomerEmail(),
-                        customerName,
-                        event.getOrderNumber(),
-                        totalAmount
-                );
+                emailService.sendOrderConfirmationEmail(event);
             } else {
                 log.warn("OrderPlacedEvent missing customerEmail for order: {}", event.getOrderNumber());
             }
@@ -54,11 +42,7 @@ public class NotificationListener {
     /**
      * Consumes user-registered events and sends welcome emails.
      */
-    @KafkaListener(
-            topics = "${app.kafka.topics.user-registered}",
-            groupId = "${spring.kafka.consumer.group-id}",
-            containerFactory = "kafkaListenerContainerFactory"
-    )
+    @KafkaListener(topics = "${app.kafka.topics.user-registered}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
     public void handleUserRegisteredEvent(UserRegisteredEvent event) {
         try {
             log.info("Received UserRegisteredEvent for user: {}, email: {}",

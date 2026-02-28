@@ -17,7 +17,8 @@ import java.util.stream.Collectors;
 /**
  * Event listener that publishes OrderPlacedEvent to Kafka.
  * Uses @TransactionalEventListener with AFTER_COMMIT phase to ensure
- * events are only published after the database transaction successfully commits.
+ * events are only published after the database transaction successfully
+ * commits.
  */
 @Slf4j
 @Component
@@ -30,7 +31,8 @@ public class OrderEventPublisher {
     private String orderPlacedTopic;
 
     /**
-     * Listens for OrderCreatedDomainEvent and publishes to Kafka AFTER transaction commits.
+     * Listens for OrderCreatedDomainEvent and publishes to Kafka AFTER transaction
+     * commits.
      * This ensures that:
      * 1. Events are only published for successfully persisted orders
      * 2. No Kafka messages are sent if the transaction rolls back
@@ -45,14 +47,17 @@ public class OrderEventPublisher {
         log.info("Publishing OrderPlacedEvent for order: {}", orderNumber);
 
         try {
-            OrderPlacedEvent orderPlacedEvent = buildOrderPlacedEvent(order, event.getCustomerEmail(), event.getCustomerName());
-            
-            CompletableFuture<SendResult<String, Object>> future = 
-                    kafkaTemplate.send(orderPlacedTopic, orderNumber, orderPlacedEvent);
-            
+            OrderPlacedEvent orderPlacedEvent = buildOrderPlacedEvent(order, event.getCustomerEmail(),
+                    event.getCustomerName(),
+                    event.getCouponCode(), event.getDiscountAmount());
+
+            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(orderPlacedTopic, orderNumber,
+                    orderPlacedEvent);
+
             future.whenComplete((result, ex) -> {
                 if (ex == null) {
-                    log.info("OrderPlacedEvent published successfully for order: {}. Topic: {}, Partition: {}, Offset: {}",
+                    log.info(
+                            "OrderPlacedEvent published successfully for order: {}. Topic: {}, Partition: {}, Offset: {}",
                             orderNumber,
                             result.getRecordMetadata().topic(),
                             result.getRecordMetadata().partition(),
@@ -64,7 +69,7 @@ public class OrderEventPublisher {
                     handlePublishFailure(orderPlacedEvent, ex);
                 }
             });
-            
+
         } catch (Exception ex) {
             log.error("Error building/publishing OrderPlacedEvent for order: {}. Error: {}",
                     orderNumber, ex.getMessage(), ex);
@@ -74,7 +79,8 @@ public class OrderEventPublisher {
     /**
      * Builds the OrderPlacedEvent from the Order entity and customer info.
      */
-    private OrderPlacedEvent buildOrderPlacedEvent(Order order, String customerEmail, String customerName) {
+    private OrderPlacedEvent buildOrderPlacedEvent(Order order, String customerEmail, String customerName,
+            String couponCode, java.math.BigDecimal discountAmount) {
         return OrderPlacedEvent.builder()
                 .orderId(order.getId())
                 .orderNumber(order.getOrderNumber())
@@ -83,6 +89,8 @@ public class OrderEventPublisher {
                 .customerName(customerName)
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
+                .couponCode(couponCode)
+                .discountAmount(discountAmount)
                 .items(order.getItems().stream()
                         .map(item -> OrderPlacedEvent.OrderItemEvent.builder()
                                 .productId(item.getProductId())
