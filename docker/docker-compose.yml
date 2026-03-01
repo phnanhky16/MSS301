@@ -36,7 +36,9 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # Google OAuth2 Configuration - Set these via .env file or system environment variables
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     depends_on:
       postgres-user:
         condition: service_healthy

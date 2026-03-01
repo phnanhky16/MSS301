@@ -130,3 +130,4 @@ app:
       stock-updated: stock-updated
       stock-low-alert: stock-low-alert
       order-created: order-created
+      order-placed: order-placed-topic

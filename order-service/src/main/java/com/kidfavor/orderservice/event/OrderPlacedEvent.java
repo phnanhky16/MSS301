@@ -37,6 +37,11 @@ public class OrderPlacedEvent {
     private Long userId;
 
     /**
+     * ID of the store where the order was placed.
+     */
+    private Long storeId;
+
+    /**
      * Email of the customer who placed the order.
      */
     private String customerEmail;
@@ -55,6 +60,16 @@ public class OrderPlacedEvent {
      * Timestamp when the order was created.
      */
     private LocalDateTime createdAt;
+
+    /**
+     * Coupon code applied to the order (nullable).
+     */
+    private String couponCode;
+
+    /**
+     * Discount amount from the coupon (nullable).
+     */
+    private BigDecimal discountAmount;
 
     /**
      * Version of the event schema for forward compatibility.

@@ -312,7 +312,33 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                 .notes(request.getNotes())
                 .build();
     }
-    
+
+    @Override
+    @Transactional
+    public void deductStock(Long storeId, Long productId, Integer quantity) {
+        log.info("Deducting {} units of product {} from store {}", quantity, productId, storeId);
+
+        Store store = storeService.getStoreEntityById(storeId);
+        StoreInventory storeInventory = storeInventoryRepository
+                .findByStoreAndProductId(store, productId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product " + productId + " not found in store " + storeId));
+
+        int currentQty = storeInventory.getQuantity() != null ? storeInventory.getQuantity() : 0;
+        if (currentQty < quantity) {
+            throw new IllegalArgumentException(
+                    String.format("Insufficient stock for product %d in store %d. Available: %d, Requested: %d",
+                            productId, storeId, currentQty, quantity));
+        }
+
+        storeInventory.setQuantity(currentQty - quantity);
+        storeInventory.setUpdatedBy("order-system");
+        storeInventoryRepository.save(storeInventory);
+
+        log.info("Stock deducted for product {} in store {}. Previous: {}, Deducted: {}, Remaining: {}",
+                productId, storeId, currentQty, quantity, currentQty - quantity);
+    }
+
     @Override
     public List<Long> getAllProductIdsWithStock() {
         log.info("Fetching all product IDs with stock across all stores");

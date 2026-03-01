@@ -1,4 +1,4 @@
-package com.kidfavor.notificationservice.dto;
+package com.kidfavor.inventoryservice.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * Mirror DTO for the OrderPlacedEvent produced by order-service.
- * Kept local to notification-service for decoupling.
+ * Used to deserialize the Kafka message for inventory deduction.
  */
 @Data
 @NoArgsConstructor

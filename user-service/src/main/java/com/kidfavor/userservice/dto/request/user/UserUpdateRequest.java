@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class UserUpdateRequest {
     private String fullName;
     private String phone;
+    private Boolean status;
 }

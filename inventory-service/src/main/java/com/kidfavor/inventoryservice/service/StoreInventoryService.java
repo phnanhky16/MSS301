@@ -45,4 +45,11 @@ public interface StoreInventoryService {
     StoreRestockResponse restockFromWarehouse(StoreRestockRequest request);
     
     List<Long> getAllProductIdsWithStock();
+
+    /**
+     * Deducts the specified quantity from a store's inventory for a given product.
+     * Throws if the product is not found in the store or if there is insufficient
+     * stock.
+     */
+    void deductStock(Long storeId, Long productId, Integer quantity);
 }
