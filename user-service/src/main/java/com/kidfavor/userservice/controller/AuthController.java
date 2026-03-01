@@ -3,10 +3,12 @@ package com.kidfavor.userservice.controller;
 import com.kidfavor.userservice.dto.ApiResponse;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LogoutRequest;
+import com.kidfavor.userservice.dto.request.auth.OAuth2LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
 import com.kidfavor.userservice.dto.response.AuthResponse;
 import com.kidfavor.userservice.service.AuthService;
+import com.kidfavor.userservice.service.OAuth2Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,11 +23,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "APIs for user authentication (Register, Login, Logout)")
+@Tag(name = "Authentication", description = "APIs for user authentication (Register, Login, Logout, OAuth2)")
 @io.swagger.v3.oas.annotations.security.SecurityRequirements // No security required for auth endpoints
 public class AuthController {
 
     private final AuthService authService;
+    private final OAuth2Service oauth2Service;
 
     @Operation(
             summary = "Register a new user",
@@ -92,6 +95,28 @@ public class AuthController {
             @Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
+    }
+
+    @Operation(
+            summary = "Google OAuth2 Login",
+            description = "Authenticate user with Google ID token and return JWT tokens"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Google login successful",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Invalid Google token"
+            )
+    })
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
+            @Valid @RequestBody OAuth2LoginRequest request) {
+        AuthResponse response = oauth2Service.authenticateWithGoogle(request.getToken());
+        return ResponseEntity.ok(ApiResponse.success("Google login successful", response));
     }
 
     @Operation(

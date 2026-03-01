@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   # --- API Gateway ---
@@ -36,15 +36,15 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # Google OAuth2 Configuration - Set these via .env file or system environment variables
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     depends_on:
       postgres-user:
         condition: service_healthy
       redis:
         condition: service_started
       consul:
-        condition: service_started
-      kafka:
         condition: service_started
     networks:
       - microservices-network
@@ -72,7 +72,7 @@ services:
       # `docker compose up` which does not rebuild images by default, but it
       # will honour the `depends_on` conditions and healthchecks below.
       postgres-order:
-        condition: service_started
+        condition: service_healthy
       consul:
         condition: service_started
       kafka:
@@ -98,17 +98,10 @@ services:
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
       H2_CONSOLE_ENABLED: "false"
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_PUBLIC_ENDPOINT: http://localhost:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET_NAME: product-images
     depends_on:
       postgres-product:
         condition: service_started
       consul:
-        condition: service_started
-      minio:
         condition: service_started
     networks:
       - microservices-network
@@ -121,7 +114,7 @@ services:
       dockerfile: Dockerfile
     container_name: review-service
     ports:
-      - "8086:8086"
+      - "8084:8084"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-review:5432/reviewdb
       SPRING_DATASOURCE_USERNAME: postgres
@@ -131,78 +124,6 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       postgres-review:
-        condition: service_started
-    networks:
-      - microservices-network
-    restart: on-failure
-  # --- Inventory Service ---
-  inventory-service:
-    build:
-      context: ../inventory-service
-      dockerfile: Dockerfile
-    container_name: inventory-service
-    ports:
-      - "8084:8084"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-inventory:5432/inventorydb
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_CLOUD_CONSUL_HOST: consul
-      SPRING_CLOUD_CONSUL_PORT: 8500
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      PRODUCT_SERVICE_URL: http://product-service:8083
-    depends_on:
-      postgres-inventory:
-        condition: service_started
-    networks:
-      - microservices-network
-    restart: on-failure
-
-  # --- Notification Service ---
-  notification-service:
-    build:
-      context: ..
-      dockerfile: notification-service/Dockerfile
-    container_name: notification-service
-    ports:
-      - "8087:8087"
-    environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_CLOUD_CONSUL_HOST: consul
-      SPRING_CLOUD_CONSUL_PORT: 8500
-      MAIL_USERNAME: ${MAIL_USERNAME:-testpersonality134@gmail.com}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-qhjj mrhl yyba gfly}
-    depends_on:
-      consul:
-        condition: service_started
-      kafka:
-        condition: service_started
-    networks:
-      - microservices-network
-    restart: on-failure
-
-  # --- Cart Service ---
-  cart-service:
-    build:
-      context: ..
-      dockerfile: cart-service/Dockerfile
-    container_name: cart-service
-    ports:
-      - "8085:8085"
-    environment:
-      DB_HOST: postgres-cart
-      DB_PORT: 5432
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      CONSUL_HOST: consul
-      CONSUL_PORT: 8500
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-    depends_on:
-      postgres-cart:
-        condition: service_started
-      redis:
         condition: service_started
       consul:
         condition: service_started
@@ -260,7 +181,7 @@ services:
     # once pg_isready succeeds. this allows the order-service to start only
     # after PostgreSQL has finished initializing the database files.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d orderdb"]
+      test: ["CMD-SHELL","pg_isready -U postgres -d orderdb"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -330,27 +251,6 @@ services:
     networks:
       - microservices-network
 
-  # --- MinIO Object Storage ---
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    ports:
-      - "9000:9000" # MinIO API
-      - "9001:9001" # MinIO Console
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio-data:/data
-    networks:
-      - microservices-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # --- Keycloak for Authentication ---
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.1
@@ -413,38 +313,33 @@ services:
       - microservices-network
 
   # --- Frontend ---
-#  fe:
-#    build:
-#      context: ../fe
-#      dockerfile: Dockerfile
-#    container_name: fe
-#    ports:
-#      - "3000:3000"
-#    environment:
-#      # the front end talks through the gateway; this variable can be
-#      # overridden if the gateway lives on a different host/port.
-#      NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
-#    depends_on:
-#      api-gateway:
-#        condition: service_started
-#    networks:
-#      - microservices-network
-#    restart: on-failure
+  fe:
+    build:
+      context: ../fe
+      dockerfile: Dockerfile
+    container_name: fe
+    ports:
+      - "3000:3000"
+    environment:
+      # the front end talks through the gateway; this variable can be
+      # overridden if the gateway lives on a different host/port.
+      NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
 
   # --- Ensure Maven base image is available ---
-  # This dummy service doesn't run anything, it just pulls whatever
-  # Maven image our Dockerfiles reference when you `docker compose up` or
-  # `docker compose pull`.  Having the image cached locally avoids the
-  # frequent TLS handshake/timeout errors that were occurring during
-  # the build phase.
-  #
-  # Historically the codebase used 3.9.0 in one Dockerfile while the
-  # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
-  # didn't help when a service still tried to pull 3.9.6.  The simplest
-  # fix is to standardize on the newer 3.9.6 tag and pull it here.
+  # this dummy service doesn't run anything, it just pulls the
+  # Maven image when you `docker compose up` or `docker compose pull`.
+  # once the image is in the local cache, all of the build stages in
+  # the other services that say `FROM maven:3.9.0-eclipse-temurin-17`
+  # will use the pulled copy and never hit the network again.
   maven-base:
-    image: maven:3.9.6-eclipse-temurin-17
-    entrypoint: ["true"] # immediately exit successfully
+    image: maven:3.9.0-eclipse-temurin-17
+    entrypoint: ["true"]          # immediately exit successfully
     networks:
       - microservices-network
 
@@ -457,7 +352,6 @@ volumes:
   postgres-cart-data:
   postgres-review-data:
   postgres-keycloak-data:
-  minio-data:
 
 # --- Networks Definition ---
 networks:
