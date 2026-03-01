@@ -65,4 +65,12 @@ public interface InventoryServiceClient {
      */
     @GetMapping("/api/stores/active")
     ApiResponseDto<List<StoreDto>> getActiveStores();
+    
+    /**
+     * Get all product IDs that have stock (quantity > 0) in any store.
+     * 
+     * @return List of product IDs with stock
+     */
+    @GetMapping("/api/stores/products-with-stock")
+    ApiResponseDto<List<Long>> getAllProductIdsWithStock();
 }

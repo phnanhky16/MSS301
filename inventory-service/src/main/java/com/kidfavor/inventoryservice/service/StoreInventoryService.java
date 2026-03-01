@@ -43,4 +43,6 @@ public interface StoreInventoryService {
     List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity);
     
     StoreRestockResponse restockFromWarehouse(StoreRestockRequest request);
+    
+    List<Long> getAllProductIdsWithStock();
 }

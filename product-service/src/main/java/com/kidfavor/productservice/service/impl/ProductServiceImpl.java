@@ -1,5 +1,6 @@
 package com.kidfavor.productservice.service.impl;
 
+import com.kidfavor.productservice.client.InventoryServiceClient;
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
 import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
@@ -21,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +35,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
     private final ProductMapper productMapper;
+    private final InventoryServiceClient inventoryServiceClient;
     
 
     @Override
@@ -176,5 +181,92 @@ public class ProductServiceImpl implements ProductService {
         product.setStatusChangedAt(LocalDateTime.now());
         Product updatedProduct = productRepository.save(product);
         return productMapper.toResponse(updatedProduct);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ProductResponse> listProductsSortedByStock(
+            org.springframework.data.domain.Pageable pageable,
+            String keyword,
+            Long categoryId,
+            Long brandId,
+            String status) {
+        
+        // Get product IDs with stock from inventory service
+        Set<Long> productIdsWithStock = new HashSet<>();
+        try {
+            var response = inventoryServiceClient.getAllProductIdsWithStock();
+            if (response != null && response.getData() != null) {
+                productIdsWithStock.addAll(response.getData());
+            }
+        } catch (Exception e) {
+            // If inventory service is down, continue without stock info
+            // Products will be sorted only by other criteria
+        }
+        
+        // Build dynamic specification
+        org.springframework.data.jpa.domain.Specification<Product> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+            
+            if (status == null) {
+                preds.add(cb.equal(root.get("status"), EntityStatus.ACTIVE));
+            } else if (!"ALL".equalsIgnoreCase(status)) {
+                try {
+                    EntityStatus s = EntityStatus.valueOf(status.toUpperCase());
+                    preds.add(cb.equal(root.get("status"), s));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            if (keyword != null && !keyword.isEmpty()) {
+                String pattern = "%" + keyword.toLowerCase() + "%";
+                preds.add(cb.or(
+                        cb.like(cb.lower(root.get("name")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern)
+                ));
+            }
+            if (categoryId != null) {
+                preds.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+            if (brandId != null) {
+                preds.add(cb.equal(root.get("brand").get("id"), brandId));
+            }
+            return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        
+        // Get all products matching the filters
+        List<Product> allProducts = productRepository.findAll(spec);
+        
+        // Sort products: with stock first, then without stock
+        final Set<Long> stockSet = productIdsWithStock;
+        List<Product> sortedProducts = allProducts.stream()
+                .sorted((p1, p2) -> {
+                    boolean p1HasStock = stockSet.contains(p1.getId());
+                    boolean p2HasStock = stockSet.contains(p2.getId());
+                    
+                    if (p1HasStock && !p2HasStock) return -1;
+                    if (!p1HasStock && p2HasStock) return 1;
+                    
+                    // If both have same stock status, sort by ID
+                    return p1.getId().compareTo(p2.getId());
+                })
+                .collect(Collectors.toList());
+        
+        // Manual pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), sortedProducts.size());
+        
+        List<Product> pageContent = start < sortedProducts.size() 
+                ? sortedProducts.subList(start, end) 
+                : List.of();
+        
+        List<ProductResponse> responseList = pageContent.stream()
+                .map(productMapper::toResponse)
+                .collect(Collectors.toList());
+        
+        return new org.springframework.data.domain.PageImpl<>(
+                responseList,
+                pageable,
+                sortedProducts.size()
+        );
     }
 }

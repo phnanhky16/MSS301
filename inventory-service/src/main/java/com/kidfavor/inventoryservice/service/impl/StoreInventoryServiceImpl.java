@@ -312,4 +312,10 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                 .notes(request.getNotes())
                 .build();
     }
+    
+    @Override
+    public List<Long> getAllProductIdsWithStock() {
+        log.info("Fetching all product IDs with stock across all stores");
+        return storeInventoryRepository.findAllProductIdsWithStock();
+    }
 }

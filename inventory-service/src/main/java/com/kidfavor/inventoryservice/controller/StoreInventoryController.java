@@ -168,4 +168,17 @@ public class StoreInventoryController {
         StoreRestockResponse response = storeInventoryService.restockFromWarehouse(request);
         return ResponseEntity.ok(ResponseWrapper.success("Store restocked successfully", response));
     }
+    
+    @GetMapping("/products-with-stock")
+    @Operation(summary = "Get all product IDs with stock", 
+               description = "Retrieve list of all product IDs that have stock (quantity > 0) in any store")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved product IDs")
+    })
+    public ResponseEntity<ResponseWrapper<List<Long>>> getAllProductIdsWithStock() {
+        List<Long> productIds = storeInventoryService.getAllProductIdsWithStock();
+        return ResponseEntity.ok(ResponseWrapper.success(
+                String.format("Found %d products with stock", productIds.size()), 
+                productIds));
+    }
 }

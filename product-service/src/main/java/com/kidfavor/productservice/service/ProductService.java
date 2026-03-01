@@ -43,4 +43,11 @@ public interface ProductService {
     void deleteProduct(Long id);
     
     ProductResponse updateProductStatus(Long id, StatusUpdateRequest request);
+    
+    org.springframework.data.domain.Page<ProductResponse> listProductsSortedByStock(
+        org.springframework.data.domain.Pageable pageable,
+        String keyword,
+        Long categoryId,
+        Long brandId,
+        String status);
 }

@@ -14,6 +14,7 @@
 ## 🚀 Cài đặt
 
 ### Yêu cầu
+
 - Flutter SDK >= 3.0.0
 - Dart SDK >= 3.0.0
 - Android Studio / Xcode (để chạy emulator)
@@ -22,16 +23,19 @@
 ### Các bước cài đặt
 
 1. **Di chuyển vào thư mục mobile-app:**
+
 ```bash
 cd /Users/phnanhky/IntelliJ/MSS301-BE/mobile-app
 ```
 
 2. **Cài đặt dependencies:**
+
 ```bash
 flutter pub get
 ```
 
 3. **Chạy ứng dụng:**
+
 ```bash
 # Chạy trên Android emulator
 flutter run
@@ -61,6 +65,7 @@ static const String baseUrl = 'http://192.168.1.xxx:8080';
 ```
 
 **Tìm IP máy tính:**
+
 ```bash
 # macOS/Linux
 ifconfig | grep "inet "
@@ -94,14 +99,17 @@ lib/
 ## 🎯 API Endpoints được sử dụng
 
 ### User Service
+
 - `POST /user-service/auth/login` - Đăng nhập
 - `GET /user-service/users/{id}` - Lấy thông tin user
 
 ### Product Service
+
 - `GET /product-service/products` - Danh sách sản phẩm
 - `GET /product-service/products/{id}` - Chi tiết sản phẩm
 
 ### Cart Service
+
 - `GET /cart-service/carts/{userId}` - Lấy giỏ hàng
 - `POST /cart-service/carts` - Thêm vào giỏ hàng
 - `PUT /cart-service/carts/{userId}/items/{productId}` - Cập nhật số lượng
@@ -129,19 +137,25 @@ Password: password123
 ## 🐛 Debug
 
 ### Lỗi kết nối API
+
 ```
 SocketException: Failed host lookup
 ```
+
 **Giải pháp:** Kiểm tra lại `baseUrl` trong `api_service.dart`
 
 ### Android Network Permission
+
 Thêm vào `android/app/src/main/AndroidManifest.xml`:
+
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
 ```
 
 ### iOS App Transport Security
+
 Thêm vào `ios/Runner/Info.plist`:
+
 ```xml
 <key>NSAppTransportSecurity</key>
 <dict>
