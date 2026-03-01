@@ -29,8 +29,15 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
+
+    // OAuth2 fields
+    @Column(length = 50)
+    private String provider; // "local", "google", "facebook", etc.
+
+    @Column(unique = true)
+    private String providerId; // unique ID from OAuth provider
 
     @Column(length = 20)
     private String phone;
