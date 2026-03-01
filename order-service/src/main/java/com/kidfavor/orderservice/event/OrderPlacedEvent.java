@@ -37,6 +37,11 @@ public class OrderPlacedEvent {
     private Long userId;
 
     /**
+     * ID of the store where the order was placed.
+     */
+    private Long storeId;
+
+    /**
      * Email of the customer who placed the order.
      */
     private String customerEmail;

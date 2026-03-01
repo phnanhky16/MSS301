@@ -31,6 +31,9 @@ public class Order {
     @Column(nullable = false)
     private Long userId;
 
+    @Column(name = "store_id")
+    private Long storeId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
@@ -78,8 +81,8 @@ public class Order {
 
     public void calculateTotalAmount() {
         this.totalAmount = items.stream()
-            .map(OrderItem::getSubtotal)
-            .reduce(BigDecimal.ZERO, BigDecimal::add)
-            .subtract(discountAmount != null ? discountAmount : BigDecimal.ZERO);
+                .map(OrderItem::getSubtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .subtract(discountAmount != null ? discountAmount : BigDecimal.ZERO);
     }
 }

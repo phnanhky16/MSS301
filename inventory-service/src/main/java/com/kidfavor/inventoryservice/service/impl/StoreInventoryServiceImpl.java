@@ -138,9 +138,9 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     @Transactional
     public StoreInventoryResponse addOrUpdateInventory(StoreInventoryRequest request) {
         log.info("Adding/updating product {} in store {}", request.getProductId(), request.getStoreId());
-        
+
         Store store = storeService.getStoreEntityById(request.getStoreId());
-        
+
         StoreInventory storeInventory = storeInventoryRepository
                 .findByStoreAndProductId(store, request.getProductId())
                 .orElse(StoreInventory.builder()
@@ -156,7 +156,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
         StoreInventory saved = storeInventoryRepository.save(storeInventory);
         log.info("Product {} updated in store {}", request.getProductId(), request.getStoreId());
-        
+
         return mapper.toStoreInventoryResponse(saved);
     }
 
@@ -164,7 +164,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     @Transactional
     public StoreInventoryResponse updateStock(Long storeId, StockUpdateRequest request) {
         log.info("Updating stock for product {} in store {}", request.getProductId(), storeId);
-        
+
         Store store = storeService.getStoreEntityById(storeId);
         StoreInventory storeInventory = storeInventoryRepository
                 .findByStoreAndProductId(store, request.getProductId())
@@ -174,10 +174,10 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         storeInventory.setQuantity(request.getQuantity());
         storeInventory.setUpdatedBy(getCurrentUsername());
         StoreInventory saved = storeInventoryRepository.save(storeInventory);
-        
-        log.info("Stock updated for product {} in store {}. New quantity: {}", 
+
+        log.info("Stock updated for product {} in store {}. New quantity: {}",
                 request.getProductId(), storeId, request.getQuantity());
-        
+
         return mapper.toStoreInventoryResponse(saved);
     }
 
@@ -185,7 +185,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     @Transactional
     public void removeInventory(Long storeId, Long productId) {
         log.info("Removing product {} from store {}", productId, storeId);
-        
+
         Store store = storeService.getStoreEntityById(storeId);
         StoreInventory storeInventory = storeInventoryRepository
                 .findByStoreAndProductId(store, productId)
@@ -207,21 +207,21 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     @Override
     public List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity) {
         log.info("Checking availability for product {} with required quantity: {}", productId, requiredQuantity);
-        
+
         // Get all store inventory for this product
         List<StoreInventory> inventoryList = storeInventoryRepository.findByProductId(productId);
-        
+
         if (inventoryList.isEmpty()) {
             log.warn("Product {} not found in any store", productId);
             return List.of();
         }
-        
+
         // Convert to availability response
         return inventoryList.stream()
                 .map(inventory -> {
                     Store store = inventory.getStore();
                     boolean hasEnoughStock = inventory.getQuantity() >= requiredQuantity;
-                    
+
                     return StoreAvailabilityResponse.builder()
                             .storeId(store.getStoreId())
                             .storeCode(store.getStoreCode())
@@ -248,8 +248,8 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     @Override
     @Transactional
     public StoreRestockResponse restockFromWarehouse(StoreRestockRequest request) {
-        log.info("Restocking store {} from warehouse {} - Product {}, Quantity: {}", 
-                request.getToStoreId(), request.getFromWarehouseId(), 
+        log.info("Restocking store {} from warehouse {} - Product {}, Quantity: {}",
+                request.getToStoreId(), request.getFromWarehouseId(),
                 request.getProductId(), request.getQuantity());
 
         // Get warehouse and store
@@ -260,12 +260,13 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         WarehouseProduct warehouseProduct = warehouseProductRepository
                 .findByWarehouseAndProductId(warehouse, request.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Product " + request.getProductId() + " not found in warehouse " + request.getFromWarehouseId()));
+                        "Product " + request.getProductId() + " not found in warehouse "
+                                + request.getFromWarehouseId()));
 
         // Check if warehouse has enough stock
         if (warehouseProduct.getQuantity() < request.getQuantity()) {
             throw new IllegalArgumentException(
-                    String.format("Insufficient stock in warehouse. Available: %d, Requested: %d", 
+                    String.format("Insufficient stock in warehouse. Available: %d, Requested: %d",
                             warehouseProduct.getQuantity(), request.getQuantity()));
         }
 
@@ -284,7 +285,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         String currentUser = getCurrentUsername();
         warehouseProduct.setQuantity(warehouseProduct.getQuantity() - request.getQuantity());
         warehouseProduct.setUpdatedBy(currentUser);
-        
+
         storeInventory.setQuantity(storeInventory.getQuantity() + request.getQuantity());
         storeInventory.setUpdatedBy(currentUser);
 
@@ -292,7 +293,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         WarehouseProduct savedWarehouseProduct = warehouseProductRepository.save(warehouseProduct);
         StoreInventory savedStoreInventory = storeInventoryRepository.save(storeInventory);
 
-        log.info("Restock completed. Product {} - Warehouse {} remaining: {}, Store {} new stock: {}", 
+        log.info("Restock completed. Product {} - Warehouse {} remaining: {}, Store {} new stock: {}",
                 request.getProductId(), request.getFromWarehouseId(), savedWarehouseProduct.getQuantity(),
                 request.getToStoreId(), savedStoreInventory.getQuantity());
 
@@ -311,5 +312,31 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                 .transferredAt(LocalDateTime.now())
                 .notes(request.getNotes())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void deductStock(Long storeId, Long productId, Integer quantity) {
+        log.info("Deducting {} units of product {} from store {}", quantity, productId, storeId);
+
+        Store store = storeService.getStoreEntityById(storeId);
+        StoreInventory storeInventory = storeInventoryRepository
+                .findByStoreAndProductId(store, productId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product " + productId + " not found in store " + storeId));
+
+        int currentQty = storeInventory.getQuantity() != null ? storeInventory.getQuantity() : 0;
+        if (currentQty < quantity) {
+            throw new IllegalArgumentException(
+                    String.format("Insufficient stock for product %d in store %d. Available: %d, Requested: %d",
+                            productId, storeId, currentQty, quantity));
+        }
+
+        storeInventory.setQuantity(currentQty - quantity);
+        storeInventory.setUpdatedBy("order-system");
+        storeInventoryRepository.save(storeInventory);
+
+        log.info("Stock deducted for product {} in store {}. Previous: {}, Deducted: {}, Remaining: {}",
+                productId, storeId, currentQty, quantity, currentQty - quantity);
     }
 }
