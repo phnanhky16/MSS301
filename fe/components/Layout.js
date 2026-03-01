@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Layout as AntLayout, Menu, Button } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { logout } from '../services/auth';
-
-const { Header, Content, Footer } = AntLayout;
+import { ShoppingCartOutlined, SearchOutlined, MenuOutlined } from '@ant-design/icons';
 
 export default function Layout({ children, isLogin = false }) {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // check token presence on mount and when storage changes
   useEffect(() => {
     const check = () => setLoggedIn(!!localStorage.getItem('accessToken'));
     check();
@@ -18,69 +16,76 @@ export default function Layout({ children, isLogin = false }) {
     return () => window.removeEventListener('storage', check);
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const isHome = router.pathname === '/';
+
   return (
-    <AntLayout className="layout" style={{ minHeight: '100vh' }}>
-      <Header>
-        <div className="logo" />
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {/**
-           * build menu items dynamically so the current route can be
-           * reflected in the selected key. we also offer a login link in
-           * the menu when the user is not authenticated; the right-hand
-           * login/logout button is primarily for convenience.
-           */}
-          {(() => {
-            const activeKey =
-              router.pathname === '/' ? 'home' :
-                router.pathname === '/login' ? 'login' :
-                  '';
-            // only show home in the menu; login will be available via the
-            // right-hand button which already has active-state styling.
-            const items = [{ key: 'home', label: <Link href="/">Home</Link> }];
-            return (
-              <Menu
-                theme="dark"
-                mode="horizontal"
-                selectedKeys={[activeKey]}
-                items={items}
-              />
-            );
-          })()}
-          <div style={{ marginLeft: 'auto' }}>
+    <div className={`site-wrapper${isLogin ? ' login-page' : ''}`}>
+      {/* ─── HEADER ─── */}
+      <header className={`site-header${scrolled ? ' scrolled' : ''}`}>
+        <div className="header-inner">
+          {/* Logo */}
+          <Link href="/" className="header-logo">
+            <span className="logo-bear">🧸</span>
+            <div className="logo-text-wrap">
+              <span className="logo-rainbow">rainbow</span>
+              <span className="logo-toddler">toddler</span>
+            </div>
+          </Link>
+
+          {/* Nav */}
+          <nav className="header-nav">
+            {[
+              { href: '/', label: 'Home' },
+              { href: '/shop', label: 'Shop' },
+              { href: '/about', label: 'Blogs' },
+              { href: '/toy', label: 'Toy' },
+              { href: '/contact', label: 'Contact' },
+            ].map(item => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`nav-link${router.pathname === item.href ? ' active' : ''}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right actions */}
+          <div className="header-actions">
+            <button className="hdr-icon-btn" aria-label="Search">
+              <SearchOutlined />
+            </button>
+            <button className="hdr-icon-btn cart-btn" aria-label="Cart">
+              <ShoppingCartOutlined />
+              <span className="cart-badge">3</span>
+            </button>
             {loggedIn ? (
-              <Button type="link" onClick={async () => {
-                await logout();
-                router.push('/login');
-              }}
-                style={{ color: '#fff' }}
+              <button
+                className="hdr-login-btn"
+                onClick={async () => { await logout(); router.push('/login'); }}
               >
                 Logout
-              </Button>
+              </button>
             ) : (
               <Link href="/login">
-                <Button
-                  type="link"
-                  style={{
-                    color: '#fff',
-                    /**
-                     * when we are already on the login page, give the
-                     * button a subtle background to look "active" so the
-                     * header feels responsive.
-                     */
-                    background: router.pathname === '/login' ? 'rgba(255,255,255,0.15)' : undefined
-                  }}
-                >
-                  Login
-                </Button>
+                <button className="hdr-login-btn">Login</button>
               </Link>
             )}
           </div>
         </div>
-      </Header>
-      <Content style={isLogin ? { padding: 0, marginTop: 0 } : { padding: '0 50px', marginTop: '24px' }}>
+      </header>
+
+      {/* ─── CONTENT ─── */}
+      <main className={`site-main${isLogin ? ' no-pad' : ''}`}>
         {children}
-      </Content>
-      {!isLogin && <Footer style={{ textAlign: 'center' }}>KidFavor ©2026</Footer>}
-    </AntLayout>
+      </main>
+    </div>
   );
 }
