@@ -12,6 +12,7 @@ import {
   LeftOutlined,
   RightOutlined,
 } from '@ant-design/icons';
+import { useCart } from '../hooks/useCart';
 
 /* ─────────────────────────── DATA ─────────────────────────── */
 
@@ -57,7 +58,7 @@ const PHOTOS = [
 
 /* ─────────────────────────── SUB-COMPONENTS ─────────────────────────── */
 
-function ProductCard({ product, compact = false }) {
+function ProductCard({ product, compact = false, onAdd }) {
   const [wished, setWished] = useState(false);
   return (
     <div className={`prod-card ${compact ? 'compact' : ''}`}>
@@ -78,11 +79,11 @@ function ProductCard({ product, compact = false }) {
           <Rate disabled defaultValue={product.rating} allowHalf style={{ fontSize: 12, color: '#fab400' }} />
           {product.reviews && <span className="prod-reviews">({product.reviews})</span>}
         </div>
-        <button className="add-to-cart-btn">
+        <button className="add-to-cart-btn" onClick={() => onAdd(product)}>
           <ShoppingCartOutlined /> Add to cart
         </button>
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -91,6 +92,7 @@ function ProductCard({ product, compact = false }) {
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [testimIdx, setTestimIdx] = useState(0);
+  const { addToCart } = useCart();
 
   const visibleTestim = TESTIMONIALS.slice(testimIdx, testimIdx + 2);
 
@@ -138,7 +140,7 @@ export default function Home() {
           <button className="tab">On sale</button>
         </div>
         <div className="products-grid">
-          {PRODUCTS.map(p => <ProductCard key={p.id} product={p} />)}
+          {PRODUCTS.map(p => <ProductCard key={p.id} product={p} onAdd={addToCart} />)}
         </div>
       </section>
 
@@ -166,7 +168,7 @@ export default function Home() {
         <h2 className="section-title">Customer Loves</h2>
         <p className="section-sub">Regular loves</p>
         <div className="products-grid loved-grid">
-          {LOVED.map(p => <ProductCard key={p.id} product={p} />)}
+          {LOVED.map(p => <ProductCard key={p.id} product={p} onAdd={addToCart} />)}
         </div>
       </section>
 

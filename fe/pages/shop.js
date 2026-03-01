@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Rate } from 'antd';
 import { HeartOutlined, HeartFilled, ShoppingCartOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined } from '@ant-design/icons';
+import { useCart } from '../hooks/useCart';
 
 /* ─────────────────────────── DATA ─────────────────────────── */
 
@@ -38,7 +39,7 @@ const TOTAL_RESULTS = 24;
 
 /* ─────────────────────────── PRODUCT CARD ─────────────────── */
 
-function ShopProductCard({ product }) {
+function ShopProductCard({ product, onAdd }) {
     const [wished, setWished] = useState(false);
     return (
         <div className="shop-prod-card">
@@ -46,7 +47,7 @@ function ShopProductCard({ product }) {
             <button className="shop-wish-btn" onClick={() => setWished(w => !w)}>
                 {wished ? <HeartFilled style={{ color: '#ff4d4f' }} /> : <HeartOutlined />}
             </button>
-            <button className="shop-cart-btn-icon" aria-label="Add to cart"><ShoppingCartOutlined /></button>
+            <button className="shop-cart-btn-icon" aria-label="Add to cart" onClick={() => onAdd(product)}><ShoppingCartOutlined /></button>
             <div className="shop-prod-img">{product.img}</div>
             <div className="shop-prod-info">
                 <p className="shop-prod-name">{product.name}</p>
@@ -71,6 +72,7 @@ export default function ShopPage() {
     const [sortBy, setSortBy] = useState('Default sorting');
     const [page, setPage] = useState(1);
     const [searchVal, setSearchVal] = useState('');
+    const { addToCart } = useCart();
     const PAGES = Math.ceil(TOTAL_RESULTS / 9);
     const startResult = (page - 1) * 9 + 1;
     const endResult = Math.min(page * 9, TOTAL_RESULTS);
@@ -208,7 +210,7 @@ export default function ShopPage() {
 
                     {/* Product grid */}
                     <div className={`shop-grid${viewMode === 'list' ? ' list-view' : ''}`}>
-                        {ALL_PRODUCTS.map(p => <ShopProductCard key={p.id} product={p} />)}
+                        {ALL_PRODUCTS.map(p => <ShopProductCard key={p.id} product={p} onAdd={addToCart} />)}
                     </div>
 
                     {/* Pagination */}

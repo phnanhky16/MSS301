@@ -3,11 +3,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { logout } from '../services/auth';
 import { ShoppingCartOutlined, SearchOutlined, MenuOutlined } from '@ant-design/icons';
+import { useCart } from '../hooks/useCart';
 
 export default function Layout({ children, isLogin = false }) {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { getCartCount } = useCart();
 
   useEffect(() => {
     const check = () => setLoggedIn(!!localStorage.getItem('accessToken'));
@@ -62,10 +64,12 @@ export default function Layout({ children, isLogin = false }) {
             <button className="hdr-icon-btn" aria-label="Search">
               <SearchOutlined />
             </button>
-            <button className="hdr-icon-btn cart-btn" aria-label="Cart">
-              <ShoppingCartOutlined />
-              <span className="cart-badge">3</span>
-            </button>
+            <Link href="/cart">
+              <button className="hdr-icon-btn cart-btn" aria-label="Cart">
+                <ShoppingCartOutlined />
+                <span className="cart-badge">{getCartCount()}</span>
+              </button>
+            </Link>
             {loggedIn ? (
               <button
                 className="hdr-login-btn"
