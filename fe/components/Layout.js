@@ -11,6 +11,8 @@ export default function Layout({ children, isLogin = false }) {
   const [loggedIn, setLoggedIn] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  // keep reference to hide timer so hover into dropdown doesn't close it
+  const hideTimer = React.useRef(null);
   const [scrolled, setScrolled] = useState(false);
   const { getCartCount } = useCart();
 
@@ -82,13 +84,57 @@ export default function Layout({ children, isLogin = false }) {
                 <span className="cart-badge">{getCartCount()}</span>
               </button>
             </Link>
-            {loggedIn ? (
-              <button
-                className="hdr-login-btn"
-                onClick={async () => { await logout(); router.push('/login'); }}
-              >
-                Logout
-              </button>
+            {loggedIn && userInfo ? (
+              <div 
+                  className="user-menu-wrapper"
+                  onMouseEnter={() => {
+                    clearTimeout(hideTimer.current);
+                    setShowUserMenu(true);
+                  }}
+                  onMouseLeave={() => {
+                    // delay hiding a bit to allow mouse to move into dropdown
+                    hideTimer.current = setTimeout(() => setShowUserMenu(false), 150);
+                  }}
+                >
+                <div className="user-avatar">
+                  <div className="avatar-circle">
+                    {userInfo.email ? userInfo.email.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                </div>
+                {showUserMenu && (
+                  <div
+                    className="user-dropdown"
+                    onMouseEnter={() => {
+                      clearTimeout(hideTimer.current);
+                      setShowUserMenu(true);
+                    }}
+                    onMouseLeave={() => setShowUserMenu(false)}
+                  >
+                    <div className="dropdown-header">
+                      <div className="dropdown-avatar">
+                        {userInfo.email ? userInfo.email.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      <div className="dropdown-user-info">
+                        <div className="dropdown-name">{userInfo.name || userInfo.email}</div>
+                        <div className="dropdown-email">{userInfo.email}</div>
+                        <div className="dropdown-role">{userInfo.role}</div>
+                      </div>
+                    </div>
+                    <div className="dropdown-divider"></div>
+                    <button
+                      className="dropdown-item logout-item"
+                      onClick={async () => {
+                        await logout();
+                        localStorage.removeItem('userInfo');
+                        router.push('/login');
+                      }}
+                    >
+                      <LogoutOutlined />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <Link href="/login">
                 <button className="hdr-login-btn">Login</button>

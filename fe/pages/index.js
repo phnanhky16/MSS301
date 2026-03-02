@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Rate, Tag } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { Rate, Tag, message } from 'antd';
 import Link from 'next/link';
 import {
   ShoppingCartOutlined,
@@ -13,6 +14,7 @@ import {
   RightOutlined,
 } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
+import { extractOAuth2Params, handleOAuth2Callback } from '../services/oauth';
 
 /* ─────────────────────────── DATA ─────────────────────────── */
 
@@ -90,14 +92,38 @@ function ProductCard({ product, compact = false, onAdd }) {
 /* ─────────────────────────── PAGE ─────────────────────────── */
 
 export default function Home() {
+  const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [activeCategory, setActiveCategory] = useState('all');
   const [testimIdx, setTestimIdx] = useState(0);
   const { addToCart } = useCart();
 
+  // Handle OAuth2 callback (Google login redirect with token)
+  useEffect(() => {
+    const { token, error } = extractOAuth2Params(router.query);
+    
+    if (token || error) {
+      const result = handleOAuth2Callback(token, error);
+      
+      if (result.success) {
+        messageApi.success(result.message);
+        // Clean URL by removing token param
+        router.replace('/', undefined, { shallow: true });
+        // Force Layout to re-render and show avatar
+        window.dispatchEvent(new Event('storage'));
+      } else {
+        messageApi.error(result.message);
+        router.replace('/', undefined, { shallow: true });
+      }
+    }
+  }, [router.query]);
+
   const visibleTestim = TESTIMONIALS.slice(testimIdx, testimIdx + 2);
 
   return (
-    <div className="home-page">
+    <>
+      {contextHolder}
+      <div className="home-page">
 
       {/* ── 1. HERO BANNER ── */}
       <section className="hero-section">
@@ -310,6 +336,8 @@ export default function Home() {
         </div>
       </footer>
 
-    </div>
+      </div>
+      { /* close fragment */ }
+    </>
   );
 }
