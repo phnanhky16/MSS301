@@ -228,9 +228,44 @@ INSERT INTO product_images (product_id, image_url, is_primary, display_order) VA
 (13, 'https://www.mykingdom.com.vn/cdn/shop/files/ba-lo-fancy-kitty-pinky-cleverhippo-bk1108-pink_2.jpg?v=1763695585&width=1206', FALSE, 2),
 (13, 'https://www.mykingdom.com.vn/cdn/shop/files/ba-lo-fancy-kitty-pinky-cleverhippo-bk1108-pink_3.jpg?v=1763695585&width=1206', FALSE, 3);
 
--- Baby Food Images
+-- Product 14: Chicco Well-Being Silicone Bottle
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(17, 'https://example.com/products/gerber-formula-1.jpg', TRUE, 1),
-(18, 'https://example.com/products/gerber-banana-1.jpg', TRUE, 1),
-(19, 'https://example.com/products/gerber-variety-1.jpg', TRUE, 1),
-(20, 'https://example.com/products/gerber-puffs-1.jpg', TRUE, 1);
+(14, 'https://www.mykingdom.com.vn/cdn/shop/files/xe-choi-chan-bo-xanh-3-banh-scuttle-bug-xl-ride-on-8555_2.jpg?v=1763102695&width=1206', TRUE, 1),
+(14, 'https://www.mykingdom.com.vn/cdn/shop/files/xe-choi-chan-bo-xanh-3-banh-scuttle-bug-xl-ride-on-8555_11.jpg?v=1763102695&width=1206', FALSE, 2),
+(14, 'https://www.mykingdom.com.vn/cdn/shop/files/xe-choi-chan-bo-xanh-3-banh-scuttle-bug-xl-ride-on-8555_5.jpg?v=1763102695&width=1206', FALSE, 3);
+
+-- Product 15: Huggies Little Snugglers Size 2
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(15, 'https://www.mykingdom.com.vn/cdn/shop/products/cm16-5p-bl_3__1_1f642a40-6625-4563-aaf8-0876f5425698.jpg?v=1746866123&width=1206', TRUE, 1),
+(15, 'https://www.mykingdom.com.vn/cdn/shop/products/cm16-5p-bl_2__1_f31c0109-acfc-40ab-a571-396b6b4c5070.jpg?v=1746866123&width=1206', FALSE, 2),
+(15, 'https://www.mykingdom.com.vn/cdn/shop/products/cm16-5p-bl-nentrang.jpg?v=1746866123&width=1206', FALSE, 3);
+
+-- Product 16: Huggies Pull-Ups Training Pants
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(16, 'https://www.mykingdom.com.vn/cdn/shop/files/bup-be-thoi-trang-fashionista-barbie-arm-cast-millie-barbie-jjn56_3.jpg?v=1770188893&width=1206', TRUE, 1),
+(16, 'https://www.mykingdom.com.vn/cdn/shop/files/bup-be-thoi-trang-fashionista-barbie-arm-cast-millie-barbie-jjn56_4.jpg?v=1770188893&width=1206', FALSE, 2),
+(16, 'https://www.mykingdom.com.vn/cdn/shop/files/bup-be-thoi-trang-fashionista-barbie-arm-cast-millie-barbie-jjn56_5.jpg?v=1770188893&width=1206', FALSE, 3);
+
+-- Product 17: Gerber Good Start Gentle Infant Formula
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(17, 'https://www.mykingdom.com.vn/cdn/shop/files/bup-be-thoi-trang-fashionista-barbie-arm-cast-millie-barbie-jjn56_4.jpg?v=1770188893&width=1206', TRUE, 1),
+(17, 'https://www.mykingdom.com.vn/cdn/shop/files/bup-be-thoi-trang-fashionista-barbie-arm-cast-millie-barbie-jjn56_5.jpg?v=1770188893&width=1206', FALSE, 2),
+(17, 'https://www.mykingdom.com.vn/cdn/shop/files/bup-be-thoi-trang-fashionista-barbie-pink-leopard-asian-barbie-jjn59_2.jpg?v=1770189057&width=1206', FALSE, 3);
+
+-- Product 18: Gerber 1st Foods Banana Baby Food
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(18, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-b_c-thep-vang-vecto-vtb17-yl_1.jpg?v=1761559795&width=1206', TRUE, 1),
+(18, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-b_c-thep-vang-vecto-vtb17-yl_3.jpg?v=1761559818&width=1206', FALSE, 2),
+(18, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-b_c-thep-vang-vecto-vtb17-yl_2.jpg?v=1761559818&width=1206', FALSE, 3);
+
+-- Product 19: Gerber 2nd Foods Variety Pack
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(19, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-bien-hinh-co-lon-jett-phien-ban-dac-biet-superwings-eu710210n_1.jpg?v=1770267716&width=1206', TRUE, 1),
+(19, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-bien-hinh-co-lon-jett-phien-ban-dac-biet-superwings-eu710210n_3.jpg?v=1770267716&width=1206', FALSE, 2),
+(19, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-bien-hinh-co-lon-jett-phien-ban-dac-biet-superwings-eu710210n_7.jpg?v=1770267716&width=1206', FALSE, 3);
+
+-- Product 20: Gerber Puffs Cereal Snack
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(20, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-meo-puffy-mum-mim-dieu-khien-tu-xa-trang-vecto-vtk48-wh_2.jpg?v=1761559088&width=1206', TRUE, 1),
+(20, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-meo-puffy-mum-mim-dieu-khien-tu-xa-trang-vecto-vtk48-wh_3.jpg?v=1761559088&width=1206', FALSE, 2),
+(20, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-meo-puffy-mum-mim-dieu-khien-tu-xa-trang-vecto-vtk48-wh_1.jpg?v=1761559088&width=1206', FALSE, 3);
