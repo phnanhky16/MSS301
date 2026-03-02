@@ -22,6 +22,7 @@ public class DataInitialize implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         initAdminUser();
+            initSampleUsers();
     }
 
     private void initAdminUser() {
@@ -49,5 +50,68 @@ public class DataInitialize implements CommandLineRunner {
         } else {
             log.info("Admin user already exists, skipping initialization.");
         }
+    }
+
+    /**
+     * create a few sample accounts covering all roles except admin
+     */
+    private void initSampleUsers() {
+        // use consistent password pattern: username + "123"
+        // pad existing users too; update their password if the pattern changed
+        createOrUpdatePassword("customer", "customer123", "customer@kidfavor.com", Role.CUSTOMER, "Customer User");
+        createOrUpdatePassword("storestaff", "storestaff123", "store@kidfavor.com", Role.STAFF_FOR_STORE, "Store Staff");
+        createOrUpdatePassword("warestaff", "warestaff123", "warehouse@kidfavor.com", Role.STAFF_FOR_WAREHOUSE, "Warehouse Staff");
+        // admin already handled above
+    }
+
+    private void createIfMissing(String username, String rawPassword, String email, Role role, String fullName) {
+        if (userRepository.findByUserName(username).isEmpty()) {
+            User u = new User();
+            u.setFullName(fullName);
+            u.setUserName(username);
+            u.setEmail(email);
+            u.setPassword(passwordEncoder.encode(rawPassword));
+            u.setPhone("0000000000");
+            u.setStatus(true);
+            u.setRole(role);
+            userRepository.save(u);
+            log.info("Created sample {} user: {} / {}", role, username, rawPassword);
+        } else {
+            log.info("User {} exists, skipping", username);
+        }
+    }
+
+    /**
+     * Ensure a sample account exists and its password matches the expected raw
+     * string.  This helps when the hardcoded default is modified after the
+     * user was created originally, which would otherwise leave the database
+     * out of sync and lead to confusing login failures.
+     */
+    private void createOrUpdatePassword(String username,
+                                        String rawPassword,
+                                        String email,
+                                        Role role,
+                                        String fullName) {
+        userRepository.findByUserName(username).ifPresentOrElse(existing -> {
+            boolean needsUpdate = !passwordEncoder.matches(rawPassword, existing.getPassword());
+            if (needsUpdate) {
+                existing.setPassword(passwordEncoder.encode(rawPassword));
+                userRepository.save(existing);
+                log.info("Updated password for existing {} user '{}' / {}", role, username, rawPassword);
+            } else {
+                log.info("User {} exists with correct password, skipping update", username);
+            }
+        }, () -> {
+            User u = new User();
+            u.setFullName(fullName);
+            u.setUserName(username);
+            u.setEmail(email);
+            u.setPassword(passwordEncoder.encode(rawPassword));
+            u.setPhone("0000000000");
+            u.setStatus(true);
+            u.setRole(role);
+            userRepository.save(u);
+            log.info("Created sample {} user: {} / {}", role, username, rawPassword);
+        });
     }
 }

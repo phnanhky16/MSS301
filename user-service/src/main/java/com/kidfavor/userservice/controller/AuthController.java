@@ -9,6 +9,7 @@ import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
 import com.kidfavor.userservice.dto.response.AuthResponse;
 import com.kidfavor.userservice.service.AuthService;
+import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "APIs for user authentication (Register, Login, Logout, OAuth2)")
 @io.swagger.v3.oas.annotations.security.SecurityRequirements // No security required for auth endpoints
+@Slf4j
 public class AuthController {
 
         private final AuthService authService;
@@ -51,8 +53,14 @@ public class AuthController {
         @PostMapping("/login")
         public ResponseEntity<ApiResponse<AuthResponse>> login(
                         @Valid @RequestBody LoginRequest request) {
-                AuthResponse response = authService.login(request);
-                return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+                try {
+                        AuthResponse response = authService.login(request);
+                        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+                } catch (Exception ex) {
+                        // log full stack for debugging; error will propagate as 500
+                        log.error("Error during login for user {}", request.getUsername(), ex);
+                        throw ex;
+                }
         }
 
         @Operation(summary = "Refresh access token", description = "Get new access token using refresh token")

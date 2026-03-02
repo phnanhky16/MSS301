@@ -5,12 +5,13 @@ import { useRouter } from 'next/router';
 import Script from 'next/script';
 
 import { login } from '../services/auth';
-import { initiateGoogleLogin, handleOAuth2Callback } from '../services/oauth';
+import { initiateGoogleLogin, handleOAuth2Callback, decodeJWT } from '../services/oauth';
 
 const { Title } = Typography;
 
 export default function Login() {
   const router = useRouter();
+  const [msgApi, msgHolder] = message.useMessage();
 
   // Add a class to <html> so we can scope full-viewport background CSS
   // to the login page only, then clean it up when navigating away.
@@ -30,10 +31,21 @@ export default function Login() {
     const result = handleOAuth2Callback(token, error);
     
     if (result.success === true) {
-      message.success(result.message);
-      router.push('/admin');
+      msgApi.success(result.message);
+      // after OAuth success we stored userInfo already; route by role
+      const stored = localStorage.getItem('userInfo');
+      try {
+        const info = stored ? JSON.parse(stored) : null;
+        if (info && info.role && info.role.toUpperCase() === 'ADMIN') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
+      } catch (_) {
+        router.push('/');
+      }
     } else if (result.success === false) {
-      message.error(`Login failed: ${result.message}`);
+      msgApi.error(`Login failed: ${result.message}`);
     }
   }, [router.query]);
 
@@ -48,9 +60,35 @@ export default function Login() {
       .then(data => {
         console.debug('login success payload', data);
         if (data && data.accessToken) {
-          router.push('/admin');
+          // decode once so we can route correctly and cache a little info
+          let info = null;
+          try {
+            info = decodeJWT(data.accessToken);
+            if (info) {
+              localStorage.setItem('userInfo', JSON.stringify({
+                userId: info.userId,
+                email: info.email,
+                role: info.role,
+                name: info.sub || info.email.split('@')[0]
+              }));
+            }
+          } catch (_) {
+            // ignore decode errors
+          }
+
+          // notify other components (e.g. Layout) that auth state changed
+          // `storage` event normally fires only in other windows, so dispatch
+          // manually so the Layout hook re-checks the token/userInfo.
+          window.dispatchEvent(new Event('storage'));
+
+          // route depending on user role
+          if (info && info.role && info.role.toUpperCase() === 'ADMIN') {
+            router.push('/admin');
+          } else {
+            router.push('/');
+          }
         } else {
-          message.error('Login succeeded but no token received');
+          msgApi.error('Login succeeded but no token received');
         }
       })
       .catch(err => {
@@ -59,13 +97,15 @@ export default function Login() {
           const parsed = JSON.parse(err.message);
           if (parsed && parsed.message) text = parsed.message;
         } catch (_) { }
-        message.error(text);
+        msgApi.error(text);
         console.error('login error', err);
       });
   };
 
   return (
-    <div className="login-wrapper">
+    <>
+      {msgHolder}
+      <div className="login-wrapper">
       {/* Right side is transparent — background image shows through */}
       <div className="login-right" />
       <div className="login-left">
@@ -118,6 +158,7 @@ export default function Login() {
           </Form>
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
