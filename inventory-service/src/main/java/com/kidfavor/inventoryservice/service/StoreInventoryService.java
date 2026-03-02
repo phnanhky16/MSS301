@@ -45,6 +45,14 @@ public interface StoreInventoryService {
     StoreRestockResponse restockFromWarehouse(StoreRestockRequest request);
     
     List<Long> getAllProductIdsWithStock();
+    
+    /**
+     * Get all inventory records for a product across all stores.
+     * 
+     * @param productId Product ID
+     * @return List of store inventories for the product
+     */
+    List<StoreInventoryResponse> getInventoryByProductId(Long productId);
 
     /**
      * Deducts the specified quantity from a store's inventory for a given product.

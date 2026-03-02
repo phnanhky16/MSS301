@@ -1,81 +1,165 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Rate } from 'antd';
+import { useRouter } from 'next/router';
+import { Rate, Empty, Spin } from 'antd';
 import { HeartOutlined, HeartFilled, ShoppingCartOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
+import { fetchProductsSortedByStock, fetchCategories, fetchBrands } from '../services/api';
 
-/* ─────────────────────────── DATA ─────────────────────────── */
-
-const CATEGORIES = [
-    { id: 'playsets', label: 'Playsets' },
-    { id: 'control', label: 'Control Toys' },
-    { id: 'edu', label: 'Educational Toys', active: true },
-    { id: 'eco', label: 'Eco-Friendly Toys' },
-    { id: 'stuffed', label: 'Stuffed Toys' },
-    { id: 'type1', label: 'Type 1' },
-    { id: 'type2', label: 'Type 2' },
-];
-
-const POPULAR = [
-    { name: 'Magna etiam tempar orci', price: 39.00, img: '🐭', rating: 5 },
-    { name: 'Tortor at auctor', price: 39.00, img: '🌈', rating: 4 },
-    { name: 'Hape scoot-around', price: 39.00, img: '🚲', rating: 5 },
-];
-
-const ALL_PRODUCTS = [
-    { id: 1, name: 'Blocks shape-sorting Toy', price: 33.00, oldPrice: null, rating: 5, img: '🧱', badge: null },
-    { id: 2, name: 'Set wooden farm fruit Toys', price: 29.00, oldPrice: 29.00, rating: 4.5, img: '🌽', badge: 'SALE' },
-    { id: 3, name: 'Montessori Dinosaur Puzzle', price: 39.00, oldPrice: null, rating: 2, img: '🦕', badge: null },
-    { id: 4, name: 'Magna etiam tempar orci', price: 29.00, oldPrice: 38.00, rating: 0, img: '📚', badge: 'SALE' },
-    { id: 5, name: 'Wooden sorting Toys', price: 39.00, oldPrice: null, rating: 4, img: '🔷', badge: null },
-    { id: 6, name: 'Magna etiam tempar orci', price: 29.00, oldPrice: 30.00, rating: 5, img: '🎮', badge: 'SALE' },
-    { id: 7, name: 'Magna etiam tempar orci', price: 29.00, oldPrice: 30.00, rating: 0, img: '🎵', badge: 'SALE' },
-    { id: 8, name: 'Magna etiam tempar orci', price: 39.00, oldPrice: null, rating: 3.5, img: '🎀', badge: null },
-    { id: 9, name: 'Magna etiam tempar orci', price: 29.00, oldPrice: 35.00, rating: 4.5, img: '🐴', badge: 'SALE' },
-];
-
-const SORT_OPTIONS = ['Default sorting', 'Price: Low to High', 'Price: High to Low', 'Newest', 'Rating'];
-const TOTAL_RESULTS = 24;
+const SORT_MAPPING = {
+    'Default sorting': 'name,asc',
+    'Price: Low to High': 'price,asc',
+    'Price: High to Low': 'price,desc',
+    'Newest': 'createdAt,desc',
+    'Rating': 'name,asc' // Backend doesn't have rating yet
+};
 
 /* ─────────────────────────── PRODUCT CARD ─────────────────── */
 
 function ShopProductCard({ product, onAdd }) {
+    const router = useRouter();
     const [wished, setWished] = useState(false);
+    const [imgErr, setImgErr] = useState(false);
+    const imgUrl = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null;
+
+    const handleCardClick = () => {
+        router.push(`/product/${product.id}`);
+    };
+
     return (
-        <div className="shop-prod-card">
-            {product.badge && <span className="shop-badge sale">{product.badge}</span>}
-            <button className="shop-wish-btn" onClick={() => setWished(w => !w)}>
+        <div className="shop-prod-card" onClick={handleCardClick}>
+            {product.status === 'INACTIVE' && <span className="shop-badge sale">OUT OF STOCK</span>}
+            <button
+                className="shop-wish-btn"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setWished(w => !w);
+                }}
+            >
                 {wished ? <HeartFilled style={{ color: '#ff4d4f' }} /> : <HeartOutlined />}
             </button>
-            <button className="shop-cart-btn-icon" aria-label="Add to cart" onClick={() => onAdd(product)}><ShoppingCartOutlined /></button>
-            <div className="shop-prod-img">{product.img}</div>
+            <button
+                className="shop-cart-btn-icon"
+                aria-label="Add to cart"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onAdd(product);
+                }}
+            >
+                <ShoppingCartOutlined />
+            </button>
+            <div className="shop-prod-img">
+                {imgUrl && !imgErr ? (
+                    <img
+                        src={imgUrl}
+                        alt={product.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={() => setImgErr(true)}
+                    />
+                ) : (
+                    <span style={{ fontSize: 40 }}>🧸</span>
+                )}
+            </div>
             <div className="shop-prod-info">
                 <p className="shop-prod-name">{product.name}</p>
                 <div className="shop-prod-price-row">
-                    <span className="shop-prod-price">${product.price.toFixed(2)}</span>
-                    {product.oldPrice && product.oldPrice !== product.price && (
-                        <span className="shop-prod-old">${product.oldPrice.toFixed(2)}</span>
-                    )}
+                    <span className="shop-prod-price">${product.price ? product.price.toFixed(2) : '0.00'}</span>
                 </div>
-                <Rate disabled defaultValue={product.rating} allowHalf style={{ fontSize: 12, color: '#fab400' }} />
+                {/* Rating is mock as backend doesn't provide it */}
+                <Rate disabled defaultValue={5} allowHalf style={{ fontSize: 12, color: '#fab400' }} />
             </div>
         </div>
+    );
+}
+
+function PopularProductItem({ product }) {
+    const [imgErr, setImgErr] = useState(false);
+    return (
+        <li className="popular-item cursor-pointer">
+            <Link href={`/product/${product.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                <div className="popular-img">
+                    {product.imageUrls && product.imageUrls.length > 0 && !imgErr ? (
+                        <img
+                            src={product.imageUrls[0]}
+                            alt={product.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+                            onError={() => setImgErr(true)}
+                        />
+                    ) : '🧸'}
+                </div>
+                <div className="popular-info">
+                    <p className="popular-name">{product.name}</p>
+                    <span className="popular-price">${product.price ? product.price.toFixed(2) : '0.00'}</span>
+                    <Rate disabled defaultValue={5} allowHalf style={{ fontSize: 11, color: '#fab400' }} />
+                </div>
+            </Link>
+        </li>
     );
 }
 
 /* ─────────────────────────── PAGE ─────────────────────────── */
 
 export default function ShopPage() {
-    const [activeCat, setActiveCat] = useState('edu');
-    const [priceRange, setPriceRange] = useState([20, 200]);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+    const router = useRouter();
+    const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [activeCat, setActiveCat] = useState(null);
+    const [priceRange, setPriceRange] = useState([0, 1000]);
+    const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('Default sorting');
-    const [page, setPage] = useState(1);
+    const [page, setPage] = useState(0); // 0-indexed for backend
     const [searchVal, setSearchVal] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [totalResults, setTotalResults] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const { addToCart } = useCart();
-    const PAGES = Math.ceil(TOTAL_RESULTS / 9);
-    const startResult = (page - 1) * 9 + 1;
-    const endResult = Math.min(page * 9, TOTAL_RESULTS);
+
+    const pageSize = 9;
+
+    useEffect(() => {
+        if (router.isReady) {
+            const categoryId = router.query.cat ? parseInt(router.query.cat) : null;
+            setActiveCat(categoryId);
+            // Reset page to 0 when category changes (or is reset)
+            setPage(0);
+        }
+    }, [router.isReady, router.query.cat]);
+
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const cats = await fetchCategories();
+                setCategories(cats || []);
+            } catch (err) {
+                console.error("Failed to load categories", err);
+            }
+        };
+        loadCategories();
+    }, []);
+
+    useEffect(() => {
+        const loadProducts = async () => {
+            setLoading(true);
+            try {
+                const data = await fetchProductsSortedByStock(page, pageSize, {
+                    keyword: searchVal,
+                    categoryId: activeCat,
+                    sort: SORT_MAPPING[sortBy]
+                });
+                setProducts(data.content || []);
+                setTotalResults(data.totalElements || 0);
+                setTotalPages(data.totalPages || 0);
+            } catch (err) {
+                console.error("Failed to load products", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadProducts();
+    }, [page, activeCat, sortBy, searchVal]);
+
+    const startResult = totalResults > 0 ? page * pageSize + 1 : 0;
+    const endResult = Math.min((page + 1) * pageSize, totalResults);
 
     return (
         <div className="shop-page">
@@ -83,12 +167,7 @@ export default function ShopPage() {
             {/* ── TOP BAR ── */}
             <div className="shop-topbar">
                 <div className="shop-topbar-inner">
-                    <span className="shop-topbar-msg">🚚 Free free shipping with over $150</span>
-                    <div className="shop-topbar-actions">
-                        <Link href="/login"><span className="shop-topbar-link">Login</span></Link>
-                        <span className="shop-topbar-sep">|</span>
-                        <Link href="/register"><span className="shop-topbar-link">Register</span></Link>
-                    </div>
+                    <span className="shop-topbar-msg">🚚 Free shipping with over $150</span>
                 </div>
             </div>
 
@@ -97,7 +176,7 @@ export default function ShopPage() {
                 <div className="shop-breadcrumb-inner">
                     <Link href="/" className="bc-home">Home</Link>
                     <span className="bc-sep"> / </span>
-                    <span className="bc-current">Products</span>
+                    <Link href="/shop" className="bc-current">Products</Link>
                 </div>
             </div>
 
@@ -123,14 +202,23 @@ export default function ShopPage() {
                     <div className="sidebar-block">
                         <h4 className="sidebar-block-title">Product categories</h4>
                         <ul className="sidebar-cats">
-                            {CATEGORIES.map(cat => (
+                            <li>
+                                <button
+                                    className={`sidebar-cat-btn${activeCat === null ? ' active' : ''}`}
+                                    onClick={() => router.push('/shop', undefined, { shallow: true })}
+                                >
+                                    <span className="cat-plus">{activeCat === null ? '−' : '+'}</span>
+                                    All Categories
+                                </button>
+                            </li>
+                            {categories.map(cat => (
                                 <li key={cat.id}>
                                     <button
                                         className={`sidebar-cat-btn${activeCat === cat.id ? ' active' : ''}`}
-                                        onClick={() => setActiveCat(cat.id)}
+                                        onClick={() => router.push(`/shop?cat=${cat.id}`, undefined, { shallow: true })}
                                     >
                                         <span className="cat-plus">{activeCat === cat.id ? '−' : '+'}</span>
-                                        {cat.label}
+                                        {cat.name}
                                     </button>
                                 </li>
                             ))}
@@ -157,19 +245,12 @@ export default function ShopPage() {
                         </div>
                     </div>
 
-                    {/* Popular products */}
+                    {/* Popular products (Mocked for now) */}
                     <div className="sidebar-block">
                         <h4 className="sidebar-block-title">Popular products</h4>
                         <ul className="popular-list">
-                            {POPULAR.map((p, i) => (
-                                <li key={i} className="popular-item">
-                                    <div className="popular-img">{p.img}</div>
-                                    <div className="popular-info">
-                                        <p className="popular-name">{p.name}</p>
-                                        <span className="popular-price">${p.price.toFixed(2)}</span>
-                                        <Rate disabled defaultValue={p.rating} allowHalf style={{ fontSize: 11, color: '#fab400' }} />
-                                    </div>
-                                </li>
+                            {products.slice(0, 3).map((p, i) => (
+                                <PopularProductItem key={i} product={p} />
                             ))}
                         </ul>
                     </div>
@@ -179,7 +260,9 @@ export default function ShopPage() {
                 <main className="shop-main">
                     {/* Heading row */}
                     <div className="shop-heading-row">
-                        <h1 className="shop-title">Educational Toys</h1>
+                        <h1 className="shop-title">
+                            {activeCat ? categories.find(c => c.id === activeCat)?.name : 'All Toys'}
+                        </h1>
                     </div>
 
                     {/* Toolbar */}
@@ -198,39 +281,50 @@ export default function ShopPage() {
                             <select
                                 className="shop-sort-select"
                                 value={sortBy}
-                                onChange={e => setSortBy(e.target.value)}
+                                onChange={e => { setSortBy(e.target.value); setPage(0); }}
                             >
-                                {SORT_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                                {Object.keys(SORT_MAPPING).map(o => <option key={o}>{o}</option>)}
                             </select>
                         </div>
                         <div className="shop-result-count">
-                            Showing {startResult}-{endResult} of {TOTAL_RESULTS} results
+                            Showing {startResult}-{endResult} of {totalResults} results
                         </div>
                     </div>
 
                     {/* Product grid */}
                     <div className={`shop-grid${viewMode === 'list' ? ' list-view' : ''}`}>
-                        {ALL_PRODUCTS.map(p => <ShopProductCard key={p.id} product={p} onAdd={addToCart} />)}
+                        {loading ? (
+                            <div style={{ textAlign: 'center', width: '100%', padding: '50px' }}>
+                                <Spin size="large" />
+                                <div style={{ marginTop: 12, color: '#999' }}>Loading products...</div>
+                            </div>
+                        ) : products.length > 0 ? (
+                            products.map(p => <ShopProductCard key={p.id} product={p} onAdd={addToCart} />)
+                        ) : (
+                            <div style={{ textAlign: 'center', width: '100%', padding: '50px' }}>
+                                <Empty description="No products found" />
+                            </div>
+                        )}
                     </div>
 
                     {/* Pagination */}
                     <div className="shop-pagination">
                         <button
                             className="pag-btn pag-arrow"
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                            disabled={page === 1}
+                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                            disabled={page === 0}
                         >‹</button>
-                        {Array.from({ length: PAGES }, (_, i) => i + 1).map(n => (
+                        {Array.from({ length: totalPages }, (_, i) => i).map(n => (
                             <button
                                 key={n}
                                 className={`pag-btn${page === n ? ' active' : ''}`}
                                 onClick={() => setPage(n)}
-                            >{n}</button>
+                            >{n + 1}</button>
                         ))}
                         <button
                             className="pag-btn pag-arrow"
-                            onClick={() => setPage(p => Math.min(PAGES, p + 1))}
-                            disabled={page === PAGES}
+                            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                            disabled={page >= totalPages - 1}
                         >›</button>
                     </div>
                 </main>
