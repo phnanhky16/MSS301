@@ -17,30 +17,52 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      print('Attempting login with username: $username');
+
       final response = await ApiService.post(
         '/user-service/auth/login',
         {
-          'userName': username,
+          'username': username, // Backend expects 'username' (lowercase)
           'password': password,
         },
       );
 
-      if (response['success'] == true) {
-        final token = response['data']['token'];
-        final userData = response['data']['user'];
-        
-        // Save token
+      print('Login response: $response');
+
+      // Backend returns 'status' instead of 'success'
+      if (response['status'] == 200 && response['data'] != null) {
+        print('Login successful - parsing data...');
+        final data = response['data'];
+        print('Data: $data');
+
+        final token =
+            data['accessToken']; // Backend returns 'accessToken', not 'token'
+        final refreshToken = data['refreshToken'];
+        final userData = data['user'];
+
+        print('Token: ${token?.substring(0, 20)}...');
+        print('User data: $userData');
+
+        // Save tokens
         ApiService.setToken(token);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
+        await prefs.setString('refreshToken', refreshToken);
         await prefs.setInt('userId', userData['id']);
-        
+
+        print('Creating User object from JSON...');
         _currentUser = User.fromJson(userData);
+        print('User created successfully: ${_currentUser?.userName}');
+
         _isLoading = false;
         notifyListeners();
+        print('Login completed successfully');
         return true;
+      } else {
+        print('Login failed - success is not true');
+        print('Response: $response');
       }
-      
+
       _isLoading = false;
       notifyListeners();
       return false;
@@ -72,7 +94,7 @@ class AuthService extends ChangeNotifier {
       ApiService.setToken(token);
       try {
         final response = await ApiService.get('/user-service/users/$userId');
-        if (response['success'] == true) {
+        if (response['status'] == 200 && response['data'] != null) {
           _currentUser = User.fromJson(response['data']);
           notifyListeners();
           return true;

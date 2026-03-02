@@ -25,4 +25,9 @@ public interface ReviewService {
     Double getAverageRatingByProductId(Long productId);
     
     Long getReviewCountByProductId(Long productId);
+    
+    /**
+     * Get current user ID from JWT token in SecurityContext
+     */
+    Long getCurrentUserId();
 }

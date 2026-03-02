@@ -99,3 +99,8 @@ logging:
     com.kidfavor.reviewservice: DEBUG
     feign: DEBUG
     org.springframework.kafka: INFO
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==}
+  expiration: 86400000 # 24 hours in milliseconds

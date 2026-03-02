@@ -30,6 +30,16 @@ public class ProductResponse {
     private LocalDateTime updatedAt;
     
     /**
+     * Stock information from all stores.
+     */
+    private List<StoreStockInfo> storeStocks;
+    
+    /**
+     * Total stock quantity across all stores.
+     */
+    private Integer totalStock;
+    
+    /**
      * Computed field for backward compatibility with order-service.
      * Returns true if status is ACTIVE, false otherwise.
      */

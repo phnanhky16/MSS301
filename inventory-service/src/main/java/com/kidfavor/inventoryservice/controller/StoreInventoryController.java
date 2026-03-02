@@ -181,4 +181,18 @@ public class StoreInventoryController {
                 String.format("Found %d products with stock", productIds.size()), 
                 productIds));
     }
+    
+    @GetMapping("/inventory/product/{productId}")
+    @Operation(summary = "Get inventory for product across all stores", 
+               description = "Retrieve inventory information for a specific product in all stores")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved product inventory")
+    })
+    public ResponseEntity<ResponseWrapper<List<StoreInventoryResponse>>> getInventoryByProductId(
+            @Parameter(description = "Product ID") @PathVariable Long productId) {
+        List<StoreInventoryResponse> inventories = storeInventoryService.getInventoryByProductId(productId);
+        return ResponseEntity.ok(ResponseWrapper.success(
+                String.format("Found inventory in %d store(s) for product %d", inventories.size(), productId), 
+                inventories));
+    }
 }
