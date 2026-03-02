@@ -150,31 +150,67 @@ INSERT INTO products (name, description, price, category_id, brand_id, status, c
 ('Gerber Puffs Cereal Snack', 'Melt-in-mouth snacks for babies, 4 pack', 12.99, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Insert Product Images
--- Educational Toys Images
+-- Product 1: Laugh & Learn Smart Stages Puppy (3 images)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(1, 'https://example.com/products/smart-puppy-1.jpg', TRUE, 1),
-(1, 'https://example.com/products/smart-puppy-2.jpg', FALSE, 2),
-(2, 'https://example.com/products/activity-desk-1.jpg', TRUE, 1),
-(2, 'https://example.com/products/activity-desk-2.jpg', FALSE, 2),
-(3, 'https://example.com/products/wooden-blocks-1.jpg', TRUE, 1);
+(1, 'https://downvn.img.susercontent.com/file/181201ca5d98e35dfb99814c53ebae4a_tn', TRUE, 1),
+(1, 'https://downvn.img.susercontent.com/file/e3b503778f33d03eee8a81861d7af980.webp', FALSE, 2),
+(1, 'https://down-vn.img.susercontent.com/file/vn-11134207-7r98o-lv6zn2d7r9ix98.webp', FALSE, 3);
 
--- LEGO Images
+-- Product 2: VTech Touch and Learn Activity Desk (3 images)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(4, 'https://example.com/products/lego-classic-1.jpg', TRUE, 1),
-(4, 'https://example.com/products/lego-classic-2.jpg', FALSE, 2),
-(5, 'https://example.com/products/lego-duplo-train-1.jpg', TRUE, 1),
-(6, 'https://example.com/products/lego-fire-station-1.jpg', TRUE, 1),
-(6, 'https://example.com/products/lego-fire-station-2.jpg', FALSE, 2);
+(2, 'https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-m2670l28ptboaa.webp', TRUE, 1),
+(2, 'https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-m2670osj9ak2a8.webp', FALSE, 2),
+(2, 'https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-m2670ov15n049e.webp', FALSE, 3);
 
--- Stuffed Animals Images
+-- Product 3: Melissa & Doug Wooden Building Blocks (2 images)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(7, 'https://example.com/products/seahorse-1.jpg', TRUE, 1),
-(8, 'https://example.com/products/teddy-bear-1.jpg', TRUE, 1);
+(3, 'https://www.mykingdom.com.vn/cdn/shop/products/r99700_2.jpg?v=1718270988&width=1946', TRUE, 1),
+(3, 'https://www.mykingdom.com.vn/cdn/shop/products/r99700_3.jpg?v=1718270988&width=1206', FALSE, 2);
 
--- Diapers Images
+-- Product 4: LEGO Classic Large Creative Brick Box (3 images)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(9, 'https://example.com/products/pampers-newborn-1.jpg', TRUE, 1),
-(10, 'https://example.com/products/pampers-size3-1.jpg', TRUE, 1),
+(4, 'https://www.mykingdom.com.vn/cdn/shop/products/r98500_3.jpg?v=1751253934&width=1206', TRUE, 1),
+(4, 'https://www.mykingdom.com.vn/cdn/shop/products/r98500_2.jpg?v=1751253934&width=1206', FALSE, 2),
+(4, 'https://www.mykingdom.com.vn/cdn/shop/products/r98500_1.jpg?v=1751253934&width=1206', FALSE, 3);
+
+-- Product 5: LEGO DUPLO My First Number Train (3 images)
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(5, 'https://cdn.shopify.com/s/files/1/0731/6514/4343/files/con-quay-b-180-booster-dynamite-belial-nx-vn-2-173670_9464c799-20dd-4ef4-b769-4ecfb4ba9adc.jpg?v=1727233912&width=500', TRUE, 1),
+(5, 'https://www.mykingdom.com.vn/cdn/shop/files/con-quay-b-180-booster-dynamite-belial-nx-vn-2-173670.jpg?v=1721818516&width=1206', FALSE, 2),
+(5, 'https://www.mykingdom.com.vn/cdn/shop/products/b-180_173670_copy_28.04.jpg?v=1721818592&width=1206', FALSE, 3);
+
+-- Product 6: LEGO City Fire Station (3 images)
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(6, 'https://www.mykingdom.com.vn/cdn/shop/products/179795_1.jpg?v=1742374683&width=1206', TRUE, 1),
+(6, 'https://www.mykingdom.com.vn/cdn/shop/files/con-quay-b-193-booster-ultimate-valkyrie-lg-v-9-179795_828c4518-1e77-48c0-9664-d364cef3a3b6.jpg?v=1742374683&width=1206', FALSE, 2),
+(6, 'https://www.mykingdom.com.vn/cdn/shop/files/con-quay-b-193-booster-ultimate-valkyrie-lg-v-9-179795.jpg?v=1742374683&width=1206', FALSE, 3);
+
+-- Product 7: Fisher-Price Soothe & Glow Seahorse (3 images)
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(7, 'https://www.mykingdom.com.vn/cdn/shop/files/trung-slime-suu-tap-jurassic-world-tai-sinh-toy-monster-t01532_16.jpg?v=1749119463&width=1206', TRUE, 1),
+(7, 'https://www.mykingdom.com.vn/cdn/shop/files/con-quay-b-193-booster-ultimate-valkyrie-lg-v-9-179795.jpg?v=1742374683&width=1206', FALSE, 2),
+(7, 'https://www.mykingdom.com.vn/cdn/shop/files/trung-slime-suu-tap-jurassic-world-tai-sinh-toy-monster-t01532_10.jpg?v=1749119463&width=1206', FALSE, 3);
+
+-- Product 8: Melissa & Doug Giant Teddy Bear (3 images)
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(8, 'https://www.mykingdom.com.vn/cdn/shop/files/saga-khung-long-chien-dau-t-rex-jurassic-world-mattel-jgm14-jgm12_4.jpg?v=1748578116&width=1206', TRUE, 1),
+(8, 'https://www.mykingdom.com.vn/cdn/shop/files/saga-khung-long-chien-dau-t-rex-jurassic-world-mattel-jgm14-jgm12_6.jpg?v=1748578116&width=1206', FALSE, 2),
+(8, 'https://www.mykingdom.com.vn/cdn/shop/files/saga-khung-long-chien-dau-t-rex-jurassic-world-mattel-jgm14-jgm12_2.jpg?v=1748578116&width=1206', FALSE, 3);
+
+-- Product 9: Pampers Swaddlers Newborn Diapers (3 images)
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(9, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-vang-vecto-vtb22-yl_2.jpg?v=1770965733&width=1206', TRUE, 1),
+(9, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-vang-vecto-vtb22-yl_3.jpg?v=1770965733&width=1206', FALSE, 2),
+(9, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-vang-vecto-vtb22-yl_1.jpg?v=1770965733&width=1206', FALSE, 3);
+
+-- Product 10: Pampers Baby Dry Size 3 (3 images)
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-vang-vecto-vtb22-yl_1.jpg?v=1770965733&width=1206', TRUE, 1),
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-xanh-vecto-vtb22-bl_2.jpg?v=1770965581&width=1206', FALSE, 2),
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-xanh-vecto-vtb22-bl_3.jpg?v=1770965581&width=1206', FALSE, 3);
+
+-- Diapers Images (Products 11-12)
+INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
 (11, 'https://example.com/products/huggies-size2-1.jpg', TRUE, 1),
 (12, 'https://example.com/products/huggies-pullups-1.jpg', TRUE, 1);
 
