@@ -108,7 +108,8 @@ class _CartScreenState extends State<CartScreen> {
     return _mockCartItems.fold(
         0.0,
         (sum, item) =>
-            sum + (item['price'] as num).toDouble() * (item['quantity'] as int));
+            sum +
+            (item['price'] as num).toDouble() * (item['quantity'] as int));
   }
 
   double get _shipping => 30000.0;

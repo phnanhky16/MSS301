@@ -1,10 +1,13 @@
 package com.kidfavor.productservice.service.impl;
 
 import com.kidfavor.productservice.client.InventoryServiceClient;
+import com.kidfavor.productservice.client.dto.ApiResponseDto;
+import com.kidfavor.productservice.client.dto.StoreInventoryDto;
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
 import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
 import com.kidfavor.productservice.dto.response.ProductResponse;
+import com.kidfavor.productservice.dto.response.StoreStockInfo;
 import com.kidfavor.productservice.entity.Brand;
 import com.kidfavor.productservice.entity.Category;
 import com.kidfavor.productservice.entity.Product;
@@ -16,6 +19,7 @@ import com.kidfavor.productservice.repository.CategoryRepository;
 import com.kidfavor.productservice.repository.ProductRepository;
 import com.kidfavor.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +33,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ProductServiceImpl implements ProductService {
     
     private final ProductRepository productRepository;
@@ -106,7 +111,52 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Optional<ProductResponse> getProductById(Long id) {
         return productRepository.findById(id)
-                .map(productMapper::toResponse);
+                .map(product -> {
+                    ProductResponse response = productMapper.toResponse(product);
+                    
+                    // Fetch stock information from inventory service
+                    try {
+                        ApiResponseDto<List<StoreInventoryDto>> inventoryResponse = 
+                                inventoryServiceClient.getProductInventoryAllStores(id);
+                        
+                        if (inventoryResponse != null && inventoryResponse.getStatus() == 200 && inventoryResponse.getData() != null) {
+                            List<StoreStockInfo> storeStocks = inventoryResponse.getData().stream()
+                                    .map(inv -> StoreStockInfo.builder()
+                                            .storeId(inv.getStoreId())
+                                            .storeName(inv.getStoreName())
+                                            .quantity(inv.getQuantity())
+                                            .minStockLevel(inv.getMinStockLevel())
+                                            .stockStatus(calculateStockStatus(inv.getQuantity(), inv.getMinStockLevel()))
+                                            .shelfLocation(inv.getShelfLocation())
+                                            .lastUpdated(inv.getLastUpdated())
+                                            .build())
+                                    .collect(Collectors.toList());
+                            
+                            response.setStoreStocks(storeStocks);
+                            response.setTotalStock(storeStocks.stream()
+                                    .mapToInt(s -> s.getQuantity() != null ? s.getQuantity() : 0)
+                                    .sum());
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to fetch stock information for product {}: {}", id, e.getMessage());
+                        // Continue without stock info if inventory service is unavailable
+                    }
+                    
+                    return response;
+                });
+    }
+    
+    /**
+     * Calculate stock status based on quantity and min stock level.
+     */
+    private String calculateStockStatus(Integer quantity, Integer minStockLevel) {
+        if (quantity == null || quantity <= 0) {
+            return "OUT_OF_STOCK";
+        } else if (minStockLevel != null && quantity <= minStockLevel) {
+            return "LOW_STOCK";
+        } else {
+            return "IN_STOCK";
+        }
     }
     
     @Override

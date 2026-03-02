@@ -344,4 +344,12 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         log.info("Fetching all product IDs with stock across all stores");
         return storeInventoryRepository.findAllProductIdsWithStock();
     }
+    
+    @Override
+    public List<StoreInventoryResponse> getInventoryByProductId(Long productId) {
+        log.info("Fetching inventory for product {} across all stores", productId);
+        return storeInventoryRepository.findByProductId(productId).stream()
+                .map(mapper::toStoreInventoryResponse)
+                .collect(Collectors.toList());
+    }
 }

@@ -211,20 +211,22 @@ INSERT INTO product_images (product_id, image_url, is_primary, display_order) VA
 
 -- Diapers Images (Products 11-12)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_1.png?v=1718951931&width=1206', TRUE, 1),
-(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_2.png?v=1742092208&width=1206', FALSE, 2),
-(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_3.png?v=1742092208&width=1206', FALSE, 3);
+(11, 'https://www.mykingdom.com.vn/cdn/shop/files/31145_1484650c-aea1-4fb3-89c5-556e78e4adec.jpg?v=1725510773&width=1206', TRUE, 1),
+(11, 'https://www.mykingdom.com.vn/cdn/shop/products/31145_1.jpg?v=1725510783&width=1206', FALSE, 2),
+(11, 'https://www.mykingdom.com.vn/cdn/shop/products/31145_2.jpg?v=1725510783&width=1206', FALSE, 3);
 
 
 -- Baby Wipes Images
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(13, 'https://example.com/products/pampers-wipes-1.jpg', TRUE, 1),
-(14, 'https://example.com/products/huggies-wipes-1.jpg', TRUE, 1);
+(12, 'https://www.mykingdom.com.vn/cdn/shop/products/eu461542_11.jpg?v=1751253959&width=1206', TRUE, 1),
+(12, 'https://www.mykingdom.com.vn/cdn/shop/files/184657108_1853183184850320_7116593188803475895_n.png?v=1751253960&width=1206', FALSE, 2),
+(12, 'https://www.mykingdom.com.vn/cdn/shop/files/184808313_1853183104850328_8758095813255733170_n.png?v=1751253960&width=1206', FALSE, 3);
 
 -- Baby Bottles Images
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(15, 'https://example.com/products/chicco-bottle-set-1.jpg', TRUE, 1),
-(16, 'https://example.com/products/chicco-silicone-bottle-1.jpg', TRUE, 1);
+(13, 'https://www.mykingdom.com.vn/cdn/shop/files/ba-lo-fancy-kitty-pinky-cleverhippo-bk1108-pink_4.jpg?v=1763695585&width=1206', TRUE, 1),
+(13, 'https://www.mykingdom.com.vn/cdn/shop/files/ba-lo-fancy-kitty-pinky-cleverhippo-bk1108-pink_2.jpg?v=1763695585&width=1206', FALSE, 2),
+(13, 'https://www.mykingdom.com.vn/cdn/shop/files/ba-lo-fancy-kitty-pinky-cleverhippo-bk1108-pink_3.jpg?v=1763695585&width=1206', FALSE, 3);
 
 -- Baby Food Images
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES

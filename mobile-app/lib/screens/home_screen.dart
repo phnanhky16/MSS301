@@ -17,12 +17,13 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   List<Product> _products = [];
   bool _isLoading = true;
   String _selectedCategory = 'Popular';
   final _currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
-  
+
   // Cart animation state
   int _cartCount = 0;
   final GlobalKey _cartKey = GlobalKey();
@@ -270,7 +271,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     const SizedBox(width: 12),
                                     // Cart Icon with Badge
                                     Container(
-                                      key: _cartKey, // Add key for animation target
+                                      key:
+                                          _cartKey, // Add key for animation target
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         shape: BoxShape.circle,
@@ -288,24 +290,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                           AnimatedBuilder(
                                             animation: _shakeController!,
                                             builder: (context, child) {
-                                              final shake = _shakeController!.value;
+                                              final shake =
+                                                  _shakeController!.value;
                                               return Transform.translate(
                                                 offset: Offset(
-                                                  shake < 0.5 
-                                                    ? (shake * 20 - 5) 
-                                                    : ((1 - shake) * 20 - 5),
+                                                  shake < 0.5
+                                                      ? (shake * 20 - 5)
+                                                      : ((1 - shake) * 20 - 5),
                                                   0,
                                                 ),
                                                 child: IconButton(
-                                                  icon: const Icon(
-                                                      Icons.shopping_bag_outlined),
+                                                  icon: const Icon(Icons
+                                                      .shopping_bag_outlined),
                                                   onPressed: () {
                                                     Navigator.pushNamed(
                                                         context, '/cart');
                                                   },
                                                   iconSize: 22,
                                                   color: Colors.grey[700],
-                                                  padding: const EdgeInsets.all(8),
+                                                  padding:
+                                                      const EdgeInsets.all(8),
                                                 ),
                                               );
                                             },
@@ -679,19 +683,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   // Add to cart with fly animation
   void _addToCartWithAnimation(Product product) async {
     print('🎯 Add to cart with animation triggered for: ${product.name}');
-    
+
     // Use post frame callback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startFlyAnimation(product);
     });
-    
+
     // Then try to add to cart via API in the background
     _addToCart(product);
   }
 
   void _startFlyAnimation(Product product) async {
     print('🚀 Starting fly animation...');
-    
+
     // Get cart icon position
     final cartBox = _cartKey.currentContext?.findRenderObject() as RenderBox?;
     if (cartBox == null) {
@@ -703,11 +707,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       _shakeController?.forward().then((_) => _shakeController?.reset());
       return;
     }
-    
+
     print('✅ Cart icon found, creating animation...');
-    
+
     print('✅ Cart icon found, creating animation...');
-    
+
     final cartPosition = cartBox.localToGlobal(Offset.zero);
     final cartSize = cartBox.size;
     final targetX = cartPosition.dx + cartSize.width / 2;
@@ -725,9 +729,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       _shakeController?.forward().then((_) => _shakeController?.reset());
       return;
     }
-    
+
     late OverlayEntry overlayEntry;
-    
+
     // Animation values
     final animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -752,10 +756,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // Calculate current position with parabolic curve
           final progress = animation.value;
           final currentX = startX + (targetX - startX) * progress;
-          final currentY = startY + 
-              (targetY - startY) * progress - 
+          final currentY = startY +
+              (targetY - startY) * progress -
               100 * (1 - progress) * progress; // Parabolic arc
-          
+
           // Scale down as it flies
           final scale = 1.0 - progress * 0.7;
 
@@ -796,12 +800,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _flyingWidget = overlayEntry;
 
     print('🎬 Animation started!');
-    
+
     // Start animation
     await animationController.forward();
-    
+
     print('✨ Animation completed!');
-    
+
     // Update cart count and shake cart icon
     if (mounted) {
       setState(() {
@@ -814,7 +818,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     await Future.delayed(const Duration(milliseconds: 100));
     overlayEntry.remove();
     animationController.dispose();
-    
+
     print('🧹 Animation cleaned up');
   }
 
@@ -850,7 +854,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         // Optional: Show a less prominent error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Đã thêm vào giỏ tạm thời (Chưa đồng bộ với server)'),
+            content: const Text(
+                'Đã thêm vào giỏ tạm thời (Chưa đồng bộ với server)'),
             backgroundColor: Colors.orange.shade600,
             duration: const Duration(seconds: 2),
           ),

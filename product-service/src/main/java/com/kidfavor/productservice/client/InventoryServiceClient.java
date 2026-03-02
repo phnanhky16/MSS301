@@ -53,7 +53,7 @@ public interface InventoryServiceClient {
      * @param productId Product ID
      * @return List of store inventories for the product
      */
-    @GetMapping("/api/inventory/product/{productId}")
+    @GetMapping("/api/stores/inventory/product/{productId}")
     ApiResponseDto<List<StoreInventoryDto>> getProductInventoryAllStores(
             @PathVariable("productId") Long productId
     );
