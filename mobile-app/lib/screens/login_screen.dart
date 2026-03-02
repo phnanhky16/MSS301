@@ -93,6 +93,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
+      print('Form validated, attempting login...');
       final authService = Provider.of<AuthService>(context, listen: false);
 
       final success = await authService.login(
@@ -100,9 +101,13 @@ class _LoginScreenState extends State<LoginScreen>
         _passwordController.text,
       );
 
+      print('Login result: $success');
+
       if (success && mounted) {
+        print('Login successful, navigating to home...');
         Navigator.pushReplacementNamed(context, '/home');
       } else if (mounted) {
+        print('Login failed, showing error message');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Đăng nhập thất bại. Vui lòng kiểm tra lại!'),
