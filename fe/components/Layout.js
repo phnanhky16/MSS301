@@ -2,17 +2,29 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { logout } from '../services/auth';
-import { ShoppingCartOutlined, SearchOutlined, MenuOutlined } from '@ant-design/icons';
+import { getUserFromToken } from '../services/oauth';
+import { ShoppingCartOutlined, SearchOutlined, MenuOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
 
 export default function Layout({ children, isLogin = false }) {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { getCartCount } = useCart();
 
   useEffect(() => {
-    const check = () => setLoggedIn(!!localStorage.getItem('accessToken'));
+    const check = () => {
+      const hasToken = !!localStorage.getItem('accessToken');
+      setLoggedIn(hasToken);
+      if (hasToken) {
+        const user = getUserFromToken();
+        setUserInfo(user);
+      } else {
+        setUserInfo(null);
+      }
+    };
     check();
     window.addEventListener('storage', check);
     return () => window.removeEventListener('storage', check);

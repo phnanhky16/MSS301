@@ -36,9 +36,10 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
-      # Google OAuth2 Configuration - Set these via .env file or system environment variables
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # Google OAuth2 Configuration
+      GOOGLE_CLIENT_ID: 1085016969658-o80o0smreofoe1f0q598t88un2mkckru.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
+
     depends_on:
       postgres-user:
         condition: service_healthy
@@ -240,7 +241,7 @@ services:
     networks:
       - microservices-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d userdb"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d userdb" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -262,7 +263,7 @@ services:
     # once pg_isready succeeds. this allows the order-service to start only
     # after PostgreSQL has finished initializing the database files.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d orderdb"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d orderdb" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -348,7 +349,7 @@ services:
     networks:
       - microservices-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -446,7 +447,7 @@ services:
   # fix is to standardize on the newer 3.9.6 tag and pull it here.
   maven-base:
     image: maven:3.9.6-eclipse-temurin-17
-    entrypoint: ["true"] # immediately exit successfully
+    entrypoint: [ "true" ] # immediately exit successfully
     networks:
       - microservices-network
 
@@ -461,7 +462,7 @@ volumes:
   postgres-keycloak-data:
   minio-data:
 
-# --- Networks Definition ---
+    # --- Networks Definition ---
 networks:
   microservices-network:
     driver: bridge

@@ -79,7 +79,7 @@ spring:
             scope:
               - email
               - profile
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: "http://localhost:8080/login/oauth2/code/{registrationId}"
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
@@ -160,3 +160,7 @@ app:
   kafka:
     topics:
       user-registered: user-registered-topic
+  frontend:
+    url:
+      base: ${FRONTEND_URL:http://localhost:3000/}
+      mobile: ${FRONTEND_MOBILE_URL:http://localhost:3000/mobile/}
