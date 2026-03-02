@@ -152,9 +152,9 @@ INSERT INTO products (name, description, price, category_id, brand_id, status, c
 -- Insert Product Images
 -- Product 1: Laugh & Learn Smart Stages Puppy (3 images)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(1, 'https://downvn.img.susercontent.com/file/181201ca5d98e35dfb99814c53ebae4a_tn', TRUE, 1),
-(1, 'https://downvn.img.susercontent.com/file/e3b503778f33d03eee8a81861d7af980.webp', FALSE, 2),
-(1, 'https://down-vn.img.susercontent.com/file/vn-11134207-7r98o-lv6zn2d7r9ix98.webp', FALSE, 3);
+(1, 'https://www.mykingdom.com.vn/cdn/shop/files/BRU02505-04-10.jpg?v=1715076822&width=1206', TRUE, 1),
+(1, 'https://www.mykingdom.com.vn/cdn/shop/products/bruder-bru02505_2.jpg?v=1715076822&width=1206', FALSE, 2),
+(1, 'https://www.mykingdom.com.vn/cdn/shop/products/bruder-bru02505_1.jpg?v=1715076822&width=1206', FALSE, 3);
 
 -- Product 2: VTech Touch and Learn Activity Desk (3 images)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
@@ -205,14 +205,16 @@ INSERT INTO product_images (product_id, image_url, is_primary, display_order) VA
 
 -- Product 10: Pampers Baby Dry Size 3 (3 images)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(10, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-vang-vecto-vtb22-yl_1.jpg?v=1770965733&width=1206', TRUE, 1),
-(10, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-xanh-vecto-vtb22-bl_2.jpg?v=1770965581&width=1206', FALSE, 2),
-(10, 'https://www.mykingdom.com.vn/cdn/shop/files/do-choi-robot-bien-hinh-thanh-xe-tai-xanh-vecto-vtb22-bl_3.jpg?v=1770965581&width=1206', FALSE, 3);
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_1.png?v=1718951931&width=1206', TRUE, 1),
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_2.png?v=1742092208&width=1206', FALSE, 2),
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_3.png?v=1742092208&width=1206', FALSE, 3);
 
 -- Diapers Images (Products 11-12)
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
-(11, 'https://example.com/products/huggies-size2-1.jpg', TRUE, 1),
-(12, 'https://example.com/products/huggies-pullups-1.jpg', TRUE, 1);
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_1.png?v=1718951931&width=1206', TRUE, 1),
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_2.png?v=1742092208&width=1206', FALSE, 2),
+(10, 'https://www.mykingdom.com.vn/cdn/shop/files/robot-sieu-canh-sat-xay-dung-build-cop-tho-nang-miniforce-505003_3.png?v=1742092208&width=1206', FALSE, 3);
+
 
 -- Baby Wipes Images
 INSERT INTO product_images (product_id, image_url, is_primary, display_order) VALUES
