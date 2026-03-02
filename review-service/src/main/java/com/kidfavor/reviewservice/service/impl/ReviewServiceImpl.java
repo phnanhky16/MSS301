@@ -5,11 +5,14 @@ import com.kidfavor.reviewservice.client.UserClient;
 import com.kidfavor.reviewservice.dto.*;
 import com.kidfavor.reviewservice.entity.Review;
 import com.kidfavor.reviewservice.repository.ReviewRepository;
+import com.kidfavor.reviewservice.security.UserPrincipal;
 import com.kidfavor.reviewservice.service.KafkaProducerService;
 import com.kidfavor.reviewservice.service.ReviewService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -221,18 +224,13 @@ public class ReviewServiceImpl implements ReviewService {
                 .build();
     }
 
-    // Helper method để tránh gọi API trùng lặp khi đã có user và product
-    private ReviewResponse mapToResponseWithDetails(Review review, UserDTO user, ProductDTO product) {
-        return ReviewResponse.builder()
-                .id(review.getId())
-                .userId(review.getUserId())
-                .productId(review.getProductId())
-                .rating(review.getRating())
-                .comment(review.getComment())
-                .createdAt(review.getCreatedAt())
-                .updatedAt(review.getUpdatedAt())
-                .user(user)
-                .product(product)
-                .build();
+
+    @Override
+    public Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
+            return ((UserPrincipal) authentication.getPrincipal()).getUserId();
+        }
+        throw new RuntimeException("Unable to extract user ID from authentication token");
     }
 }
