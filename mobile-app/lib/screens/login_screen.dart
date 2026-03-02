@@ -297,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen>
                             'Forgot Password?',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF8B8B8B),
+                              color: Color(0xFF1EB5D9),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -376,7 +376,7 @@ class _LoginScreenState extends State<LoginScreen>
                               'Signup',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF2D2D2D),
+                                color: Color(0xFF1EB5D9),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -545,14 +545,14 @@ class GradientButton extends StatelessWidget {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [
-            Color(0xFFD4E157), // Lemon yellow
-            Color(0xFF4DD0E1), // Mint/cyan
+            Color(0xFF1EB5D9), // Cyan
+            Color(0xFF4DD0E1), // Light cyan
           ],
         ),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4DD0E1).withOpacity(0.3),
+            color: const Color(0xFF1EB5D9).withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -571,7 +571,7 @@ class GradientButton extends StatelessWidget {
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xFF2D2D2D),
+                        Colors.white,
                       ),
                     ),
                   )
@@ -580,7 +580,7 @@ class GradientButton extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D2D2D),
+                      color: Colors.white,
                     ),
                   ),
           ),

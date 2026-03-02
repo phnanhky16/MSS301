@@ -7,6 +7,7 @@ import '../models/product.dart';
 import 'product_detail_screen.dart';
 import 'category_screen.dart';
 import 'profile_screen.dart';
+import 'wishlist_screen.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -172,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const CircleAvatar(
                                   radius: 22,
                                   backgroundColor: Color(0xFFE0E0E0),
-                                  backgroundImage: AssetImage('assets/images/avatar.png'),
+                                  backgroundImage:
+                                      AssetImage('assets/images/avatar.png'),
                                 ),
 
                                 // Center: Location Selector (Prominent)
@@ -314,13 +316,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             // Search Bar - Premium Pill Design
                             Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(30),
                                 border: Border.all(
-                                  color: const Color(0xFF1EB5D9).withOpacity(0.2),
+                                  color:
+                                      const Color(0xFF1EB5D9).withOpacity(0.2),
                                   width: 1.5,
                                 ),
                                 boxShadow: [
@@ -444,7 +447,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             TextButton(
                               onPressed: () {},
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
@@ -544,7 +548,13 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(Icons.store, 'Shop', true, () {}),
-              _buildNavItem(Icons.explore_outlined, 'Discover', false, () {}),
+              _buildNavItem(Icons.favorite_border, 'Wishlist', false, () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const WishlistScreen()),
+                );
+              }),
               _buildNavItem(Icons.shopping_cart_outlined, 'Cart', false, () {
                 Navigator.pushNamed(context, '/cart');
               }),
@@ -755,7 +765,8 @@ class ModernProductCard extends StatelessWidget {
                         top: 8,
                         left: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFC107),
                             borderRadius: BorderRadius.circular(12),
