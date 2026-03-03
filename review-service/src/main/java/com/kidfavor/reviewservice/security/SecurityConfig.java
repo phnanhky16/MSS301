@@ -37,9 +37,10 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/reviews/product/**" // Public: Get reviews by product ID and average rating
                         ).permitAll()
-                        // All review endpoints require authentication
+                        // All other review endpoints require authentication
                         .requestMatchers("/reviews/**").authenticated()
                         .anyRequest().authenticated()
                 )

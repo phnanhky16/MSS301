@@ -181,16 +181,13 @@ public class ReviewController {
     }
 
     @GetMapping("/product/{productId}")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @Operation(
-        summary = "Get reviews by product ID", 
-        description = "Retrieve all reviews for a specific product."
+        summary = "Get reviews by product ID (Public)", 
+        description = "Retrieve all reviews for a specific product. This is a public endpoint."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
-            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized",
-            content = @Content)
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class)))
     })
     public ResponseEntity<List<ReviewResponse>> getReviewsByProductId(
             @PathVariable @Parameter(description = "Product ID") Long productId) {
@@ -199,15 +196,12 @@ public class ReviewController {
     }
 
     @GetMapping("/product/{productId}/average-rating")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @Operation(
-        summary = "Get product average rating", 
-        description = "Calculate and retrieve the average rating and total review count for a specific product."
+        summary = "Get product average rating (Public)", 
+        description = "Calculate and retrieve the average rating and total review count for a specific product. This is a public endpoint."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Rating calculated successfully",
-            content = @Content),
-        @ApiResponse(responseCode = "401", description = "Unauthorized",
             content = @Content)
     })
     public ResponseEntity<Map<String, Object>> getAverageRating(
