@@ -17,8 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/products")
 @RequiredArgsConstructor
@@ -75,48 +73,6 @@ public class ProductController {
                     ResponseWrapper.success("Product retrieved successfully", product)
                 ))
                 .orElse(ResponseEntity.notFound().build());
-    }
-    
-    @Deprecated
-    @GetMapping("/category/{categoryId}")
-    @Operation(summary = "Get products by category", description = "Retrieve all products in a specific category")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
-    })
-    public ResponseEntity<ResponseWrapper<List<ProductResponse>>> getProductsByCategory(
-            @Parameter(description = "Category ID") @PathVariable Long categoryId) {
-        List<ProductResponse> products = productService.getProductsByCategory(categoryId);
-        return ResponseEntity.ok(
-            ResponseWrapper.success("Products retrieved successfully", products)
-        );
-    }
-    
-    @Deprecated
-    @GetMapping("/brand/{brandId}")
-    @Operation(summary = "Get products by brand", description = "Retrieve all products of a specific brand")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
-    })
-    public ResponseEntity<ResponseWrapper<List<ProductResponse>>> getProductsByBrand(
-            @Parameter(description = "Brand ID") @PathVariable Long brandId) {
-        List<ProductResponse> products = productService.getProductsByBrand(brandId);
-        return ResponseEntity.ok(
-            ResponseWrapper.success("Products retrieved successfully", products)
-        );
-    }
-    
-    @Deprecated
-    @GetMapping("/search")
-    @Operation(summary = "Search products", description = "Search products by keyword in name or description")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
-    })
-    public ResponseEntity<ResponseWrapper<List<ProductResponse>>> searchProducts(
-            @Parameter(description = "Search keyword") @RequestParam String keyword) {
-        List<ProductResponse> products = productService.searchProducts(keyword);
-        return ResponseEntity.ok(
-            ResponseWrapper.success("Products retrieved successfully", products)
-        );
     }
     
     @PostMapping

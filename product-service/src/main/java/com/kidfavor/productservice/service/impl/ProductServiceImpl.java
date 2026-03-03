@@ -160,24 +160,6 @@ public class ProductServiceImpl implements ProductService {
     }
     
     @Override
-    public List<ProductResponse> getProductsByCategory(Long categoryId) {
-        List<Product> products = productRepository.findByCategoryIdAndStatus(categoryId, EntityStatus.ACTIVE);
-        return productMapper.toResponseList(products);
-    }
-    
-    @Override
-    public List<ProductResponse> getProductsByBrand(Long brandId) {
-        List<Product> products = productRepository.findByBrandIdAndStatus(brandId, EntityStatus.ACTIVE);
-        return productMapper.toResponseList(products);
-    }
-    
-    @Override
-    public List<ProductResponse> searchProducts(String keyword) {
-        List<Product> products = productRepository.searchByNameAndStatus(keyword, EntityStatus.ACTIVE);
-        return productMapper.toResponseList(products);
-    }
-    
-    @Override
     public ProductResponse createProduct(ProductCreateRequest request) {
         Category category = categoryRepository.findByIdAndStatus(request.getCategoryId(), EntityStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));

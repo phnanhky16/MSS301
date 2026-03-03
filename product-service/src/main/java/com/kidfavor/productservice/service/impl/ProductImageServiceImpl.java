@@ -41,12 +41,14 @@ public class ProductImageServiceImpl implements ProductImageService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
-        // ⚠️ Validate: Nếu đã có hình ảnh thì phải dùng UPDATE thay vì ADD
+        // Check current image count and validate limit
         List<ProductImage> existingImages = productImageRepository.findByProductId(productId);
-        if (!existingImages.isEmpty()) {
+        int currentCount = existingImages.size();
+        
+        if (currentCount >= MAX_IMAGES_PER_PRODUCT) {
             throw new IllegalArgumentException(
-                String.format("Sản phẩm đã có %d hình ảnh. Vui lòng sử dụng API UPDATE để thay đổi hình ảnh thay vì thêm mới.", 
-                    existingImages.size()));
+                String.format("Sản phẩm đã có %d/%d hình ảnh (đạt giới hạn tối đa). Vui lòng xóa bớt hình ảnh trước khi thêm mới.", 
+                    currentCount, MAX_IMAGES_PER_PRODUCT));
         }
 
         // Validate file
@@ -61,16 +63,18 @@ public class ProductImageServiceImpl implements ProductImageService {
         // Upload to MinIO
         String imageUrl = minioService.uploadFile(file, uniqueFilename);
 
-        // Save to database - First image is always primary
+        // Save to database
         ProductImage productImage = new ProductImage();
         productImage.setProduct(product);
         productImage.setImageUrl(imageUrl);
-        productImage.setIsPrimary(true); // Ảnh đầu tiên luôn là ảnh chính
-        productImage.setDisplayOrder(0);
+        // Set as primary only if this is the first image
+        productImage.setIsPrimary(currentCount == 0);
+        productImage.setDisplayOrder(currentCount);
         
         ProductImage savedImage = productImageRepository.save(productImage);
 
-        log.info("Image uploaded successfully for product {}: {}", productId, imageUrl);
+        log.info("Image uploaded successfully for product {}. Total images: {}/{}", 
+                productId, currentCount + 1, MAX_IMAGES_PER_PRODUCT);
 
         return buildImageResponse(savedImage, uniqueFilename, file.getSize(), file.getContentType());
     }
@@ -84,23 +88,28 @@ public class ProductImageServiceImpl implements ProductImageService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
-        // ⚠️ Validate: Nếu đã có hình ảnh thì phải dùng UPDATE thay vì ADD
+        // Check current image count and validate limit
         List<ProductImage> existingImages = productImageRepository.findByProductId(productId);
-        if (!existingImages.isEmpty()) {
+        int currentCount = existingImages.size();
+        int availableSlots = MAX_IMAGES_PER_PRODUCT - currentCount;
+        
+        if (availableSlots <= 0) {
             throw new IllegalArgumentException(
-                String.format("Sản phẩm đã có %d hình ảnh. Vui lòng sử dụng API UPDATE để thay đổi hình ảnh thay vì thêm mới.", 
-                    existingImages.size()));
+                String.format("Sản phẩm đã có %d/%d hình ảnh (đạt giới hạn tối đa). Vui lòng xóa bớt hình ảnh trước khi thêm mới.", 
+                    currentCount, MAX_IMAGES_PER_PRODUCT));
         }
-
-        // Validate không vượt quá giới hạn
-        if (files.length > MAX_IMAGES_PER_PRODUCT) {
+        
+        if (files.length > availableSlots) {
             throw new IllegalArgumentException(
-                String.format("Vượt quá giới hạn %d ảnh/sản phẩm. Bạn đang cố upload %d ảnh.", 
-                    MAX_IMAGES_PER_PRODUCT, files.length));
+                String.format("Sản phẩm hiện có %d hình ảnh, chỉ có thể thêm tối đa %d ảnh nữa (giới hạn %d ảnh/sản phẩm). Bạn đang cố upload %d ảnh.", 
+                    currentCount, availableSlots, MAX_IMAGES_PER_PRODUCT, files.length));
         }
 
         List<ImageUploadResponse> uploadedImages = new java.util.ArrayList<>();
         List<String> failedFiles = new java.util.ArrayList<>();
+        
+        // Check if product already has a primary image
+        boolean hasPrimaryImage = existingImages.stream().anyMatch(ProductImage::getIsPrimary);
 
         for (int i = 0; i < files.length; i++) {
             MultipartFile file = files[i];
@@ -121,8 +130,9 @@ public class ProductImageServiceImpl implements ProductImageService {
                 ProductImage productImage = new ProductImage();
                 productImage.setProduct(product);
                 productImage.setImageUrl(imageUrl);
-                productImage.setIsPrimary(i == 0); // Ảnh đầu tiên là ảnh chính
-                productImage.setDisplayOrder(i);
+                // Set as primary only if no existing primary image AND this is first new image
+                productImage.setIsPrimary(!hasPrimaryImage && i == 0);
+                productImage.setDisplayOrder(currentCount + i);
                 
                 ProductImage savedImage = productImageRepository.save(productImage);
 
@@ -140,7 +150,8 @@ public class ProductImageServiceImpl implements ProductImageService {
             log.warn("Some files failed to upload: {}", failedFiles);
         }
 
-        log.info("Batch upload completed. Success: {}, Failed: {}", uploadedImages.size(), failedFiles.size());
+        log.info("Batch upload completed for product {}. Success: {}, Failed: {}. Total images: {}/{}", 
+                productId, uploadedImages.size(), failedFiles.size(), currentCount + uploadedImages.size(), MAX_IMAGES_PER_PRODUCT);
         return uploadedImages;
     }
 

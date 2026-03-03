@@ -140,16 +140,14 @@ public class StoreInventoryController {
 
     @GetMapping("/availability")
     @Operation(summary = "Check which stores have a product in stock",
-               description = "Find all stores that have a specific product and check if they have enough quantity. Returns stores sorted by: 1. Has enough stock first, 2. Available quantity descending")
+               description = "Find all stores that have a specific product and their available quantity. Returns stores sorted by available quantity descending")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Store availability retrieved successfully")
     })
     public ResponseEntity<ResponseWrapper<List<StoreAvailabilityResponse>>> checkStoreAvailability(
             @Parameter(description = "Product ID to check", required = true) 
-            @RequestParam Long productId,
-            @Parameter(description = "Required quantity", required = true) 
-            @RequestParam Integer requiredQuantity) {
-        List<StoreAvailabilityResponse> availability = storeInventoryService.checkStoreAvailability(productId, requiredQuantity);
+            @RequestParam Long productId) {
+        List<StoreAvailabilityResponse> availability = storeInventoryService.checkStoreAvailability(productId);
         return ResponseEntity.ok(ResponseWrapper.success(
                 String.format("Found %d store(s) with product %d", availability.size(), productId), 
                 availability));

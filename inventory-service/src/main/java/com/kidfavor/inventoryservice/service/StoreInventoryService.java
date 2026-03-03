@@ -40,7 +40,7 @@ public interface StoreInventoryService {
     
     Integer getAvailableStock(Long storeId, Long productId);
     
-    List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity);
+    List<StoreAvailabilityResponse> checkStoreAvailability(Long productId);
     
     StoreRestockResponse restockFromWarehouse(StoreRestockRequest request);
     

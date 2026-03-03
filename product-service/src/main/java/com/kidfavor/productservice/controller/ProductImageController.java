@@ -29,11 +29,11 @@ public class ProductImageController {
     private final ProductImageService productImageService;
 
     @PostMapping(value = "/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload product image (Only when product has NO images)", 
-               description = "Upload an image for a product that doesn't have images yet. If product already has images, use UPDATE endpoint instead. Max file size: 10MB. Allowed formats: jpg, jpeg, png, gif, webp")
+    @Operation(summary = "Upload product image", 
+               description = "Upload an image for a product. Max 10 images per product. Max file size: 10MB. Allowed formats: jpg, jpeg, png, gif, webp")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Image uploaded successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid file, product already has images, or file size exceeds limit"),
+        @ApiResponse(responseCode = "400", description = "Invalid file, max images reached, or file size exceeds limit"),
         @ApiResponse(responseCode = "404", description = "Product not found")
     })
     public ResponseEntity<Map<String, Object>> uploadProductImage(
@@ -69,11 +69,11 @@ public class ProductImageController {
     }
 
     @PostMapping(value = "/{productId}/images/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload multiple product images (Only when product has NO images, Max 6-10 images)", 
-               description = "Upload 2-10 images for a product that doesn't have images yet. If product already has images, use UPDATE endpoint instead. Max file size: 10MB each, Max request size: 50MB. Allowed formats: jpg, jpeg, png, gif, webp. Suitable for e-commerce websites like MyKingdom.")
+    @Operation(summary = "Upload multiple product images (Max 10 total)", 
+               description = "Upload multiple images for a product. Max 10 images total per product. Max file size: 10MB each, Max request size: 50MB. Allowed formats: jpg, jpeg, png, gif, webp.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Images uploaded successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid files, product already has images, file size exceeds limit, or more than 10 files"),
+        @ApiResponse(responseCode = "400", description = "Invalid files, max images would be exceeded, or file size exceeds limit"),
         @ApiResponse(responseCode = "404", description = "Product not found")
     })
     public ResponseEntity<Map<String, Object>> uploadMultipleProductImages(
