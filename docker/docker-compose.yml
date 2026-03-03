@@ -36,6 +36,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       # Google OAuth2 Configuration
       GOOGLE_CLIENT_ID: 1085016969658-o80o0smreofoe1f0q598t88un2mkckru.apps.googleusercontent.com
       GOOGLE_CLIENT_SECRET: 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
