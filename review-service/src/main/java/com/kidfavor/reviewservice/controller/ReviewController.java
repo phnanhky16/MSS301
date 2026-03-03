@@ -14,6 +14,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -125,75 +129,6 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(
-        summary = "Get all reviews (Admin only)", 
-        description = "Retrieve all reviews. This endpoint is restricted to administrators only."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
-            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized",
-            content = @Content),
-        @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required",
-            content = @Content)
-    })
-    public ResponseEntity<List<ReviewResponse>> getAllReviews() {
-        List<ReviewResponse> reviews = reviewService.getAllReviews();
-        return ResponseEntity.ok(reviews);
-    }
-
-    @GetMapping("/my-reviews")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    @Operation(
-        summary = "Get current user's reviews", 
-        description = "Retrieve all reviews created by the authenticated user."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
-            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized",
-            content = @Content)
-    })
-    public ResponseEntity<List<ReviewResponse>> getMyReviews() {
-        Long userId = reviewService.getCurrentUserId();
-        List<ReviewResponse> reviews = reviewService.getReviewsByUserId(userId);
-        return ResponseEntity.ok(reviews);
-    }
-
-    @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
-    @Operation(
-        summary = "Get reviews by user ID", 
-        description = "Retrieve all reviews created by a specific user."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
-            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized",
-            content = @Content)
-    })
-    public ResponseEntity<List<ReviewResponse>> getReviewsByUserId(
-            @PathVariable @Parameter(description = "User ID") Long userId) {
-        List<ReviewResponse> reviews = reviewService.getReviewsByUserId(userId);
-        return ResponseEntity.ok(reviews);
-    }
-
-    @GetMapping("/product/{productId}")
-    @Operation(
-        summary = "Get reviews by product ID (Public)", 
-        description = "Retrieve all reviews for a specific product. This is a public endpoint."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
-            content = @Content(schema = @Schema(implementation = ReviewResponse.class)))
-    })
-    public ResponseEntity<List<ReviewResponse>> getReviewsByProductId(
-            @PathVariable @Parameter(description = "Product ID") Long productId) {
-        List<ReviewResponse> reviews = reviewService.getReviewsByProductId(productId);
-        return ResponseEntity.ok(reviews);
-    }
 
     @GetMapping("/product/{productId}/average-rating")
     @Operation(
@@ -215,6 +150,105 @@ public class ReviewController {
         response.put("totalReviews", count);
         
         return ResponseEntity.ok(response);
+    }
+
+    // ============ Paginated Endpoints ============
+    
+    @GetMapping("/paged")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+        summary = "List reviews with pagination and filters (Admin)", 
+        description = "Retrieve paginated reviews with optional filters. Admin only."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required")
+    })
+    public ResponseEntity<Page<ReviewResponse>> listReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) Integer rating) {
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<ReviewResponse> reviews = reviewService.listReviews(pageable, userId, productId, rating);
+        return ResponseEntity.ok(reviews);
+    }
+
+    @GetMapping("/product/{productId}/paged")
+    @Operation(
+        summary = "Get paginated reviews by product ID (Public)", 
+        description = "Retrieve paginated reviews for a specific product. This is a public endpoint."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully")
+    })
+    public ResponseEntity<Page<ReviewResponse>> getReviewsByProductIdPaged(
+            @PathVariable @Parameter(description = "Product ID") Long productId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir) {
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<ReviewResponse> reviews = reviewService.getReviewsByProductIdPaged(productId, pageable);
+        return ResponseEntity.ok(reviews);
+    }
+
+    @GetMapping("/user/{userId}/paged")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(
+        summary = "Get paginated reviews by user ID", 
+        description = "Retrieve paginated reviews created by a specific user."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<Page<ReviewResponse>> getReviewsByUserIdPaged(
+            @PathVariable @Parameter(description = "User ID") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir) {
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<ReviewResponse> reviews = reviewService.getReviewsByUserIdPaged(userId, pageable);
+        return ResponseEntity.ok(reviews);
+    }
+
+    @GetMapping("/my-reviews/paged")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(
+        summary = "Get current user's reviews (Paginated)", 
+        description = "Retrieve paginated reviews created by the authenticated user."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<Page<ReviewResponse>> getMyReviewsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir) {
+        
+        Long userId = reviewService.getCurrentUserId();
+        Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<ReviewResponse> reviews = reviewService.getReviewsByUserIdPaged(userId, pageable);
+        return ResponseEntity.ok(reviews);
     }
 }
 

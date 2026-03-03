@@ -3,6 +3,9 @@ package com.kidfavor.reviewservice.service;
 import com.kidfavor.reviewservice.dto.CreateReviewRequest;
 import com.kidfavor.reviewservice.dto.ReviewResponse;
 import com.kidfavor.reviewservice.dto.UpdateReviewRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -16,11 +19,31 @@ public interface ReviewService {
     
     ReviewResponse getReviewById(Long id);
     
-    List<ReviewResponse> getAllReviews();
+    // Paginated methods
+    Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating);
     
-    List<ReviewResponse> getReviewsByUserId(Long userId);
+    Page<ReviewResponse> getReviewsByProductIdPaged(Long productId, Pageable pageable);
     
-    List<ReviewResponse> getReviewsByProductId(Long productId);
+    Page<ReviewResponse> getReviewsByUserIdPaged(Long userId, Pageable pageable);
+    
+    // Deprecated convenience methods retained for backward compatibility
+    @Deprecated
+    default List<ReviewResponse> getAllReviews() {
+        return listReviews(PageRequest.of(0, Integer.MAX_VALUE), null, null,  null)
+                .getContent();
+    }
+    
+    @Deprecated
+    default List<ReviewResponse> getReviewsByUserId(Long userId) {
+        return getReviewsByUserIdPaged(userId, PageRequest.of(0, Integer.MAX_VALUE))
+                .getContent();
+    }
+    
+    @Deprecated
+    default List<ReviewResponse> getReviewsByProductId(Long productId) {
+        return getReviewsByProductIdPaged(productId, PageRequest.of(0, Integer.MAX_VALUE))
+                .getContent();
+    }
     
     Double getAverageRatingByProductId(Long productId);
     

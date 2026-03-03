@@ -11,11 +11,16 @@ import com.kidfavor.reviewservice.service.ReviewService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -149,33 +154,6 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ReviewResponse> getAllReviews() {
-        log.info("Getting all reviews");
-        return reviewRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReviewResponse> getReviewsByUserId(Long userId) {
-        log.info("Getting reviews for user: {}", userId);
-        return reviewRepository.findByUserId(userId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReviewResponse> getReviewsByProductId(Long productId) {
-        log.info("Getting reviews for product: {}", productId);
-        return reviewRepository.findByProductId(productId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Double getAverageRatingByProductId(Long productId) {
         log.info("Getting average rating for product: {}", productId);
         Double avgRating = reviewRepository.getAverageRatingByProductId(productId);
@@ -232,5 +210,52 @@ public class ReviewServiceImpl implements ReviewService {
             return ((UserPrincipal) authentication.getPrincipal()).getUserId();
         }
         throw new RuntimeException("Unable to extract user ID from authentication token");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating) {
+        log.info("Listing reviews with filters - userId: {}, productId: {}, rating: {}", userId, productId, rating);
+        
+        Specification<Review> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            if (userId != null) {
+                predicates.add(cb.equal(root.get("userId"), userId));
+            }
+            
+            if (productId != null) {
+                predicates.add(cb.equal(root.get("productId"), productId));
+            }
+            
+            if (rating != null) {
+                predicates.add(cb.equal(root.get("rating"), rating));
+            }
+            
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        
+        Page<Review> reviews = reviewRepository.findAll(spec, pageable);
+        return reviews.map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getReviewsByProductIdPaged(Long productId, Pageable pageable) {
+        log.info("Getting paged reviews for product: {} with page: {}, size: {}", 
+                productId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        Page<Review> reviews = reviewRepository.findByProductId(productId, pageable);
+        return reviews.map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getReviewsByUserIdPaged(Long userId, Pageable pageable) {
+        log.info("Getting paged reviews for user: {} with page: {}, size: {}", 
+                userId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        Page<Review> reviews = reviewRepository.findByUserId(userId, pageable);
+        return reviews.map(this::mapToResponse);
     }
 }
