@@ -38,6 +38,7 @@
         <module>notification-service</module>
         <module>review-service</module>
         <module>cart-service</module>
+        <module>inventory-service</module>
     </modules>
 
     <!-- ===== Centralised Dependency Management ===== -->

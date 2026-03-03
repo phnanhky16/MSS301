@@ -44,6 +44,24 @@ public class ProductController {
         );
     }
     
+    @GetMapping("/sorted-by-stock")
+    @Operation(summary = "List products sorted by stock availability", 
+               description = "Retrieve products (paged) with optional filters. Products with stock in stores are displayed first, followed by products without stock.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
+    })
+    public ResponseEntity<ResponseWrapper<org.springframework.data.domain.Page<ProductResponse>>> getProductsSortedByStock(
+            org.springframework.data.domain.Pageable pageable,
+            @RequestParam(name="keyword", required=false) String keyword,
+            @RequestParam(name="categoryId", required=false) Long categoryId,
+            @RequestParam(name="brandId", required=false) Long brandId,
+            @RequestParam(name="status", required=false) String status) {
+        var page = productService.listProductsSortedByStock(pageable, keyword, categoryId, brandId, status);
+        return ResponseEntity.ok(
+            ResponseWrapper.success("Products retrieved and sorted by stock availability", page)
+        );
+    }
+    
     @GetMapping("/{id}")
     @Operation(summary = "Get product by ID", description = "Retrieve a specific product by its ID")
     @ApiResponses(value = {

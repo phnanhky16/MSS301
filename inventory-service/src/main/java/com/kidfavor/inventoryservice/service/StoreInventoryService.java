@@ -43,4 +43,21 @@ public interface StoreInventoryService {
     List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity);
     
     StoreRestockResponse restockFromWarehouse(StoreRestockRequest request);
+    
+    List<Long> getAllProductIdsWithStock();
+    
+    /**
+     * Get all inventory records for a product across all stores.
+     * 
+     * @param productId Product ID
+     * @return List of store inventories for the product
+     */
+    List<StoreInventoryResponse> getInventoryByProductId(Long productId);
+
+    /**
+     * Deducts the specified quantity from a store's inventory for a given product.
+     * Throws if the product is not found in the store or if there is insufficient
+     * stock.
+     */
+    void deductStock(Long storeId, Long productId, Integer quantity);
 }

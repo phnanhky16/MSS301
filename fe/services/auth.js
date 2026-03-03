@@ -70,3 +70,23 @@ export function getCurrentUser() {
   const token = localStorage.getItem('accessToken');
   return parseJwt(token);
 }
+
+// Real Google OAuth login - sends Google ID token to backend
+export function loginWithGoogle(googleIdToken) {
+  return request('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ token: googleIdToken, provider: 'google' }),
+  }).then(res => {
+    console.debug('Google login response', res);
+    // store tokens
+    const payload = res.data || res;
+    if (payload && payload.accessToken) {
+      localStorage.setItem('accessToken', payload.accessToken);
+    }
+    if (payload && payload.refreshToken) {
+      localStorage.setItem('refreshToken', payload.refreshToken);
+    }
+    return payload;
+  });
+}
+

@@ -22,10 +22,13 @@ public class OrderPlacedEvent {
     private Long orderId;
     private String orderNumber;
     private Long userId;
+    private Long storeId;
     private String customerEmail;
     private String customerName;
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
+    private String couponCode;
+    private BigDecimal discountAmount;
     private String eventVersion;
     private List<OrderItemEvent> items;
 

@@ -4,10 +4,19 @@ import com.kidfavor.reviewservice.dto.CreateReviewRequest;
 import com.kidfavor.reviewservice.dto.ReviewResponse;
 import com.kidfavor.reviewservice.dto.UpdateReviewRequest;
 import com.kidfavor.reviewservice.service.ReviewService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -17,26 +26,79 @@ import java.util.Map;
 @RestController
 @RequestMapping("/reviews")
 @RequiredArgsConstructor
+@Tag(name = "Review", description = "Product Review Management APIs")
+@SecurityRequirement(name = "bearer-jwt")
 public class ReviewController {
 
     private final ReviewService reviewService;
 
     @PostMapping
-    public ResponseEntity<ReviewResponse> createReview(@Valid @RequestBody CreateReviewRequest request) {
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(
+        summary = "Create a review", 
+        description = "Create a new product review. Only authenticated customers can create reviews."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Review created successfully",
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid request data",
+            content = @Content),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+            content = @Content),
+        @ApiResponse(responseCode = "404", description = "Product or User not found",
+            content = @Content)
+    })
+    public ResponseEntity<ReviewResponse> createReview(
+            @Valid @RequestBody @Parameter(description = "Review details") CreateReviewRequest request) {
+        Long userId = reviewService.getCurrentUserId();
+        request.setUserId(userId); // Set userId from JWT
         ReviewResponse response = reviewService.createReview(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(
+        summary = "Update a review", 
+        description = "Update an existing review. Customers can update their own reviews, admins can update any review."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Review updated successfully",
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid request data",
+            content = @Content),
+        @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Not the review owner",
+            content = @Content),
+        @ApiResponse(responseCode = "404", description = "Review not found",
+            content = @Content)
+    })
     public ResponseEntity<ReviewResponse> updateReview(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateReviewRequest request) {
+            @PathVariable @Parameter(description = "Review ID") Long id,
+            @Valid @RequestBody @Parameter(description = "Updated review details") UpdateReviewRequest request) {
         ReviewResponse response = reviewService.updateReview(id, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteReview(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(
+        summary = "Delete a review", 
+        description = "Delete a review. Customers can delete their own reviews, admins can delete any review."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Review deleted successfully",
+            content = @Content),
+        @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Not the review owner",
+            content = @Content),
+        @ApiResponse(responseCode = "404", description = "Review not found",
+            content = @Content)
+    })
+    public ResponseEntity<Map<String, String>> deleteReview(
+            @PathVariable @Parameter(description = "Review ID") Long id) {
         reviewService.deleteReview(id);
         Map<String, String> response = new HashMap<>();
         response.put("message", "Review deleted successfully");
@@ -44,31 +106,106 @@ public class ReviewController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ReviewResponse> getReviewById(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(
+        summary = "Get review by ID", 
+        description = "Retrieve a specific review by its ID."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Review retrieved successfully",
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content),
+        @ApiResponse(responseCode = "404", description = "Review not found",
+            content = @Content)
+    })
+    public ResponseEntity<ReviewResponse> getReviewById(
+            @PathVariable @Parameter(description = "Review ID") Long id) {
         ReviewResponse response = reviewService.getReviewById(id);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+        summary = "Get all reviews (Admin only)", 
+        description = "Retrieve all reviews. This endpoint is restricted to administrators only."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required",
+            content = @Content)
+    })
     public ResponseEntity<List<ReviewResponse>> getAllReviews() {
         List<ReviewResponse> reviews = reviewService.getAllReviews();
         return ResponseEntity.ok(reviews);
     }
 
+    @GetMapping("/my-reviews")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(
+        summary = "Get current user's reviews", 
+        description = "Retrieve all reviews created by the authenticated user."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content)
+    })
+    public ResponseEntity<List<ReviewResponse>> getMyReviews() {
+        Long userId = reviewService.getCurrentUserId();
+        List<ReviewResponse> reviews = reviewService.getReviewsByUserId(userId);
+        return ResponseEntity.ok(reviews);
+    }
+
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<ReviewResponse>> getReviewsByUserId(@PathVariable Long userId) {
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(
+        summary = "Get reviews by user ID", 
+        description = "Retrieve all reviews created by a specific user."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content)
+    })
+    public ResponseEntity<List<ReviewResponse>> getReviewsByUserId(
+            @PathVariable @Parameter(description = "User ID") Long userId) {
         List<ReviewResponse> reviews = reviewService.getReviewsByUserId(userId);
         return ResponseEntity.ok(reviews);
     }
 
     @GetMapping("/product/{productId}")
-    public ResponseEntity<List<ReviewResponse>> getReviewsByProductId(@PathVariable Long productId) {
+    @Operation(
+        summary = "Get reviews by product ID (Public)", 
+        description = "Retrieve all reviews for a specific product. This is a public endpoint."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully",
+            content = @Content(schema = @Schema(implementation = ReviewResponse.class)))
+    })
+    public ResponseEntity<List<ReviewResponse>> getReviewsByProductId(
+            @PathVariable @Parameter(description = "Product ID") Long productId) {
         List<ReviewResponse> reviews = reviewService.getReviewsByProductId(productId);
         return ResponseEntity.ok(reviews);
     }
 
     @GetMapping("/product/{productId}/average-rating")
-    public ResponseEntity<Map<String, Object>> getAverageRating(@PathVariable Long productId) {
+    @Operation(
+        summary = "Get product average rating (Public)", 
+        description = "Calculate and retrieve the average rating and total review count for a specific product. This is a public endpoint."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Rating calculated successfully",
+            content = @Content)
+    })
+    public ResponseEntity<Map<String, Object>> getAverageRating(
+            @PathVariable @Parameter(description = "Product ID") Long productId) {
         Double avgRating = reviewService.getAverageRatingByProductId(productId);
         Long count = reviewService.getReviewCountByProductId(productId);
         
@@ -80,3 +217,4 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 }
+

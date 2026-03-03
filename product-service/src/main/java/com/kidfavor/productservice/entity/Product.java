@@ -48,6 +48,7 @@ public class Product {
 
     
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OrderBy("isPrimary DESC, displayOrder ASC")
     private List<ProductImage> images;
     
     @CreationTimestamp

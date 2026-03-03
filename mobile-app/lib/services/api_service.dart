@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Thay đổi URL này theo địa chỉ API Gateway của bạn
-  static const String baseUrl = 'http://localhost:8080';
-  
-  // Hoặc nếu test trên thiết bị thật/emulator
-  // static const String baseUrl = 'http://10.0.2.2:8080'; // Android Emulator
-  // static const String baseUrl = 'http://192.168.1.x:8080'; // Thiết bị thật (IP máy tính)
-  
+  // Android Emulator: Dùng 10.0.2.2 để trỏ đến localhost của máy host
+  static const String baseUrl = 'http://10.0.2.2:8080';
+
+  // Các tùy chọn khác:
+  // static const String baseUrl = 'http://localhost:8080'; // Chỉ dùng khi chạy web
+  // static const String baseUrl = 'http://192.168.1.x:8080'; // Thiết bị thật (thay x bằng IP máy tính)
+
   static String? _token;
 
   static void setToken(String token) {
@@ -43,6 +43,9 @@ class ApiService {
     String endpoint,
     Map<String, dynamic> body,
   ) async {
+    print('POST $baseUrl$endpoint');
+    print('Request Body: ${jsonEncode(body)}');
+
     final response = await http.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: _getHeaders(),
@@ -74,10 +77,22 @@ class ApiService {
   }
 
   static Map<String, dynamic> _handleResponse(http.Response response) {
+    print('Response Status: ${response.statusCode}');
+    print('Response Body: ${response.body}');
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to load data: ${response.statusCode}');
+      // Try to parse error message from response
+      try {
+        final errorBody = jsonDecode(response.body);
+        final errorMessage =
+            errorBody['message'] ?? errorBody['error'] ?? 'Unknown error';
+        throw Exception('Error ${response.statusCode}: $errorMessage');
+      } catch (e) {
+        throw Exception(
+            'Failed to load data: ${response.statusCode} - ${response.body}');
+      }
     }
   }
 }

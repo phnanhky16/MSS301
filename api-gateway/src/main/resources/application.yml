@@ -36,6 +36,16 @@ spring:
           filters:
             - StripPrefix=1
 
+        # User Service OAuth2 Routes
+        - id: user-service-oauth2
+          uri: lb://user-service
+          predicates:
+            - Path=/oauth2/**, /login/oauth2/**
+          filters:
+            - StripPrefix=0
+
+
+
         # User Service Swagger API Docs
         - id: user-service-api-docs
           uri: lb://user-service

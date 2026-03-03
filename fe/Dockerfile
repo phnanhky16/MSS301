@@ -1,5 +1,5 @@
 # build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 # copy manifest first to take advantage of Docker layer caching; lockfile
 # may not exist until `npm install` has been run locally, but the wildcard
@@ -14,7 +14,7 @@ COPY . .
 RUN npm run build
 
 # runtime stage
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/next.config.js ./

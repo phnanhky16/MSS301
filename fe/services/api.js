@@ -98,6 +98,16 @@ export function fetchProducts(page = 0, size = 10, filters = {}) {
   return request(`/products?${params.toString()}`);
 }
 
+export function fetchProductsSortedByStock(page = 0, size = 10, filters = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (filters.keyword) params.append('keyword', filters.keyword);
+  if (filters.categoryId) params.append('categoryId', filters.categoryId);
+  if (filters.brandId) params.append('brandId', filters.brandId);
+  if (filters.status) params.append('status', filters.status);
+  if (filters.sort) params.append('sort', filters.sort);
+  return request(`/products/sorted-by-stock?${params.toString()}`);
+}
+
 // convenience helper for public/home pages that should only ever see
 // active products. the backend already treats a missing `status` as
 // ACTIVE, but making the parameter explicit guards against future
@@ -159,6 +169,10 @@ export function deleteUser(id, deleteFlag) {
 
 export function fetchOrderById(id) {
   return request(`/orders/${id}`);
+}
+
+export function fetchProductById(id) {
+  return request(`/products/${id}`);
 }
 
 export function fetchUserById(id) {

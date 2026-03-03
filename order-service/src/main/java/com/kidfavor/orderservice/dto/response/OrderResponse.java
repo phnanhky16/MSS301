@@ -19,14 +19,15 @@ public class OrderResponse {
     private Long id;
     private String orderNumber;
     private Long userId;
+    private Long storeId;
     private OrderStatus status;
     private BigDecimal totalAmount;
     private String shippingAddress;
     private String phoneNumber;
     private String notes;
     private List<OrderItemResponse> items;
-        private String couponCode; // Added couponCode
-        private BigDecimal discountAmount; // Added discountAmount
+    private String couponCode; // Added couponCode
+    private BigDecimal discountAmount; // Added discountAmount
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
