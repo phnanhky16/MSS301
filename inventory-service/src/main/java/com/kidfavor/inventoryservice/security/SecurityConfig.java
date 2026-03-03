@@ -27,6 +27,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // explicitly enable a permissive CORS configuration for every
+                // endpoint in the service. the gateway already adds a wildcard
+                // header on every response, but when you hit a backend service
+                // directly (e.g. during development) the Spring Security chain
+                // will still enforce CORS rules unless we provide a source.
+                // we could also configure this via `application.yml` but doing it
+                // here keeps the behaviour consistent across modules.
+                        .cors().and()
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -69,4 +77,26 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+        /**
+         * Permit all origins/headers/methods for CORS.  This effectively disables
+         * browser CORS protections when clients talk directly to this service.
+         *
+         * The API gateway already adds an Access-Control-Allow-Origin: * header to
+         * every response, but enabling a matching `CorsConfigurationSource` here
+         * prevents Spring Security from blocking preflight requests when the
+         * service is invoked without the gateway (for example during local
+         * testing).
+         */
+        @Bean
+        public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+                org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+                configuration.setAllowedOrigins(java.util.List.of("*"));
+                configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+                configuration.setAllowedHeaders(java.util.List.of("*"));
+                configuration.setExposedHeaders(java.util.List.of("Authorization", "Content-Type"));
+                org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }

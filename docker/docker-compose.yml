@@ -417,24 +417,24 @@ services:
     networks:
       - microservices-network
 
-  # --- Frontend ---
-  fe:
-    build:
-      context: ../fe
-      dockerfile: Dockerfile
-    container_name: fe
-    ports:
-      - "3000:3000"
-    environment:
-      # the front end talks through the gateway; this variable can be
-      # overridden if the gateway lives on a different host/port.
-      NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
-    depends_on:
-      api-gateway:
-        condition: service_started
-    networks:
-      - microservices-network
-    restart: on-failure
+  # # --- Frontend ---
+  # fe:
+  #   build:
+  #     context: ../fe
+  #     dockerfile: Dockerfile
+  #   container_name: fe
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     # the front end talks through the gateway; this variable can be
+  #     # overridden if the gateway lives on a different host/port.
+  #     NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
+  #   depends_on:
+  #     api-gateway:
+  #       condition: service_started
+  #   networks:
+  #     - microservices-network
+  #   restart: on-failure
 
   # --- Ensure Maven base image is available ---
   # This dummy service doesn't run anything, it just pulls whatever

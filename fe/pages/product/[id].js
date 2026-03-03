@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import {
     Rate,
@@ -39,6 +39,10 @@ export default function ProductDetailPage() {
     const [activeImg, setActiveImg] = useState(0);
     const [wished, setWished] = useState(false);
     const { addToCart } = useCart();
+    // ref to scrolling panel so we can page-scroll two items at a time
+    const scrollContainerRef = useRef(null);
+    // computed height used for container so exactly two items are visible
+    const [containerHeight, setContainerHeight] = useState(140);
 
     useEffect(() => {
         if (!id) return;
@@ -56,6 +60,20 @@ export default function ProductDetailPage() {
         };
         loadProduct();
     }, [id]);
+
+    // when product (and therefore storeStocks) updates, measure item height
+    useEffect(() => {
+        if (!scrollContainerRef.current) return;
+        const sc = scrollContainerRef.current;
+        const first = sc.children[0];
+        if (first) {
+            const style = getComputedStyle(first);
+            const itemHeight = first.offsetHeight + parseInt(style.marginBottom);
+            // two items plus container padding
+            const padding = 8 * 2 + 12 * 2; // vertical + horizontal padding; horizontal only influences width
+            setContainerHeight(itemHeight * 2 + 16); // add small fudge for rounding
+        }
+    }, [product]);
 
     if (loading) {
         return (
@@ -224,6 +242,12 @@ export default function ProductDetailPage() {
                             <Text strong style={{ color: product.status === 'ACTIVE' ? '#52c41a' : '#ff4d4f' }}>
                                 {product.status === 'ACTIVE' ? 'In Stock' : 'Out of Stock'}
                             </Text>
+                                {product.totalStock != null && (
+                                    <>
+                                        <Text type="secondary">Total Stock:</Text>
+                                        <Text strong>{product.totalStock}</Text>
+                                    </>
+                                )}
                             <Text type="secondary">Product Code:</Text>
                             <Text strong>#KF-{product.id?.toString().padStart(4, '0')}</Text>
                         </div>
@@ -263,6 +287,73 @@ export default function ProductDetailPage() {
                                 Add to Cart
                             </Button>
                         </div>
+
+                        {/* stock-per-store panel: fixed height showing max two entries,
+                            scrollable when there are more. mimics demo screenshot.
+                            we display basic info since backend only returns name/qty. */}
+                        {product.storeStocks && product.storeStocks.length > 0 && (
+                            <div style={{ marginTop: 40 }}>
+                                <Divider orientation="left"><Title level={3}>Available at</Title></Divider>
+                                {/* scroll container: page by two-item heights when wheel used */}
+                                <div
+                                    ref={scrollContainerRef}
+                                    onWheel={e => {
+                                        const sc = scrollContainerRef.current;
+                                        if (!sc) return;
+                                        e.preventDefault();
+                                        const children = sc.children;
+                                        if (children.length === 0) return;
+                                        const first = children[0];
+                                        const style = getComputedStyle(first);
+                                        const itemHeight = first.offsetHeight + parseInt(style.marginBottom);
+                                        const currentIndex = Math.floor(sc.scrollTop / itemHeight);
+                                        if (e.deltaY > 0) {
+                                            sc.scrollTo({ top: (currentIndex + 2) * itemHeight, behavior: 'smooth' });
+                                        } else {
+                                            sc.scrollTo({ top: Math.max(0, (currentIndex - 2) * itemHeight), behavior: 'smooth' });
+                                        }
+                                    }}
+                                    style={{
+                                        maxHeight: containerHeight,
+                                        overflowY: 'auto',
+                                        border: '1px solid #f0f0f0',
+                                        borderRadius: 8,
+                                        padding: '8px 12px',
+                                        background: '#fff',
+                                        boxSizing: 'border-box'
+                                    }}
+                                >
+                                    {product.storeStocks.map((s, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                marginBottom: 12,
+                                                padding: 8,
+                                                border: '1px solid #e0e0e0',
+                                                borderRadius: 6,
+                                                background: '#fafafa',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: 4,
+                                                fontSize: 14
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 600, color: '#333' }}>
+                                                {s.storeName}
+                                            </div>
+                                            {s.address && (
+                                                <div style={{ fontSize: 12, color: '#555' }}>
+                                                    {s.address}{s.city ? `, ${s.city}` : ''}
+                                                </div>
+                                            )}
+                                            <div style={{ fontSize: 13, color: '#1ca8c8' }}>
+                                                {s.quantity} có sẵn
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Trust badges */}
                         <div style={{

@@ -52,6 +52,16 @@ spring:
         instance-id: ${spring.application.name}:${server.port}
         prefer-ip-address: true
 
+  # --- CORS configuration (permissive, disables browser restrictions) ------
+  mvc:
+    cors:
+      mappings:
+        "/**":
+          allowed-origins: "*"
+          allowed-methods: "*"
+          allowed-headers: "*"
+          allow-credentials: true
+
 management:
   endpoints:
     web:
@@ -89,3 +99,11 @@ springdoc:
     operations-sorter: alpha
     tags-sorter: alpha
   show-actuator: false
+
+# --- permissive CORS settings ------------------------------------------------
+# configure CORS under the existing `spring` key rather than redeclaring it
+# (duplicate top‑level keys trigger a SnakeYAML parse error at startup).
+## CORS configuration merged into the primary `spring` block above.
+# the original duplicate block caused parsing errors; keeping this here for
+# reference and readability only (it is no longer applied, the real config is
+# earlier under the primary `spring:` section).

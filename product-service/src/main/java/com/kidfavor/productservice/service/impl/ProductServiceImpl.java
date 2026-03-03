@@ -124,6 +124,8 @@ public class ProductServiceImpl implements ProductService {
                                     .map(inv -> StoreStockInfo.builder()
                                             .storeId(inv.getStoreId())
                                             .storeName(inv.getStoreName())
+                                        .address(inv.getAddress())
+                                        .city(inv.getCity())
                                             .quantity(inv.getQuantity())
                                             .minStockLevel(inv.getMinStockLevel())
                                             .stockStatus(calculateStockStatus(inv.getQuantity(), inv.getMinStockLevel()))

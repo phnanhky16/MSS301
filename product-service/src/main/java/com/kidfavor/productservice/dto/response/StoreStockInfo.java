@@ -18,6 +18,8 @@ public class StoreStockInfo {
     
     private Long storeId;
     private String storeName;
+    private String address;
+    private String city;
     private Integer quantity;
     private Integer minStockLevel;
     private String stockStatus;
