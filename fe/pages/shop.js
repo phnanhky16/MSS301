@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { Rate, Empty, Spin } from 'antd';
 import { HeartOutlined, HeartFilled, ShoppingCartOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
-import { fetchProductsSortedByStock, fetchCategories, fetchBrands } from '../services/api';
+import { fetchProductsSortedByStock, fetchCategories, fetchBrands, fetchProductSuggestions } from '../services/api';
 
 const SORT_MAPPING = {
     'Default sorting': 'name,asc',
@@ -109,6 +109,8 @@ export default function ShopPage() {
     const [sortBy, setSortBy] = useState('Default sorting');
     const [page, setPage] = useState(0); // 0-indexed for backend
     const [searchVal, setSearchVal] = useState('');
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [loading, setLoading] = useState(false);
     const [totalResults, setTotalResults] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -158,6 +160,38 @@ export default function ShopPage() {
         loadProducts();
     }, [page, activeCat, sortBy, searchVal]);
 
+    // when the user types a keyword we clear any category filter so that the
+    // search operates across all products. otherwise a leftover `cat` query
+    // parameter (e.g. "All Toys") may restrict results to a parent category
+    // and omit matches in subcategories, which is why typing "la" previously
+    // returned no results even though suggestions appeared.
+    useEffect(() => {
+        if (searchVal && searchVal.trim().length > 0 && activeCat !== null) {
+            setActiveCat(null);
+            // also reset page to first when clearing filter
+            setPage(0);
+        }
+    }, [searchVal]);
+
+    // fetch autocomplete suggestions when user types
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (searchVal && searchVal.trim().length > 0) {
+                try {
+                    const sug = await fetchProductSuggestions(searchVal);
+                    setSuggestions(sug || []);
+                    setShowSuggestions(true);
+                } catch (e) {
+                    console.error('autocomplete error', e);
+                }
+            } else {
+                setSuggestions([]);
+                setShowSuggestions(false);
+            }
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [searchVal]);
+
     const startResult = totalResults > 0 ? page * pageSize + 1 : 0;
     const endResult = Math.min((page + 1) * pageSize, totalResults);
 
@@ -196,6 +230,20 @@ export default function ShopPage() {
                             onChange={e => setSearchVal(e.target.value)}
                         />
                         <SearchOutlined className="sidebar-search-icon" />
+                            {/* suggestions dropdown */}
+                            {showSuggestions && suggestions.length > 0 && (
+                                <ul className="autocomplete-dropdown">
+                                    {suggestions.map(p => (
+                                        <li key={p.id} onClick={() => {
+                                            setSearchVal(p.name);
+                                            setShowSuggestions(false);
+                                            setPage(0);
+                                        }} className="autocomplete-item">
+                                            {p.name}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                     </div>
 
                     {/* Categories */}

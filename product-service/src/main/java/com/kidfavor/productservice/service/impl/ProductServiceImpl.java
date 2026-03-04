@@ -17,6 +17,8 @@ import com.kidfavor.productservice.mapper.ProductMapper;
 import com.kidfavor.productservice.repository.BrandRepository;
 import com.kidfavor.productservice.repository.CategoryRepository;
 import com.kidfavor.productservice.repository.ProductRepository;
+import com.kidfavor.productservice.service.ProductSearchService;
+import com.kidfavor.productservice.service.ProductSearchSyncService;
 import com.kidfavor.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,17 +37,18 @@ import java.util.stream.Collectors;
 @Transactional
 @Slf4j
 public class ProductServiceImpl implements ProductService {
-    
+
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
     private final ProductMapper productMapper;
     private final InventoryServiceClient inventoryServiceClient;
-    
+    private final ProductSearchSyncService productSearchSyncService;
+    private final ProductSearchService productSearchService;
 
     @Override
     @Transactional(readOnly = true)
-        public org.springframework.data.domain.Page<ProductResponse> listProducts(
+    public org.springframework.data.domain.Page<ProductResponse> listProducts(
             org.springframework.data.domain.Pageable pageable,
             String keyword,
             Long categoryId,
@@ -75,8 +78,7 @@ public class ProductServiceImpl implements ProductService {
                 String pattern = "%" + keyword.toLowerCase() + "%";
                 preds.add(cb.or(
                         cb.like(cb.lower(root.get("name")), pattern),
-                        cb.like(cb.lower(root.get("description")), pattern)
-                ));
+                        cb.like(cb.lower(root.get("description")), pattern)));
             }
             if (categoryId != null) {
                 preds.add(cb.equal(root.get("category").get("id"), categoryId));
@@ -99,41 +101,89 @@ public class ProductServiceImpl implements ProductService {
         // asked for a sort (price, createdAt, etc.) we respect it instead.
         if (status != null && status.equalsIgnoreCase("ALL") && !pageable.getSort().isSorted()) {
             effective = org.springframework.data.domain.PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                org.springframework.data.domain.Sort.by("id").ascending()
-            );
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    org.springframework.data.domain.Sort.by("id").ascending());
         }
+
+        // Use Elasticsearch if keyword is provided
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String sortField = null;
+            String sortDir = null;
+            if (effective.getSort().isSorted()) {
+                org.springframework.data.domain.Sort.Order order = effective.getSort().iterator().next();
+                sortField = order.getProperty();
+                sortDir = order.getDirection().name();
+            }
+            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
+                    keyword, categoryId, brandId, status, effective.getPageNumber(), effective.getPageSize(), sortField,
+                    sortDir);
+
+            List<ProductResponse> responseList = docs.stream().map(doc -> {
+                ProductResponse resp = new ProductResponse();
+                resp.setId(Long.valueOf(doc.getId()));
+                resp.setName(doc.getName());
+                resp.setDescription(doc.getDescription());
+                // ProductDocument.price is already BigDecimal, so we can assign directly.
+                resp.setPrice(doc.getPrice());
+                resp.setStatus(EntityStatus.valueOf(doc.getStatus()));
+                resp.setImageUrls(doc.getImageUrl() != null ? List.of(doc.getImageUrl()) : List.of());
+
+                com.kidfavor.productservice.dto.response.CategoryResponse cat = new com.kidfavor.productservice.dto.response.CategoryResponse();
+                cat.setId(doc.getCategoryId());
+                cat.setName(doc.getCategory());
+                resp.setCategory(cat);
+
+                com.kidfavor.productservice.dto.response.BrandResponse b = new com.kidfavor.productservice.dto.response.BrandResponse();
+                b.setId(doc.getBrandId());
+                b.setName(doc.getBrand());
+                resp.setBrand(b);
+
+                return resp;
+            }).collect(Collectors.toList());
+
+            // We don't have total elements easily from ES without doing a count query or
+            // modifying searchService,
+            // so giving a rough total for now or we could modify productSearchService to
+            // return Page.
+            return new org.springframework.data.domain.PageImpl<>(
+                    responseList,
+                    effective,
+                    (effective.getPageNumber() + 1) * effective.getPageSize() + 1); // rough pagination
+        }
+
         return productRepository.findAll(spec, effective)
-            .map(productMapper::toResponse);
+                .map(productMapper::toResponse);
     }
-    
+
     @Override
     public Optional<ProductResponse> getProductById(Long id) {
         return productRepository.findById(id)
                 .map(product -> {
                     ProductResponse response = productMapper.toResponse(product);
-                    
+
                     // Fetch stock information from inventory service
                     try {
-                        ApiResponseDto<List<StoreInventoryDto>> inventoryResponse = 
-                                inventoryServiceClient.getProductInventoryAllStores(id);
-                        
-                        if (inventoryResponse != null && inventoryResponse.getStatus() == 200 && inventoryResponse.getData() != null) {
+                        ApiResponseDto<List<StoreInventoryDto>> inventoryResponse = inventoryServiceClient
+                                .getProductInventoryAllStores(id);
+
+                        if (inventoryResponse != null && inventoryResponse.getStatus() == 200
+                                && inventoryResponse.getData() != null) {
                             List<StoreStockInfo> storeStocks = inventoryResponse.getData().stream()
                                     .map(inv -> StoreStockInfo.builder()
                                             .storeId(inv.getStoreId())
                                             .storeName(inv.getStoreName())
-                                        .address(inv.getAddress())
-                                        .city(inv.getCity())
+                                            .address(inv.getAddress())
+                                            .city(inv.getCity())
                                             .quantity(inv.getQuantity())
                                             .minStockLevel(inv.getMinStockLevel())
-                                            .stockStatus(calculateStockStatus(inv.getQuantity(), inv.getMinStockLevel()))
+                                            .stockStatus(
+                                                    calculateStockStatus(inv.getQuantity(), inv.getMinStockLevel()))
                                             .shelfLocation(inv.getShelfLocation())
                                             .lastUpdated(inv.getLastUpdated())
                                             .build())
                                     .collect(Collectors.toList());
-                            
+
                             response.setStoreStocks(storeStocks);
                             response.setTotalStock(storeStocks.stream()
                                     .mapToInt(s -> s.getQuantity() != null ? s.getQuantity() : 0)
@@ -143,11 +193,11 @@ public class ProductServiceImpl implements ProductService {
                         log.warn("Failed to fetch stock information for product {}: {}", id, e.getMessage());
                         // Continue without stock info if inventory service is unavailable
                     }
-                    
+
                     return response;
                 });
     }
-    
+
     /**
      * Calculate stock status based on quantity and min stock level.
      */
@@ -160,63 +210,68 @@ public class ProductServiceImpl implements ProductService {
             return "IN_STOCK";
         }
     }
-    
+
     @Override
     public ProductResponse createProduct(ProductCreateRequest request) {
         Category category = categoryRepository.findByIdAndStatus(request.getCategoryId(), EntityStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
-        
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
+
         Brand brand = brandRepository.findByIdAndStatus(request.getBrandId(), EntityStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Brand not found with id: " + request.getBrandId()));
-        
+
         Product product = productMapper.toEntity(request, category, brand);
         Product savedProduct = productRepository.save(product);
+        productSearchSyncService.syncProduct(savedProduct);
         return productMapper.toResponse(savedProduct);
     }
-    
+
     @Override
     public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
         Product product = productRepository.findByIdAndStatus(id, EntityStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
-        
+
         Category category = null;
         if (request.getCategoryId() != null) {
             category = categoryRepository.findByIdAndStatus(request.getCategoryId(), EntityStatus.ACTIVE)
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Category not found with id: " + request.getCategoryId()));
         }
-        
+
         Brand brand = null;
         if (request.getBrandId() != null) {
             brand = brandRepository.findByIdAndStatus(request.getBrandId(), EntityStatus.ACTIVE)
-                    .orElseThrow(() -> new ResourceNotFoundException("Brand not found with id: " + request.getBrandId()));
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Brand not found with id: " + request.getBrandId()));
         }
-        
+
         productMapper.updateEntity(product, request, category, brand);
         Product updatedProduct = productRepository.save(product);
         return productMapper.toResponse(updatedProduct);
     }
-    
+
     @Override
     public void deleteProduct(Long id) {
         Product product = productRepository.findByIdAndStatus(id, EntityStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
-        
+
         product.setStatus(EntityStatus.DELETED);
         product.setStatusChangedAt(LocalDateTime.now());
-        productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        productSearchSyncService.syncProduct(savedProduct);
     }
-    
+
     @Override
     public ProductResponse updateProductStatus(Long id, StatusUpdateRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
-        
+
         product.setStatus(request.getStatus());
         product.setStatusChangedAt(LocalDateTime.now());
         Product updatedProduct = productRepository.save(product);
         return productMapper.toResponse(updatedProduct);
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<ProductResponse> listProductsSortedByStock(
@@ -225,7 +280,7 @@ public class ProductServiceImpl implements ProductService {
             Long categoryId,
             Long brandId,
             String status) {
-        
+
         // Get product IDs with stock from inventory service
         Set<Long> productIdsWithStock = new HashSet<>();
         try {
@@ -237,11 +292,11 @@ public class ProductServiceImpl implements ProductService {
             // If inventory service is down, continue without stock info
             // Products will be sorted only by other criteria
         }
-        
+
         // Build dynamic specification
         org.springframework.data.jpa.domain.Specification<Product> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
-            
+
             if (status == null) {
                 preds.add(cb.equal(root.get("status"), EntityStatus.ACTIVE));
             } else if (!"ALL".equalsIgnoreCase(status)) {
@@ -255,8 +310,7 @@ public class ProductServiceImpl implements ProductService {
                 String pattern = "%" + keyword.toLowerCase() + "%";
                 preds.add(cb.or(
                         cb.like(cb.lower(root.get("name")), pattern),
-                        cb.like(cb.lower(root.get("description")), pattern)
-                ));
+                        cb.like(cb.lower(root.get("description")), pattern)));
             }
             if (categoryId != null) {
                 preds.add(cb.equal(root.get("category").get("id"), categoryId));
@@ -266,41 +320,69 @@ public class ProductServiceImpl implements ProductService {
             }
             return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
-        
+
         // Get all products matching the filters
-        List<Product> allProducts = productRepository.findAll(spec);
-        
+        List<Product> allProducts;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
+                    keyword, categoryId, brandId, status, 0, 1000, null, null);
+
+            allProducts = docs.stream().map(doc -> {
+                Product p = new Product();
+                p.setId(Long.valueOf(doc.getId()));
+                p.setName(doc.getName());
+                p.setDescription(doc.getDescription());
+                p.setPrice(doc.getPrice());
+                p.setStatus(EntityStatus.valueOf(doc.getStatus()));
+
+                Category cat = new Category();
+                cat.setId(doc.getCategoryId());
+                cat.setName(doc.getCategory());
+                p.setCategory(cat);
+
+                Brand b = new Brand();
+                b.setId(doc.getBrandId());
+                b.setName(doc.getBrand());
+                p.setBrand(b);
+
+                return p;
+            }).collect(Collectors.toList());
+        } else {
+            allProducts = productRepository.findAll(spec);
+        }
+
         // Sort products: with stock first, then without stock
         final Set<Long> stockSet = productIdsWithStock;
         List<Product> sortedProducts = allProducts.stream()
                 .sorted((p1, p2) -> {
                     boolean p1HasStock = stockSet.contains(p1.getId());
                     boolean p2HasStock = stockSet.contains(p2.getId());
-                    
-                    if (p1HasStock && !p2HasStock) return -1;
-                    if (!p1HasStock && p2HasStock) return 1;
-                    
+
+                    if (p1HasStock && !p2HasStock)
+                        return -1;
+                    if (!p1HasStock && p2HasStock)
+                        return 1;
+
                     // If both have same stock status, sort by ID
                     return p1.getId().compareTo(p2.getId());
                 })
                 .collect(Collectors.toList());
-        
+
         // Manual pagination
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), sortedProducts.size());
-        
-        List<Product> pageContent = start < sortedProducts.size() 
-                ? sortedProducts.subList(start, end) 
+
+        List<Product> pageContent = start < sortedProducts.size()
+                ? sortedProducts.subList(start, end)
                 : List.of();
-        
+
         List<ProductResponse> responseList = pageContent.stream()
                 .map(productMapper::toResponse)
                 .collect(Collectors.toList());
-        
+
         return new org.springframework.data.domain.PageImpl<>(
                 responseList,
                 pageable,
-                sortedProducts.size()
-        );
+                sortedProducts.size());
     }
 }

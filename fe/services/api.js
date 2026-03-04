@@ -108,6 +108,14 @@ export function fetchProductsSortedByStock(page = 0, size = 10, filters = {}) {
   return request(`/products/sorted-by-stock?${params.toString()}`);
 }
 
+// Returns a small list of products matching keyword for autocomplete dropdown
+export function fetchProductSuggestions(keyword) {
+  const params = new URLSearchParams();
+  if (keyword) params.append('keyword', keyword);
+  // note: backend route returns List<ProductDocument> or similar
+  return request(`/products/autocomplete?${params.toString()}`);
+}
+
 // convenience helper for public/home pages that should only ever see
 // active products. the backend already treats a missing `status` as
 // ACTIVE, but making the parameter explicit guards against future

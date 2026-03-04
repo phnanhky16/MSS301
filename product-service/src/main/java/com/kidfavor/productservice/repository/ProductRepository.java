@@ -34,6 +34,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     // Search by name and status (parameterized query)
     @Query("SELECT p FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) AND p.status = :status")
     List<Product> searchByNameAndStatus(@Param("keyword") String keyword, @Param("status") EntityStatus status);
+
+    /**
+     * Retrieve all products and eagerly fetch brand/category associations.  This
+     * is used during Elasticsearch synchronization to avoid LazyInitialization
+     * exceptions outside of a transactional context.
+     */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "brand", "images"})
+    @Query("SELECT p FROM Product p")
+    List<Product> findAllWithRelations();
     
     // Count products by brand and status (for validation)
     long countByBrandAndStatus(Brand brand, EntityStatus status);
