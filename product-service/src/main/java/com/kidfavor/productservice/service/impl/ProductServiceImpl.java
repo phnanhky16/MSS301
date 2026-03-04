@@ -23,6 +23,9 @@ import com.kidfavor.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.Objects;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -111,45 +114,54 @@ public class ProductServiceImpl implements ProductService {
             String sortField = null;
             String sortDir = null;
             if (effective.getSort().isSorted()) {
-                org.springframework.data.domain.Sort.Order order = effective.getSort().iterator().next();
-                sortField = order.getProperty();
-                sortDir = order.getDirection().name();
+            org.springframework.data.domain.Sort.Order order = effective.getSort().iterator().next();
+            sortField = order.getProperty();
+            sortDir = order.getDirection().name();
             }
-            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
+            List<com.kidfavor.productservice.document.ProductDocument> docs =
+                productSearchService.searchProducts(
                     keyword, categoryId, brandId, status, effective.getPageNumber(), effective.getPageSize(), sortField,
                     sortDir);
 
-            List<ProductResponse> responseList = docs.stream().map(doc -> {
-                ProductResponse resp = new ProductResponse();
-                resp.setId(Long.valueOf(doc.getId()));
-                resp.setName(doc.getName());
-                resp.setDescription(doc.getDescription());
-                // ProductDocument.price is already BigDecimal, so we can assign directly.
-                resp.setPrice(doc.getPrice());
-                resp.setStatus(EntityStatus.valueOf(doc.getStatus()));
-                resp.setImageUrls(doc.getImageUrl() != null ? List.of(doc.getImageUrl()) : List.of());
+            // if the user supplied a keyword that exactly matches one or more
+            // product names we want to return only those results. the
+            // default Elasticsearch query is fuzzy/multi-match and may return
+            // many other items that happen to share tokens with the phrase;
+            // this surprises users who click an autocomplete suggestion and
+            // expect the list to narrow down to that single product. the
+            // easiest fix is to post-filter the hits here rather than change
+            // the ES query logic.
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String term = keyword.trim();
+                List<com.kidfavor.productservice.document.ProductDocument> exact = docs.stream()
+                        .filter(d -> term.equalsIgnoreCase(d.getName()))
+                        .collect(Collectors.toList());
+                if (!exact.isEmpty()) {
+                    docs = exact;
+                }
+            }
 
-                com.kidfavor.productservice.dto.response.CategoryResponse cat = new com.kidfavor.productservice.dto.response.CategoryResponse();
-                cat.setId(doc.getCategoryId());
-                cat.setName(doc.getCategory());
-                resp.setCategory(cat);
-
-                com.kidfavor.productservice.dto.response.BrandResponse b = new com.kidfavor.productservice.dto.response.BrandResponse();
-                b.setId(doc.getBrandId());
-                b.setName(doc.getBrand());
-                resp.setBrand(b);
-
-                return resp;
-            }).collect(Collectors.toList());
+            // fetch the full Product entities (with images) from the database
+            List<Long> ids = docs.stream()
+                .map(d -> Long.valueOf(d.getId()))
+                .collect(Collectors.toList());
+            List<Product> loaded = productRepository.findByIdInWithRelations(ids);
+            Map<Long, Product> map = loaded.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+            List<ProductResponse> responseList = ids.stream()
+                .map(map::get)
+                .filter(java.util.Objects::nonNull)
+                .map(productMapper::toResponse)
+                .collect(Collectors.toList());
 
             // We don't have total elements easily from ES without doing a count query or
             // modifying searchService,
             // so giving a rough total for now or we could modify productSearchService to
             // return Page.
             return new org.springframework.data.domain.PageImpl<>(
-                    responseList,
-                    effective,
-                    (effective.getPageNumber() + 1) * effective.getPageSize() + 1); // rough pagination
+                responseList,
+                effective,
+                (effective.getPageNumber() + 1) * effective.getPageSize() + 1); // rough pagination
         }
 
         return productRepository.findAll(spec, effective)
@@ -281,6 +293,13 @@ public class ProductServiceImpl implements ProductService {
             Long brandId,
             String status) {
 
+        // debug logging to help diagnose why keyword filtering sometimes
+        // appears to be ignored (see issue where clicking an autocomplete
+        // suggestion still returned the full product list).  We print the raw
+        // incoming parameter and whether our branch to query ES is taken.
+        log.debug("listProductsSortedByStock called with keyword='{}', categoryId={}, brandId={}, status={}",
+            keyword, categoryId, brandId, status);
+
         // Get product IDs with stock from inventory service
         Set<Long> productIdsWithStock = new HashSet<>();
         try {
@@ -324,29 +343,38 @@ public class ProductServiceImpl implements ProductService {
         // Get all products matching the filters
         List<Product> allProducts;
         if (keyword != null && !keyword.trim().isEmpty()) {
-            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
+            // perform search against elasticsearch index to get the matching ids
+            log.debug("keyword non-empty, querying ES");
+            List<com.kidfavor.productservice.document.ProductDocument> docs =
+                productSearchService.searchProducts(
                     keyword, categoryId, brandId, status, 0, 1000, null, null);
 
-            allProducts = docs.stream().map(doc -> {
-                Product p = new Product();
-                p.setId(Long.valueOf(doc.getId()));
-                p.setName(doc.getName());
-                p.setDescription(doc.getDescription());
-                p.setPrice(doc.getPrice());
-                p.setStatus(EntityStatus.valueOf(doc.getStatus()));
+            // same post-filter as above for the sorted-by-stock path
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String term = keyword.trim();
+                List<com.kidfavor.productservice.document.ProductDocument> exact = docs.stream()
+                        .filter(d -> term.equalsIgnoreCase(d.getName()))
+                        .collect(Collectors.toList());
+                if (!exact.isEmpty()) {
+                    docs = exact;
+                }
+            }
 
-                Category cat = new Category();
-                cat.setId(doc.getCategoryId());
-                cat.setName(doc.getCategory());
-                p.setCategory(cat);
+            // collect ids in the order returned by ES so we can preserve it later
+            List<Long> ids = docs.stream()
+                .map(doc -> Long.valueOf(doc.getId()))
+                .collect(Collectors.toList());
 
-                Brand b = new Brand();
-                b.setId(doc.getBrandId());
-                b.setName(doc.getBrand());
-                p.setBrand(b);
+            // fetch full entities (including images) in a single query
+            List<Product> loaded = productRepository.findByIdInWithRelations(ids);
 
-                return p;
-            }).collect(Collectors.toList());
+            // maintain ES ordering; filter out any missing products just in case
+            Map<Long, Product> map = loaded.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+            allProducts = ids.stream()
+                .map(map::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         } else {
             allProducts = productRepository.findAll(spec);
         }

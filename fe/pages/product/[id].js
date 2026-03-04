@@ -93,9 +93,14 @@ export default function ProductDetailPage() {
             <Layout>
                 <div className="product-detail-container" style={{ maxWidth: 1200, margin: '100px auto', textAlign: 'center' }}>
                     <Title level={2}>Product Not Found</Title>
-                    <Link href="/shop">
-                        <Button type="primary" icon={<ArrowLeftOutlined />}>Back to Shop</Button>
-                    </Link>
+                    <Button
+                        type="primary"
+                        icon={<ArrowLeftOutlined />}
+                        onClick={() => router.back()}
+                    >
+                        Back to Shop
+                    </Button>
+
                 </div>
             </Layout>
         );
@@ -119,7 +124,20 @@ export default function ProductDetailPage() {
                     style={{ marginBottom: 24 }}
                     items={[
                         { title: <Link href="/">Home</Link> },
-                        { title: <Link href="/shop">Shop</Link> },
+                        {
+                            title: (
+                                <a
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        router.back();
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    Shop
+                                </a>
+                            )
+                        },
+
                         {
                             title: product.category ? (
                                 <Link href={`/shop?cat=${product.category.id}`}>
@@ -242,12 +260,12 @@ export default function ProductDetailPage() {
                             <Text strong style={{ color: product.status === 'ACTIVE' ? '#52c41a' : '#ff4d4f' }}>
                                 {product.status === 'ACTIVE' ? 'In Stock' : 'Out of Stock'}
                             </Text>
-                                {product.totalStock != null && (
-                                    <>
-                                        <Text type="secondary">Total Stock:</Text>
-                                        <Text strong>{product.totalStock}</Text>
-                                    </>
-                                )}
+                            {product.totalStock != null && (
+                                <>
+                                    <Text type="secondary">Total Stock:</Text>
+                                    <Text strong>{product.totalStock}</Text>
+                                </>
+                            )}
                             <Text type="secondary">Product Code:</Text>
                             <Text strong>#KF-{product.id?.toString().padStart(4, '0')}</Text>
                         </div>

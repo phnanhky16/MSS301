@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Rate, Empty, Spin } from 'antd';
-import { HeartOutlined, HeartFilled, ShoppingCartOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined } from '@ant-design/icons';
+import { HeartOutlined, HeartFilled, ShoppingCartOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined, HistoryOutlined } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
 import { fetchProductsSortedByStock, fetchCategories, fetchBrands, fetchProductSuggestions } from '../services/api';
 
@@ -13,6 +13,10 @@ const SORT_MAPPING = {
     'Newest': 'createdAt,desc',
     'Rating': 'name,asc' // Backend doesn't have rating yet
 };
+
+const REVERSE_SORT_MAPPING = Object.fromEntries(
+    Object.entries(SORT_MAPPING).map(([k, v]) => [v, k])
+);
 
 /* ─────────────────────────── PRODUCT CARD ─────────────────── */
 
@@ -54,7 +58,12 @@ function ShopProductCard({ product, onAdd }) {
                         src={imgUrl}
                         alt={product.name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={() => setImgErr(true)}
+                        onError={(e) => {
+                            // log the broken url for debugging; once one fails we show
+                            // placeholder for this card only
+                            console.warn('product image load failed', e.target.src);
+                            setImgErr(true);
+                        }}
                     />
                 ) : (
                     <span style={{ fontSize: 40 }}>🧸</span>
@@ -108,9 +117,12 @@ export default function ShopPage() {
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('Default sorting');
     const [page, setPage] = useState(0); // 0-indexed for backend
+    // sync with query string so that back/forward restore state
     const [searchVal, setSearchVal] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [history, setHistory] = useState([]);
+    const [searchFocused, setSearchFocused] = useState(false);
     const [loading, setLoading] = useState(false);
     const [totalResults, setTotalResults] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -122,10 +134,57 @@ export default function ShopPage() {
         if (router.isReady) {
             const categoryId = router.query.cat ? parseInt(router.query.cat) : null;
             setActiveCat(categoryId);
-            // Reset page to 0 when category changes (or is reset)
+
+            // Sync page from URL (0-indexed)
+            if (router.query.p) {
+                setPage(parseInt(router.query.p));
+            } else {
+                setPage(0);
+            }
+
+            // Sync sort from URL
+            if (router.query.s && REVERSE_SORT_MAPPING[router.query.s]) {
+                setSortBy(REVERSE_SORT_MAPPING[router.query.s]);
+            } else {
+                setSortBy('Default sorting');
+            }
+
+            // sync keyword query param to input; if it's missing clear value
+            if (router.query.keyword) {
+                setSearchVal(router.query.keyword);
+            } else {
+                setSearchVal('');
+                setShowSuggestions(false);
+            }
+        }
+    }, [router.isReady, router.query.cat, router.query.keyword, router.query.p, router.query.s]);
+
+
+    // hide suggestion dropdown whenever the route changes (back/forward/etc)
+    useEffect(() => {
+        setShowSuggestions(false);
+        // We removed the aggressive cleanup that was clearing searchVal here
+        // as it was interfering with back navigation persistence.
+    }, [router.asPath, router.query.keyword]);
+
+
+    // if the user clicks the "Shop" link in the header we navigate back
+    // to `/shop` without any query parameters.  when that happens we want to
+    // clear any existing keyword or page state so the list returns to the
+    // default "all products" view.  listening on `asPath` gives us the
+    // updated URL whenever the router changes.
+    useEffect(() => {
+        if (router.isReady && router.pathname === '/shop' && !router.query.cat) {
+            // preserve keyword if it's still in the URL; only clear when
+            // there are literally no query filters at all (user clicked the
+            // Shop link from header)
+            if (!router.query.keyword) {
+                setSearchVal('');
+            }
+            setActiveCat(null);
             setPage(0);
         }
-    }, [router.isReady, router.query.cat]);
+    }, [router.isReady, router.asPath]);
 
     useEffect(() => {
         const loadCategories = async () => {
@@ -166,16 +225,85 @@ export default function ShopPage() {
     // and omit matches in subcategories, which is why typing "la" previously
     // returned no results even though suggestions appeared.
     useEffect(() => {
+        if (!router.isReady) return;
+
+        // whenever the keyword changes and there was a category filter, clear it
         if (searchVal && searchVal.trim().length > 0 && activeCat !== null) {
             setActiveCat(null);
-            // also reset page to first when clearing filter
-            setPage(0);
         }
-    }, [searchVal]);
 
-    // fetch autocomplete suggestions when user types
+        const q = { ...router.query };
+        let changed = false;
+
+        if (searchVal !== (q.keyword || '')) {
+            if (searchVal) q.keyword = searchVal;
+            else delete q.keyword;
+            changed = true;
+        }
+
+        if (page !== (parseInt(q.p) || 0)) {
+            if (page > 0) q.p = page;
+            else delete q.p;
+            changed = true;
+        }
+
+        const currentSort = SORT_MAPPING[sortBy];
+        if (currentSort !== (q.s || 'name,asc')) {
+            if (currentSort && currentSort !== 'name,asc') q.s = currentSort;
+            else delete q.s;
+            changed = true;
+        }
+
+        if (changed) {
+            // add a random param to force router change even when keyword is
+            // identical; this keeps history entries distinct so back/forward
+            // works more predictably
+            q.r = Date.now();
+            router.replace({ pathname: '/shop', query: q }, undefined, {
+                shallow: true
+            });
+        }
+    }, [searchVal, page, sortBy, router.isReady]);
+
+
+    // fetch autocomplete suggestions when user types.  if we have just
+    // applied a suggestion click we want to suppress the follow-up lookup
+    // (otherwise the dropdown immediately reopens).  a ref flag allows the
+    // click handler to signal the effect to bail out once.
+
+    // --- recent keyword history stored in localStorage -------------
+    useEffect(() => {
+        // load any existing history on mount
+        try {
+            const stored = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            if (Array.isArray(stored)) {
+                setHistory(stored);
+            }
+        } catch (_e) {
+            // ignore
+        }
+    }, []);
+
+    const addToHistory = kw => {
+        if (!kw || !kw.trim()) return;
+        setHistory(prev => {
+            const filtered = prev.filter(h => h !== kw);
+            const next = [kw, ...filtered].slice(0, 5); // keep at most 5
+            try {
+                localStorage.setItem('searchHistory', JSON.stringify(next));
+            } catch (_e) { }
+            return next;
+        });
+    };
+    const ignoreNextFetch = React.useRef(false);
+    const focusTimer = React.useRef(null);
     useEffect(() => {
         const timer = setTimeout(async () => {
+            if (ignoreNextFetch.current) {
+                // consumed the skip flag, do nothing this round
+                ignoreNextFetch.current = false;
+                return;
+            }
             if (searchVal && searchVal.trim().length > 0) {
                 try {
                     const sug = await fetchProductSuggestions(searchVal);
@@ -210,7 +338,22 @@ export default function ShopPage() {
                 <div className="shop-breadcrumb-inner">
                     <Link href="/" className="bc-home">Home</Link>
                     <span className="bc-sep"> / </span>
-                    <Link href="/shop" className="bc-current">Products</Link>
+                    {/* Clicking back to the shop page should reset whatever state we were
+                        carrying (keyword, category, page).  When the user is already on
+                        `/shop` the router won't actually change paths, so our effect that
+                        listens on `asPath` never fires.  To handle the "click again"
+                        scenario we explicitly clear the state on click. */}
+                    <Link
+                        href="/shop"
+                        className="bc-current"
+                        onClick={() => {
+                            setSearchVal('');
+                            setActiveCat(null);
+                            setPage(0);
+                        }}
+                    >
+                        Products
+                    </Link>
                 </div>
             </div>
 
@@ -227,23 +370,88 @@ export default function ShopPage() {
                             placeholder="Search products..."
                             className="sidebar-search"
                             value={searchVal}
-                            onChange={e => setSearchVal(e.target.value)}
+                            onChange={e => { setSearchVal(e.target.value); setPage(0); }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                    addToHistory(searchVal);
+                                    setShowSuggestions(false);
+                                }
+                            }}
+                            onFocus={() => {
+                                clearTimeout(focusTimer.current);
+                                setSearchFocused(true);
+                            }}
+                            onBlur={() => {
+                                focusTimer.current = setTimeout(() => setSearchFocused(false), 100);
+                            }}
                         />
-                        <SearchOutlined className="sidebar-search-icon" />
-                            {/* suggestions dropdown */}
-                            {showSuggestions && suggestions.length > 0 && (
-                                <ul className="autocomplete-dropdown">
-                                    {suggestions.map(p => (
-                                        <li key={p.id} onClick={() => {
-                                            setSearchVal(p.name);
-                                            setShowSuggestions(false);
-                                            setPage(0);
-                                        }} className="autocomplete-item">
-                                            {p.name}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
+                        <SearchOutlined
+                            className="sidebar-search-icon"
+                            onClick={() => {
+                                addToHistory(searchVal);
+                                setShowSuggestions(false);
+                            }}
+                        />
+                        {/* suggestions dropdown */}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <ul className="autocomplete-dropdown">
+                                {suggestions.map(p => (
+                                    <li key={p.id} onMouseDown={() => {
+
+                                        // set input value then immediately hide the
+                                        // dropdown and clear suggestions. also mark the
+                                        // next fetch to be ignored so the effect above
+                                        // doesn't pop it right back open.
+                                        setSearchVal(p.name);
+                                        setShowSuggestions(false);
+                                        setSuggestions([]);
+                                        ignoreNextFetch.current = true;
+                                        setPage(0);
+                                        addToHistory(p.name);
+                                        // update URL for history/back support
+                                        router.push(
+                                            {
+                                                pathname: '/shop',
+                                                query: { ...router.query, keyword: p.name, r: Date.now() }
+                                            },
+                                            undefined,
+                                            { shallow: true }
+                                        );
+                                    }} className="autocomplete-item">
+                                        {p.name}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {/* recent keywords shown when nothing typed and input focused */}
+                        {!searchVal && history.length > 0 && searchFocused && (
+                            <ul className="autocomplete-dropdown history">
+                                {history.map((h, idx) => (
+                                    <li key={idx} className="autocomplete-item history" onMouseDown={() => {
+
+                                        setSearchVal(h);
+                                        setShowSuggestions(false);
+                                        setSuggestions([]);
+                                        ignoreNextFetch.current = true;
+                                        setPage(0);
+                                        addToHistory(h);
+                                        router.push(
+                                            {
+                                                pathname: '/shop',
+                                                query: { ...router.query, keyword: h, r: Date.now() }
+                                            },
+                                            undefined,
+                                            { shallow: true }
+                                        );
+                                        // keep focus so dropdown won't immediately hide
+                                        setSearchFocused(true);
+                                    }}>
+                                        <HistoryOutlined style={{ marginRight: 6, fontSize: 12 }} />
+                                        {h}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
 
                     {/* Categories */}
@@ -253,7 +461,13 @@ export default function ShopPage() {
                             <li>
                                 <button
                                     className={`sidebar-cat-btn${activeCat === null ? ' active' : ''}`}
-                                    onClick={() => router.push('/shop', undefined, { shallow: true })}
+                                    onClick={() =>
+                                        router.push(
+                                            { pathname: '/shop', query: { r: Date.now() } },
+                                            undefined,
+                                            { shallow: true }
+                                        )
+                                    }
                                 >
                                     <span className="cat-plus">{activeCat === null ? '−' : '+'}</span>
                                     All Categories
@@ -263,7 +477,16 @@ export default function ShopPage() {
                                 <li key={cat.id}>
                                     <button
                                         className={`sidebar-cat-btn${activeCat === cat.id ? ' active' : ''}`}
-                                        onClick={() => router.push(`/shop?cat=${cat.id}`, undefined, { shallow: true })}
+                                        onClick={() =>
+                                            router.push(
+                                                {
+                                                    pathname: '/shop',
+                                                    query: { cat: cat.id, r: Date.now() }
+                                                },
+                                                undefined,
+                                                { shallow: true }
+                                            )
+                                        }
                                     >
                                         <span className="cat-plus">{activeCat === cat.id ? '−' : '+'}</span>
                                         {cat.name}
@@ -309,9 +532,13 @@ export default function ShopPage() {
                     {/* Heading row */}
                     <div className="shop-heading-row">
                         <h1 className="shop-title">
-                            {activeCat ? categories.find(c => c.id === activeCat)?.name : 'All Toys'}
+                            {router.query.keyword
+                                ? `Search Results for: "${router.query.keyword}"`
+                                : (activeCat ? categories.find(c => c.id === activeCat)?.name : 'All Toys')
+                            }
                         </h1>
                     </div>
+
 
                     {/* Toolbar */}
                     <div className="shop-toolbar">

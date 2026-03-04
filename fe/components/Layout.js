@@ -56,28 +56,55 @@ export default function Layout({ children, isLogin = false }) {
 
           {/* Nav */}
           <nav className="header-nav">
+            {/* we specially handle the shop link so that clicking it always causes a
+                navigation even if the user is already on /shop.  Next.js will ignore
+                clicks on the current path, meaning our ShopPage state-clearing effect
+                would never fire.  appending a dummy timestamp query forces a path
+                change and in turn resets search/page/category. */}
             {[
               { href: '/', label: 'Home' },
               { href: '/shop', label: 'Shop' },
               { href: '/about', label: 'Blogs' },
               { href: '/toy', label: 'Toy' },
               { href: '/contact', label: 'Contact' },
-            ].map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-link${router.pathname === item.href ? ' active' : ''}`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            ].map(item => {
+              const isShop = item.href === '/shop';
+              const hrefObj = isShop
+                ? { pathname: '/shop', query: { r: Date.now() } }
+                : item.href;
+              return (
+                // intercept click on shop link to always force navigation
+                <Link
+                  key={item.href}
+                  href={hrefObj}
+                  className={`nav-link${router.pathname === item.href ? ' active' : ''}`}
+                  onClick={async e => {
+                    if (isShop) {
+                      e.preventDefault();
+                      // first navigate to /shop with a timestamp so the
+                      // router always treats it as a new entry
+                      await router.push({ pathname: '/shop', query: { r: Date.now() } });
+                      // then immediately remove the dummy param without
+                      // adding another history entry
+                      router.replace('/shop', undefined, { shallow: true });
+                    }
+                  }}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right actions */}
           <div className="header-actions">
-            <button className="hdr-icon-btn" aria-label="Search">
-              <SearchOutlined />
-            </button>
+            {/* we already have a dedicated search sidebar on the shop page, so
+                hide the header search icon when user is browsing /shop */}
+            {router.pathname !== '/shop' && (
+              <button className="hdr-icon-btn" aria-label="Search">
+                <SearchOutlined />
+              </button>
+            )}
             <Link href="/cart">
               <button className="hdr-icon-btn cart-btn" aria-label="Cart">
                 <ShoppingCartOutlined />

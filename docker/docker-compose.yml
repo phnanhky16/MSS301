@@ -29,7 +29,6 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/userdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: redis
@@ -108,6 +107,8 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_NAME: product-images
       SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      SPRING_ELASTICSEARCH_USERNAME: elastic
+      SPRING_ELASTICSEARCH_PASSWORD: changeme
     depends_on:
       postgres-product:
         condition: service_started
@@ -130,6 +131,7 @@ services:
     ports:
       - "8086:8086"
     environment:
+      # log file path
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-review:5432/reviewdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
@@ -198,6 +200,7 @@ services:
     ports:
       - "8085:8085"
     environment:
+      # log file for Filebeat removed
       DB_HOST: postgres-cart
       DB_PORT: 5432
       DB_USERNAME: postgres
@@ -219,7 +222,6 @@ services:
     networks:
       - microservices-network
     restart: on-failure
-
   # --- Service Discovery ---
   consul:
     image: hashicorp/consul:latest
@@ -287,6 +289,7 @@ services:
     networks:
       - microservices-network
 
+  # filebeat only needs read access to the logs volume
   postgres-inventory:
     image: postgres:16-alpine
     container_name: postgres-inventory
@@ -448,8 +451,8 @@ services:
   #
   # Historically the codebase used 3.9.0 in one Dockerfile while the
   # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
-  # didn't help when a service still tried to pull 3.9.6.  The simplest
-  # fix is to standardize on the newer 3.9.6 tag and pull it here.
+        # log file path removed
+        # LOGGING_FILE_NAME: /logs/review-service.log
   maven-base:
     image: maven:3.9.6-eclipse-temurin-17
     entrypoint: [ "true" ] # immediately exit successfully
@@ -462,7 +465,13 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      # enable built-in security so that we can use Fleet/APM later
+      - xpack.security.enabled=true
+      # allow generation of enrollment tokens (used by Kibana setup)
+      - xpack.security.enrollment.enabled=true
+      # for local development we can set a fixed password on start; this is
+      # equivalent to running the initial wizard that prints the password.
+      - ELASTIC_PASSWORD=changeme
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
@@ -476,19 +485,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.13.4
-    container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    networks:
-      - microservices-network
+  # kibana and filebeat services removed at user request
 
 # --- Volumes Definition ---
 volumes:

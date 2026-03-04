@@ -43,6 +43,17 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "brand", "images"})
     @Query("SELECT p FROM Product p")
     List<Product> findAllWithRelations();
+
+    /**
+     * Retrieve products by a set of ids and eagerly fetch associations including
+     * images.  This is useful when the service needs to hydrate entities that were
+     * originally located via an external search index so that the returned
+     * {@link com.kidfavor.productservice.dto.response.ProductResponse} includes the
+     * image URLs instead of an empty list.
+     */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "brand", "images"})
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids")
+    List<Product> findByIdInWithRelations(@Param("ids") java.util.Collection<Long> ids);
     
     // Count products by brand and status (for validation)
     long countByBrandAndStatus(Brand brand, EntityStatus status);

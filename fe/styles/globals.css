@@ -221,6 +221,17 @@ a {
   background: #f5f5f5;
 }
 
+/* history entries look lighter/italic to distinguish from live suggestions */
+.autocomplete-dropdown.history .autocomplete-item.history {
+  font-style: italic;
+  color: #666;
+}
+
+/* show back-arrow icon next to history entries */
+.autocomplete-dropdown.history .autocomplete-item.history .anticon {
+  vertical-align: middle;
+}
+
 .user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
