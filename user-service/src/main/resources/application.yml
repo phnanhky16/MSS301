@@ -9,22 +9,24 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 20000
       idle-timeout: 300000
       max-lifetime: 1200000
+      leak-detection-threshold: 60000
+      connection-test-query: SELECT 1
 
   # JPA/Hibernate Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
-        use_sql_comments: true
+        format_sql: false
+        use_sql_comments: false
         jdbc:
           batch_size: 20
         order_inserts: true
@@ -129,6 +131,12 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     doc-expansion: none
+  # Performance optimizations
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  cache:
+    disabled: false
+  model-and-view-allowed: false
 
 # JWT Configuration
 jwt:
@@ -147,11 +155,11 @@ keycloak:
 # Logging Configuration
 logging:
   level:
-    com.kidfavor.userservice: DEBUG
-    org.springframework.cache: DEBUG
-    org.springframework.data.redis: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.kidfavor.userservice: INFO
+    org.springframework.cache: INFO
+    org.springframework.data.redis: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
