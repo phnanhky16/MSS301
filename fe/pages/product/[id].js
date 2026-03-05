@@ -119,34 +119,34 @@ export default function ProductDetailPage() {
         }
     }, [product]);
 
+    // the top-level Layout is already provided by _app.js; wrapping
+    // ourselves again caused the double‑header flash during the initial
+    // render. simply return the page content here and let the app shell
+    // render the header/footer once.
+
     if (loading) {
         return (
-            <Layout>
-                <div className="product-detail-container" style={{ maxWidth: 1200, margin: '40px auto', padding: '0 20px', textAlign: 'center' }}>
-                    <Spin size="large" />
-                    <div style={{ marginTop: 16 }}>
-                        <Skeleton active aria-label="Loading product details" />
-                    </div>
+            <div className="product-detail-container" style={{ maxWidth: 1200, margin: '40px auto', padding: '0 20px', textAlign: 'center' }}>
+                <Spin size="large" />
+                <div style={{ marginTop: 16 }}>
+                    <Skeleton active aria-label="Loading product details" />
                 </div>
-            </Layout>
+            </div>
         );
     }
 
     if (!product) {
         return (
-            <Layout>
-                <div className="product-detail-container" style={{ maxWidth: 1200, margin: '100px auto', textAlign: 'center' }}>
-                    <Title level={2}>Product Not Found</Title>
-                    <Button
-                        type="primary"
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => router.back()}
-                    >
-                        Back to Shop
-                    </Button>
-
-                </div>
-            </Layout>
+            <div className="product-detail-container" style={{ maxWidth: 1200, margin: '100px auto', textAlign: 'center' }}>
+                <Title level={2}>Product Not Found</Title>
+                <Button
+                    type="primary"
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => router.back()}
+                >
+                    Back to Shop
+                </Button>
+            </div>
         );
     }
 
