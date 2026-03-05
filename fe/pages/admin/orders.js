@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Typography, message, Input, DatePicker, Select, Button, Modal, Tag } from 'antd';
+import { Table, Typography, message, Input, DatePicker, Select, Button, Modal, Tag, App as AntApp } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { fetchOrders, fetchOrderById } from '../../services/api';
@@ -7,6 +7,7 @@ import { fetchOrders, fetchOrderById } from '../../services/api';
 const { Title } = Typography;
 
 export default function OrdersPage() {
+  const { message } = AntApp.useApp();
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -15,7 +16,7 @@ export default function OrdersPage() {
   const [sort, setSort] = useState('createdAt,desc');
   const [detail, setDetail] = useState(null);
   const [orderNumberInput, setOrderNumberInput] = useState('');
-  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const load = (page = currentPage - 1, size = pageSize) => {
     fetchOrders(page, size, { ...filters, sort })
@@ -39,7 +40,7 @@ export default function OrdersPage() {
     // do not fire when only orderNumberInput changes; those are handled by Search button
     load(0, pageSize);
   }, [filters.status, filters.date, filters.startDate, filters.endDate, sort]);
-  
+
   // define table columns after effects
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id' },
@@ -109,7 +110,7 @@ export default function OrdersPage() {
     fetchOrderById(id)
       .then(resp => {
         setDetail(resp);
-        setDetailVisible(true);
+        setDetailOpen(true);
       })
       .catch(() => message.error('Failed to load order details'));
   }
@@ -147,14 +148,14 @@ export default function OrdersPage() {
           <Select.Option value="totalAmount,desc">High price</Select.Option>
         </Select>
         {/* search button removed; filtering happens immediately */}
-          {/* search button for order number; other filters auto-load */}
-          <Button type="primary" onClick={() => {
-            // trim whitespace before applying
-            const trimmed = orderNumberInput.trim();
-            setOrderNumberInput(trimmed);
-            setFilters(f => ({ ...f, orderNumber: trimmed || undefined }));
-            load(0, pageSize);
-          }}>Search</Button>
+        {/* search button for order number; other filters auto-load */}
+        <Button type="primary" onClick={() => {
+          // trim whitespace before applying
+          const trimmed = orderNumberInput.trim();
+          setOrderNumberInput(trimmed);
+          setFilters(f => ({ ...f, orderNumber: trimmed || undefined }));
+          load(0, pageSize);
+        }}>Search</Button>
         <Button onClick={() => {
           setOrderNumberInput('');
           setFilters({});
@@ -182,10 +183,10 @@ export default function OrdersPage() {
         }}
       />
       <Modal
-        visible={detailVisible}
+        open={detailOpen}
         title={`Order #${detail?.orderNumber}`}
         footer={null}
-        onCancel={() => setDetailVisible(false)}
+        onCancel={() => setDetailOpen(false)}
         width={800}
       >
         {detail && (

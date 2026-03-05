@@ -12,7 +12,11 @@ import {
     Spin,
     message,
     Image as AntImage,
-    Carousel
+    Carousel,
+    Pagination,
+    Avatar,
+    Space,
+    Radio
 } from 'antd';
 import {
     ShoppingCartOutlined,
@@ -21,12 +25,17 @@ import {
     ArrowLeftOutlined,
     SafetyCertificateOutlined,
     ThunderboltOutlined,
-    ReloadOutlined
+    ReloadOutlined,
+    LeftOutlined,
+    RightOutlined,
+    UserOutlined,
+    FilterOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
-import { fetchProductById } from '../../services/api';
+import { fetchProductById, fetchProductReviews, fetchProductAverageRating } from '../../services/api';
 import { useCart } from '../../hooks/useCart';
+import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -44,13 +53,29 @@ export default function ProductDetailPage() {
     // computed height used for container so exactly two items are visible
     const [containerHeight, setContainerHeight] = useState(140);
 
+    // Review States
+    const [reviews, setReviews] = useState([]);
+    const [avgRatingData, setAvgRatingData] = useState({ averageRating: 0, totalReviews: 0 });
+    const [reviewPage, setReviewPage] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    // ratingFilter is either a number 1–5 or an empty string ("all").
+    // using `null` here would put `value={null}` on the underlying
+    // <input> of the Antd Radio component and React complains about that
+    // during render. an empty string avoids the warning.
+    const [ratingFilter, setRatingFilter] = useState('');
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+
     useEffect(() => {
         if (!id) return;
         const loadProduct = async () => {
             setLoading(true);
             try {
-                const data = await fetchProductById(id);
-                setProduct(data);
+                const [productData, ratingData] = await Promise.all([
+                    fetchProductById(id),
+                    fetchProductAverageRating(id)
+                ]);
+                setProduct(productData);
+                setAvgRatingData(ratingData);
             } catch (err) {
                 console.error("Failed to load product", err);
                 message.error("Failed to load product details");
@@ -60,6 +85,25 @@ export default function ProductDetailPage() {
         };
         loadProduct();
     }, [id]);
+
+    useEffect(() => {
+        if (!id) return;
+        const loadReviews = async () => {
+            setReviewsLoading(true);
+            try {
+                // convert '' back to null for the API (meaning "no filter")
+                const filter = ratingFilter === '' ? null : ratingFilter;
+                const data = await fetchProductReviews(id, reviewPage, 5, filter);
+                setReviews(data.content || []);
+                setTotalElements(data.totalElements || 0);
+            } catch (err) {
+                console.error("Failed to load reviews", err);
+            } finally {
+                setReviewsLoading(false);
+            }
+        };
+        loadReviews();
+    }, [id, reviewPage, ratingFilter]);
 
     // when product (and therefore storeStocks) updates, measure item height
     useEffect(() => {
@@ -161,7 +205,8 @@ export default function ProductDetailPage() {
                             boxShadow: '0 8px 32px rgba(0,0,0,0.05)',
                             marginBottom: 20,
                             position: 'relative',
-                            minHeight: 400,
+                            width: '100%',
+                            aspectRatio: '1/1',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
@@ -170,7 +215,12 @@ export default function ProductDetailPage() {
                                 <AntImage
                                     src={images[activeImg]}
                                     alt={product.name}
-                                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'contain',
+                                        display: 'block'
+                                    }}
                                     preview={true}
                                     fallback="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHRleHQgeD0iNTAiIHk9IjYwIiBmb250LXNpemU9IjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn6i7PC90ZXh0Pjwvc3ZnPg=="
                                 />
@@ -178,9 +228,63 @@ export default function ProductDetailPage() {
                                 <span style={{ fontSize: 100 }}>🧸</span>
                             )}
                             {product.status === 'INACTIVE' && (
-                                <Tag color="red" style={{ position: 'absolute', top: 20, left: 20, padding: '4px 12px', fontSize: 14, fontWeight: 700 }}>
+                                <Tag color="red" style={{ position: 'absolute', top: 20, left: 20, padding: '4px 12px', fontSize: 14, fontWeight: 700, zIndex: 10 }}>
                                     OUT OF STOCK
                                 </Tag>
+                            )}
+
+                            {/* Navigation Arrows */}
+                            {images.length > 1 && (
+                                <>
+                                    <Button
+                                        shape="circle"
+                                        icon={<LeftOutlined />}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveImg((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            left: 15,
+                                            zIndex: 10,
+                                            background: 'rgba(255,255,255,0.8)',
+                                            border: 'none',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                        }}
+                                    />
+                                    <Button
+                                        shape="circle"
+                                        icon={<RightOutlined />}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveImg((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            right: 15,
+                                            zIndex: 10,
+                                            background: 'rgba(255,255,255,0.8)',
+                                            border: 'none',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                        }}
+                                    />
+                                    {/* Image Counter Badge */}
+                                    <Tag
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 15,
+                                            right: 15,
+                                            margin: 0,
+                                            background: 'rgba(0,0,0,0.4)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: 20,
+                                            padding: '2px 10px'
+                                        }}
+                                    >
+                                        {activeImg + 1} / {images.length}
+                                    </Tag>
+                                </>
                             )}
                         </div>
 
@@ -236,8 +340,8 @@ export default function ProductDetailPage() {
                                 {product.name}
                             </Title>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                                <Rate disabled defaultValue={5} style={{ fontSize: 14, color: '#fab400' }} />
-                                <Text type="secondary">(4.8 / 5.0 - 124 reviews)</Text>
+                                <Rate disabled allowHalf value={avgRatingData.averageRating || 0} style={{ fontSize: 14, color: '#fab400' }} />
+                                <Text type="secondary">({avgRatingData.averageRating?.toFixed(1) || '0.0'} / 5.0 - {avgRatingData.totalReviews || 0} reviews)</Text>
                             </div>
                             <Text style={{ fontSize: 32, fontWeight: 700, color: '#1ca8c8' }}>
                                 ${product.price?.toFixed(2)}
@@ -279,7 +383,7 @@ export default function ProductDetailPage() {
                                     min={1}
                                     max={99}
                                     value={quantity}
-                                    onChange={setQuantity}
+                                    onChange={val => setQuantity(val == null ? 1 : val)}
                                     size="large"
                                     style={{ width: 100, borderRadius: 8 }}
                                 />
@@ -399,17 +503,82 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
 
-                {/* Additional Details Tabs (Mock) */}
+                {/* Additional Details Tabs */}
                 <div style={{ marginTop: 80 }}>
                     <Divider orientation="left"><Title level={3}>Details & Specifications</Title></Divider>
-                    <div style={{ background: '#fff', padding: 40, borderRadius: 24, border: '1px solid #f0f0f0' }}>
-                        <Paragraph style={{ fontSize: 16 }}>
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                        </Paragraph>
+                    <div style={{ background: '#fff', padding: 40, borderRadius: 24, border: '1px solid #f0f0f0', marginBottom: 60 }}>
                         <Title level={4}>Safety & Materials</Title>
-                        <Paragraph>
-                            All our toys are made from non-toxic, child-safe materials and meet international safety standards (ASTM, EN71). Recommended for ages 3 and up.
+                        <Paragraph style={{ fontSize: 16 }}>
+                            All our toys are made from non-toxic, child-safe materials and meet international safety standards (ASTM, EN71). Recommended for ages 3 and up. {product.description}
                         </Paragraph>
+                    </div>
+
+                    <Divider orientation="left"><Title level={3}>Customer Reviews ({avgRatingData.totalReviews || 0})</Title></Divider>
+                    <div style={{ background: '#fff', padding: 40, borderRadius: 24, border: '1px solid #f0f0f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40, flexWrap: 'wrap', gap: 20 }}>
+                            <div style={{ background: '#fcfcfc', padding: '24px 40px', borderRadius: 16, border: '1px solid #f0f0f0', textAlign: 'center' }}>
+                                <div style={{ fontSize: 48, fontWeight: 800, color: '#2d2d2d', lineHeight: 1 }}>{avgRatingData.averageRating?.toFixed(1) || '0.0'}</div>
+                                <Rate disabled allowHalf value={avgRatingData.averageRating || 0} style={{ margin: '12px 0', fontSize: 20, color: '#fab400' }} />
+                                <div style={{ color: '#8c8c8c' }}>Based on {avgRatingData.totalReviews || 0} reviews</div>
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 300 }}>
+                                <Text strong style={{ display: 'block', marginBottom: 16 }}><FilterOutlined /> Filter by Rating</Text>
+                                <Radio.Group
+                                    value={ratingFilter}
+                                    onChange={e => {
+                                        // store '' when user selects "All"
+                                        setRatingFilter(e.target.value || '');
+                                        setReviewPage(0);
+                                    }}
+                                    optionType="button"
+                                    buttonStyle="solid"
+                                >
+                                    <Radio.Button value="">All</Radio.Button>
+                                    {[5, 4, 3, 2, 1].map(r => (
+                                        <Radio.Button key={r} value={r}>{r} ★</Radio.Button>
+                                    ))}
+                                </Radio.Group>
+                            </div>
+                        </div>
+
+                        {reviewsLoading ? (
+                            <div style={{ textAlign: 'center', padding: '40px 0' }}><Spin /></div>
+                        ) : reviews.length > 0 ? (
+                            <div className="reviews-list">
+                                {reviews.map((rev, idx) => (
+                                    <div key={rev.id || idx} style={{ padding: '24px 0', borderBottom: idx === reviews.length - 1 ? 'none' : '1px solid #f0f0f0' }}>
+                                        <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                                            <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#1ca8c8' }} />
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: 16 }}>{rev.user?.fullName || rev.user?.userName || 'Anonymous User'}</div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <Rate disabled value={rev.rating} style={{ fontSize: 12, color: '#fab400' }} />
+                                                    <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(rev.createdAt).format('DD MMM, YYYY')}</Text>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Paragraph style={{ fontSize: 15, color: '#595959', margin: 0 }}>
+                                            {rev.comment}
+                                        </Paragraph>
+                                    </div>
+                                ))}
+
+                                <div style={{ marginTop: 32, textAlign: 'center' }}>
+                                    <Pagination
+                                        current={reviewPage + 1}
+                                        total={totalElements}
+                                        pageSize={5}
+                                        onChange={p => setReviewPage(p - 1)}
+                                        showSizeChanger={false}
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+                                No reviews found for this criteria.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

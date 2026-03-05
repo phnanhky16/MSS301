@@ -1,7 +1,7 @@
 import '../styles/globals.css';
 import 'antd/dist/reset.css';
 import { useRouter } from 'next/router';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntApp } from 'antd';
 import Layout from '../components/Layout';
 import AdminLayout from '../components/AdminLayout';
 import { CartProvider } from '../hooks/useCart';
@@ -14,11 +14,13 @@ export default function App({ Component, pageProps }) {
 
   return (
     <ConfigProvider theme={{ token: { primaryColor: '#1ca8c8' } }}>
-      <CartProvider>
-        <Wrapper isLogin={isLogin}>
-          <Component {...pageProps} />
-        </Wrapper>
-      </CartProvider>
+      <AntApp>
+        <CartProvider>
+          <Wrapper isLogin={isLogin}>
+            <Component {...pageProps} />
+          </Wrapper>
+        </CartProvider>
+      </AntApp>
     </ConfigProvider>
   );
 }

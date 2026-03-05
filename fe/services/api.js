@@ -4,15 +4,21 @@ export async function request(path, options = {}) {
   // attach token if available
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
+    ...options.headers,
   };
+
+  // If Content-Type is explicitly set to undefined, delete it (useful for FormData)
+  if (options.headers && Object.prototype.hasOwnProperty.call(options.headers, 'Content-Type') && options.headers['Content-Type'] === undefined) {
+    delete headers['Content-Type'];
+  }
+
   const token = localStorage.getItem('accessToken');
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
   const res = await fetch(`${API_BASE}${path}`, {
-    headers,
     ...options,
+    headers,
   });
   if (!res.ok) {
     const text = await res.text();
@@ -185,4 +191,83 @@ export function fetchProductById(id) {
 
 export function fetchUserById(id) {
   return request(`/users/${id}`);
+}
+
+// --- Image Management ---
+
+export function fetchProductImages(productId) {
+  return request(`/products/${productId}/images`);
+}
+
+/**
+ * Upload an image for a product.
+ * @param {number|string} productId 
+ * @param {FormData} formData - should contain a 'file' field
+ */
+export function uploadProductImage(productId, formData) {
+  return request(`/products/${productId}/images`, {
+    method: 'POST',
+    body: formData,
+    // let fetch set the boundary for multipart/form-data; 
+    // we must not set Content-Type: application/json here.
+    headers: { 'Content-Type': undefined }
+  });
+}
+
+export function deleteProductImage(imageId) {
+  return request(`/products/images/${imageId}`, { method: 'DELETE' });
+}
+
+export function setPrimaryImage(productId, imageId) {
+  return request(`/products/${productId}/images/${imageId}/set-primary`, { method: 'PATCH' });
+}
+
+/**
+ * Replace an existing image with a new file.
+ * @param {number|string} imageId 
+ * @param {FormData} formData 
+ */
+export function updateProductImageFile(imageId, formData) {
+  return request(`/products/images/${imageId}`, {
+    method: 'PUT',
+    body: formData,
+    headers: { 'Content-Type': undefined }
+  });
+}
+
+/**
+ * Upload multiple images at once.
+ * @param {number|string} productId 
+ * @param {FormData} formData - should contain 'files' field (plural)
+ */
+export function uploadMultipleProductImages(productId, formData) {
+  return request(`/products/${productId}/images/batch`, {
+    method: 'POST',
+    body: formData,
+    headers: { 'Content-Type': undefined }
+  });
+}
+
+/**
+ * Reorder images for a product.
+ * @param {number|string} productId 
+ * @param {Array<number>} imageIds - ordered list of image IDs
+ */
+export function reorderProductImages(productId, imageIds) {
+  return request(`/products/${productId}/images/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify(imageIds)
+  });
+}
+
+// --- Review Management ---
+
+export function fetchProductReviews(productId, page = 0, size = 5, rating = null) {
+  const params = new URLSearchParams({ page, size });
+  if (rating !== null) params.append('rating', rating);
+  return request(`/reviews/product/${productId}/paged?${params.toString()}`);
+}
+
+export function fetchProductAverageRating(productId) {
+  return request(`/reviews/product/${productId}/average-rating`);
 }

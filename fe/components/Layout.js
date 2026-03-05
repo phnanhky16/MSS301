@@ -69,11 +69,13 @@ export default function Layout({ children, isLogin = false }) {
               { href: '/contact', label: 'Contact' },
             ].map(item => {
               const isShop = item.href === '/shop';
-              const hrefObj = isShop
-                ? { pathname: '/shop', query: { r: Date.now() } }
-                : item.href;
+              // NOTE: we no longer inject a timestamp into the `href` itself
+              // during render. doing so caused a hydration mismatch between the
+              // server and client (the `href` values differed by a few
+              // milliseconds), which triggered the "Prop `href` did not
+              // match" warning. the timestamp is only applied on-click.
+              const hrefObj = isShop ? '/shop' : item.href;
               return (
-                // intercept click on shop link to always force navigation
                 <Link
                   key={item.href}
                   href={hrefObj}
@@ -81,11 +83,9 @@ export default function Layout({ children, isLogin = false }) {
                   onClick={async e => {
                     if (isShop) {
                       e.preventDefault();
-                      // first navigate to /shop with a timestamp so the
-                      // router always treats it as a new entry
+                      // force a fresh navigation by pushing a timestamp, then
+                      // strip it immediately to avoid polluting history
                       await router.push({ pathname: '/shop', query: { r: Date.now() } });
-                      // then immediately remove the dummy param without
-                      // adding another history entry
                       router.replace('/shop', undefined, { shallow: true });
                     }
                   }}

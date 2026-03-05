@@ -10,45 +10,45 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface ReviewService {
-    
+
     ReviewResponse createReview(CreateReviewRequest request);
-    
+
     ReviewResponse updateReview(Long id, UpdateReviewRequest request);
-    
+
     void deleteReview(Long id);
-    
+
     ReviewResponse getReviewById(Long id);
-    
+
     // Paginated methods
     Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating);
-    
-    Page<ReviewResponse> getReviewsByProductIdPaged(Long productId, Pageable pageable);
-    
+
+    Page<ReviewResponse> getReviewsByProductIdPaged(Long productId, Integer rating, Pageable pageable);
+
     Page<ReviewResponse> getReviewsByUserIdPaged(Long userId, Pageable pageable);
-    
+
     // Deprecated convenience methods retained for backward compatibility
     @Deprecated
     default List<ReviewResponse> getAllReviews() {
-        return listReviews(PageRequest.of(0, Integer.MAX_VALUE), null, null,  null)
+        return listReviews(PageRequest.of(0, Integer.MAX_VALUE), null, null, null)
                 .getContent();
     }
-    
+
     @Deprecated
     default List<ReviewResponse> getReviewsByUserId(Long userId) {
         return getReviewsByUserIdPaged(userId, PageRequest.of(0, Integer.MAX_VALUE))
                 .getContent();
     }
-    
+
     @Deprecated
     default List<ReviewResponse> getReviewsByProductId(Long productId) {
-        return getReviewsByProductIdPaged(productId, PageRequest.of(0, Integer.MAX_VALUE))
+        return getReviewsByProductIdPaged(productId, null, PageRequest.of(0, Integer.MAX_VALUE))
                 .getContent();
     }
-    
+
     Double getAverageRatingByProductId(Long productId);
-    
+
     Long getReviewCountByProductId(Long productId);
-    
+
     /**
      * Get current user ID from JWT token in SecurityContext
      */

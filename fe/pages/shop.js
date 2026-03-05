@@ -2,7 +2,16 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Rate, Empty, Spin } from 'antd';
-import { HeartOutlined, HeartFilled, ShoppingCartOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined, HistoryOutlined } from '@ant-design/icons';
+import {
+    HeartOutlined,
+    HeartFilled,
+    ShoppingCartOutlined,
+    AppstoreOutlined,
+    UnorderedListOutlined,
+    SearchOutlined,
+    HistoryOutlined,
+    CloseOutlined
+} from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
 import { fetchProductsSortedByStock, fetchCategories, fetchBrands, fetchProductSuggestions } from '../services/api';
 
@@ -174,7 +183,7 @@ export default function ShopPage() {
     // default "all products" view.  listening on `asPath` gives us the
     // updated URL whenever the router changes.
     useEffect(() => {
-        if (router.isReady && router.pathname === '/shop' && !router.query.cat) {
+        if (router.isReady && router.asPath === '/shop') {
             // preserve keyword if it's still in the URL; only clear when
             // there are literally no query filters at all (user clicked the
             // Shop link from header)
@@ -288,7 +297,17 @@ export default function ShopPage() {
         if (!kw || !kw.trim()) return;
         setHistory(prev => {
             const filtered = prev.filter(h => h !== kw);
-            const next = [kw, ...filtered].slice(0, 5); // keep at most 5
+            const next = [kw, ...filtered].slice(0, 3); // keep at most 3 as requested
+            try {
+                localStorage.setItem('searchHistory', JSON.stringify(next));
+            } catch (_e) { }
+            return next;
+        });
+    };
+
+    const removeFromHistory = kw => {
+        setHistory(prev => {
+            const next = prev.filter(h => h !== kw);
             try {
                 localStorage.setItem('searchHistory', JSON.stringify(next));
             } catch (_e) { }
@@ -427,27 +446,38 @@ export default function ShopPage() {
                         {!searchVal && history.length > 0 && searchFocused && (
                             <ul className="autocomplete-dropdown history">
                                 {history.map((h, idx) => (
-                                    <li key={idx} className="autocomplete-item history" onMouseDown={() => {
-
-                                        setSearchVal(h);
-                                        setShowSuggestions(false);
-                                        setSuggestions([]);
-                                        ignoreNextFetch.current = true;
-                                        setPage(0);
-                                        addToHistory(h);
-                                        router.push(
-                                            {
-                                                pathname: '/shop',
-                                                query: { ...router.query, keyword: h, r: Date.now() }
-                                            },
-                                            undefined,
-                                            { shallow: true }
-                                        );
-                                        // keep focus so dropdown won't immediately hide
-                                        setSearchFocused(true);
-                                    }}>
-                                        <HistoryOutlined style={{ marginRight: 6, fontSize: 12 }} />
-                                        {h}
+                                    <li key={idx} className="autocomplete-item history">
+                                        <span
+                                            className="history-keyword"
+                                            onMouseDown={() => {
+                                                setSearchVal(h);
+                                                setShowSuggestions(false);
+                                                setSuggestions([]);
+                                                ignoreNextFetch.current = true;
+                                                setPage(0);
+                                                addToHistory(h);
+                                                router.push(
+                                                    {
+                                                        pathname: '/shop',
+                                                        query: { ...router.query, keyword: h, r: Date.now() }
+                                                    },
+                                                    undefined,
+                                                    { shallow: true }
+                                                );
+                                                // keep focus so dropdown won't immediately hide
+                                                setSearchFocused(true);
+                                            }}
+                                        >
+                                            <HistoryOutlined style={{ marginRight: 6, fontSize: 12 }} />
+                                            {h}
+                                        </span>
+                                        <CloseOutlined
+                                            className="history-remove"
+                                            onMouseDown={e => {
+                                                e.stopPropagation();
+                                                removeFromHistory(h);
+                                            }}
+                                        />
                                     </li>
                                 ))}
                             </ul>

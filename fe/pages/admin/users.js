@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Table, Typography, message, Button, Input, Select } from 'antd';
+import { Table, Typography, message, Button, Input, Select, App as AntApp } from 'antd';
 import { fetchUsers, deleteUser } from '../../services/api';
 
 const { Title } = Typography;
 
 export default function UsersPage() {
+  const { message } = AntApp.useApp();
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);

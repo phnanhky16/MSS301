@@ -200,8 +200,9 @@ spring:
         - id: review-service
           uri: lb://review-service
           predicates:
-            - Path=/review-service/**
+            - Path=/api/reviews/**, /review-service/**
           filters:
+            - RewritePath=/api/reviews/(?<segment>.*), /reviews/${segment}
             - RewritePath=/review-service/(?<segment>.*), /${segment}
 
         # Review Service Swagger API Docs

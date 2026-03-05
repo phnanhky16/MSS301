@@ -29,6 +29,7 @@ services:
     ports:
       - "8081:8081"
     environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/userdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: redis
@@ -422,37 +423,36 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - microservices-network
+      # # --- Frontend ---
+      # fe:
+      #   build:
+      #     context: ../fe
+      #     dockerfile: Dockerfile
+      #   container_name: fe
+      #   ports:
+      #     - "3000:3000"
+      #   environment:
+      #     # the front end talks through the gateway; this variable can be
+      #     # overridden if the gateway lives on a different host/port.
+      #     NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
+      #   depends_on:
+      #     api-gateway:
+      #       condition: service_started
+      #   networks:
+      #     - microservices-network
+      #   restart: on-failure
 
-  # # --- Frontend ---
-  # fe:
-  #   build:
-  #     context: ../fe
-  #     dockerfile: Dockerfile
-  #   container_name: fe
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     # the front end talks through the gateway; this variable can be
-  #     # overridden if the gateway lives on a different host/port.
-  #     NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
-  #   depends_on:
-  #     api-gateway:
-  #       condition: service_started
-  #   networks:
-  #     - microservices-network
-  #   restart: on-failure
-
-  # --- Ensure Maven base image is available ---
-  # This dummy service doesn't run anything, it just pulls whatever
-  # Maven image our Dockerfiles reference when you `docker compose up` or
-  # `docker compose pull`.  Having the image cached locally avoids the
-  # frequent TLS handshake/timeout errors that were occurring during
-  # the build phase.
-  #
-  # Historically the codebase used 3.9.0 in one Dockerfile while the
-  # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
-        # log file path removed
-        # LOGGING_FILE_NAME: /logs/review-service.log
+      # --- Ensure Maven base image is available ---
+      # This dummy service doesn't run anything, it just pulls whatever
+      # Maven image our Dockerfiles reference when you `docker compose up` or
+      # `docker compose pull`.  Having the image cached locally avoids the
+      # frequent TLS handshake/timeout errors that were occurring during
+      # the build phase.
+      #
+      # Historically the codebase used 3.9.0 in one Dockerfile while the
+      # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
+      # log file path removed
+      # LOGGING_FILE_NAME: /logs/review-service.log
   maven-base:
     image: maven:3.9.6-eclipse-temurin-17
     entrypoint: [ "true" ] # immediately exit successfully
@@ -466,9 +466,10 @@ services:
     environment:
       - discovery.type=single-node
       # enable built-in security so that we can use Fleet/APM later
-      - xpack.security.enabled=true
-      # allow generation of enrollment tokens (used by Kibana setup)
-      - xpack.security.enrollment.enabled=true
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - xpack.security.enrollment.enabled=false
       # for local development we can set a fixed password on start; this is
       # equivalent to running the initial wizard that prints the password.
       - ELASTIC_PASSWORD=changeme
@@ -487,7 +488,7 @@ services:
       retries: 5
   # kibana and filebeat services removed at user request
 
-# --- Volumes Definition ---
+  # --- Volumes Definition ---
 volumes:
   postgres-user-data:
   postgres-order-data:

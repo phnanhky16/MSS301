@@ -232,6 +232,25 @@ a {
   vertical-align: middle;
 }
 
+/* add "x" button for clearing an individual history entry */
+.autocomplete-dropdown.history .autocomplete-item.history {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.autocomplete-dropdown.history .autocomplete-item.history .history-keyword {
+  flex: 1;
+}
+.autocomplete-dropdown.history .autocomplete-item.history .history-remove {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+}
+.autocomplete-dropdown.history .autocomplete-item.history .history-remove:hover {
+  color: #333;
+}
+
 .user-dropdown {
   position: absolute;
   top: calc(100% + 8px);

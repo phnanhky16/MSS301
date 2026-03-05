@@ -56,12 +56,12 @@ export default function AdminLayout({ children }) {
   const selected = router.pathname.startsWith('/admin/coupons')
     ? 'coupons'
     : router.pathname.startsWith('/admin/orders')
-    ? 'orders'
-    : router.pathname.startsWith('/admin/products')
-    ? 'products'
-    : router.pathname.startsWith('/admin/users')
-    ? 'users'
-    : 'dashboard';
+      ? 'orders'
+      : router.pathname.startsWith('/admin/products')
+        ? 'products'
+        : router.pathname.startsWith('/admin/users')
+          ? 'users'
+          : 'dashboard';
 
   return (
     <>
@@ -70,60 +70,75 @@ export default function AdminLayout({ children }) {
         <link rel="icon" href="/images.jpg" />
       </Head>
       <AntLayout style={{ minHeight: '100vh' }}>
-      <Sider collapsible>
-        <div className="logo" style={{ height: 48, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* use public/images.jpg as application icon; make it larger */}
-          <img src="/images.jpg" alt="logo" style={{ height: 48, objectFit: 'contain' }} />
-        </div>
-        <Menu theme="dark" defaultSelectedKeys={[selected]} mode="inline">
-          <Menu.Item key="dashboard" icon={<HomeOutlined />}>
-            <Link href="/admin">Dashboard</Link>
-          </Menu.Item>
-          <Menu.Item key="orders" icon={<ShoppingCartOutlined />}>
-            <Link href="/admin/orders">Orders</Link>
-          </Menu.Item>
-          <Menu.Item key="products" icon={<ShoppingCartOutlined />}> 
-            <Link href="/admin/products">Products</Link>
-          </Menu.Item>
-          <Menu.Item key="coupons" icon={<TagOutlinedDyn />}> 
-            <Link href="/admin/coupons">Coupons</Link>
-          </Menu.Item>
-          <Menu.Item key="users" icon={<UserOutlined />}>
-            <Link href="/admin/users">Users</Link>
-          </Menu.Item>
-        </Menu>
-      </Sider>
-      <AntLayout>
-        <Header style={{ background: '#fff', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
-            <img src="/images.jpg" alt="logo" style={{ height: 32, marginRight: 8, objectFit: 'contain' }} />
-            <span>Admin Panel</span>
+        <Sider collapsible>
+          <div className="logo" style={{ height: 48, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* use public/images.jpg as application icon; make it larger */}
+            <img src="/images.jpg" alt="logo" style={{ height: 48, objectFit: 'contain' }} />
           </div>
-          {loggedIn ? (
-            <div style={{ display: 'flex', alignItems: 'center', marginRight: 16 }}>
-              <span style={{ marginRight: 12 }}>
-                {profile?.fullName || profile?.name || ''}
-              </span>
-              <Button
-                type="link"
-                onClick={async () => {
-                  await logout();
-                  router.push('/login');
-                }}
-              >
-                Logout
-              </Button>
+          <Menu
+            theme="dark"
+            defaultSelectedKeys={[selected]}
+            mode="inline"
+            items={[
+              {
+                key: 'dashboard',
+                icon: <HomeOutlined />,
+                label: <Link href="/admin">Dashboard</Link>,
+              },
+              {
+                key: 'orders',
+                icon: <ShoppingCartOutlined />,
+                label: <Link href="/admin/orders">Orders</Link>,
+              },
+              {
+                key: 'products',
+                icon: <ShoppingCartOutlined />,
+                label: <Link href="/admin/products">Products</Link>,
+              },
+              {
+                key: 'coupons',
+                icon: <TagOutlinedDyn />,
+                label: <Link href="/admin/coupons">Coupons</Link>,
+              },
+              {
+                key: 'users',
+                icon: <UserOutlined />,
+                label: <Link href="/admin/users">Users</Link>,
+              },
+            ]}
+          />
+        </Sider>
+        <AntLayout>
+          <Header style={{ background: '#fff', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
+              <img src="/images.jpg" alt="logo" style={{ height: 32, marginRight: 8, objectFit: 'contain' }} />
+              <span>Admin Panel</span>
             </div>
-          ) : (
-            <Button type="link" onClick={() => router.push('/login')} style={{ marginRight: 16 }}>
-              Login
-            </Button>
-          )}
-        </Header>
-        <Content style={{ margin: '16px' }}>{children}</Content>
-        <Footer style={{ textAlign: 'center' }}>KidFavor Admin ©2026</Footer>
+            {loggedIn ? (
+              <div style={{ display: 'flex', alignItems: 'center', marginRight: 16 }}>
+                <span style={{ marginRight: 12 }}>
+                  {profile?.fullName || profile?.name || ''}
+                </span>
+                <Button
+                  type="link"
+                  onClick={async () => {
+                    await logout();
+                    router.push('/login');
+                  }}
+                >
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button type="link" onClick={() => router.push('/login')} style={{ marginRight: 16 }}>
+                Login
+              </Button>
+            )}
+          </Header>
+          <Content style={{ margin: '16px' }}>{children}</Content>
+          <Footer style={{ textAlign: 'center' }}>KidFavor Admin ©2026</Footer>
+        </AntLayout>
       </AntLayout>
-    </AntLayout>
     </>
   );
 }
