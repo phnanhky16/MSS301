@@ -39,6 +39,7 @@ spring:
         health-check-interval: 10s
         health-check-path: /actuator/health
         health-check-timeout: 10s
+        deregister-critical-service-after: 30s
 
 # Management/Actuator
 management:

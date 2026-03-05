@@ -118,7 +118,7 @@ services:
       minio:
         condition: service_started
       elasticsearch:
-        condition: service_started
+        condition: service_healthy    # wait for ES before booting
     networks:
       - microservices-network
     restart: on-failure
@@ -146,6 +146,30 @@ services:
     networks:
       - microservices-network
     restart: on-failure
+
+  # --- Address Service ---
+  address-service:
+    build:
+      context: ../address-service
+      dockerfile: Dockerfile
+    container_name: address-service
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-address:5432/addressdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+    depends_on:
+      postgres-address:
+        condition: service_started
+      consul:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
   # --- Inventory Service ---
   inventory-service:
     build:
@@ -333,6 +357,20 @@ services:
     networks:
       - microservices-network
 
+  postgres-address:
+    image: postgres:16-alpine
+    container_name: postgres-address
+    environment:
+      POSTGRES_DB: addressdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres-address-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
   # --- Caching ---
   redis:
     image: redis:7-alpine
@@ -497,6 +535,7 @@ volumes:
   postgres-cart-data:
   postgres-review-data:
   postgres-keycloak-data:
+  postgres-address-data:
   minio-data:
   elasticsearch-data:
 

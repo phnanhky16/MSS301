@@ -51,6 +51,7 @@ spring:
         health-check-interval: 10s
         instance-id: ${spring.application.name}:${server.port}
         prefer-ip-address: true
+        deregister-critical-service-after: 30s
 
   # --- CORS configuration (permissive, disables browser restrictions) ------
   mvc:

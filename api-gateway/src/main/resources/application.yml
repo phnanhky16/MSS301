@@ -14,6 +14,7 @@ spring:
         health-check-path: /actuator/health
         health-check-interval: 10s
         instance-id: ${spring.application.name}:${server.port}
+        deregister-critical-service-after: 30s
     gateway:
       discovery:
         locator:
@@ -221,6 +222,30 @@ spring:
           filters:
             - RewritePath=/review-service/(?<segment>.*), /${segment}
 
+        # Address Service Routes (public — no auth required)
+        - id: address-service
+          uri: lb://address-service
+          predicates:
+            - Path=/api/administrative-units/**
+          filters:
+            - StripPrefix=1
+
+        # Address Service Swagger API Docs
+        - id: address-service-api-docs
+          uri: lb://address-service
+          predicates:
+            - Path=/address-service/v3/api-docs, /address-service/v3/api-docs/**
+          filters:
+            - RewritePath=/address-service/(?<segment>.*), /${segment}
+
+        # Address Service Swagger UI resources
+        - id: address-service-swagger-ui
+          uri: lb://address-service
+          predicates:
+            - Path=/address-service/swagger-ui/**, /address-service/swagger-ui.html
+          filters:
+            - RewritePath=/address-service/(?<segment>.*), /${segment}
+
   security:
     oauth2:
       resourceserver:
@@ -251,6 +276,8 @@ springdoc:
         url: /review-service/v3/api-docs
       - name: User Service
         url: /user-service/v3/api-docs
+      - name: Address Service
+        url: /address-service/v3/api-docs
     urls-primary-name: User Service
 
 management:

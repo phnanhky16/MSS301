@@ -41,6 +41,7 @@ spring:
         health-check-path: /actuator/health
         health-check-interval: 10s
         instance-id: ${spring.application.name}:${random.value}
+        deregister-critical-service-after: 30s
 
 server:
   port: ${SERVER_PORT:8085}

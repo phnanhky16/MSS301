@@ -1,10 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { Table, Button, InputNumber, Empty } from 'antd';
 import { DeleteOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
 
 export default function CartPage() {
+    const router = useRouter();
     const { cart, addToCart, clearCart, getCartCount } = useCart();
 
     // Handle quantity change (this is a bit simplified since useCart only has addToCart)
@@ -88,7 +90,12 @@ export default function CartPage() {
                             <div style={{ fontSize: '24px', fontWeight: 800, color: '#1ca8c8', marginBottom: '24px' }}>
                                 Total: ${total.toFixed(2)}
                             </div>
-                            <Button type="primary" size="large" style={{ background: '#1ca8c8', borderColor: '#1ca8c8', padding: '0 40px' }}>
+                            <Button
+                                type="primary"
+                                size="large"
+                                style={{ background: '#1ca8c8', borderColor: '#1ca8c8', padding: '0 40px' }}
+                                onClick={() => router.push('/checkout')}
+                            >
                                 Checkout
                             </Button>
                         </div>

@@ -69,6 +69,7 @@ spring:
         health-check-interval: 10s
         health-check-path: /actuator/health
         health-check-timeout: 3s
+        deregister-critical-service-after: 30s
 
   # OAuth2 Configuration for Google Login
   security:

@@ -271,3 +271,28 @@ export function fetchProductReviews(productId, page = 0, size = 5, rating = null
 export function fetchProductAverageRating(productId) {
   return request(`/reviews/product/${productId}/average-rating`);
 }
+
+// --- Address / Administrative Units (routed via API Gateway) ---
+// Calls go through /api/administrative-units/* → gateway → address-service
+// This avoids direct cross-origin calls to port 8088.
+
+const ADDRESS_BASE = `${API_BASE}/administrative-units`;
+
+export async function fetchProvinces() {
+  const res = await fetch(`${ADDRESS_BASE}/provinces`);
+  if (!res.ok) throw new Error('Failed to fetch provinces');
+  return res.json();
+}
+
+export async function fetchDistricts(provinceId) {
+  const res = await fetch(`${ADDRESS_BASE}/${provinceId}/districts`);
+  if (!res.ok) throw new Error('Failed to fetch districts');
+  return res.json();
+}
+
+export async function fetchWards(districtId) {
+  const res = await fetch(`${ADDRESS_BASE}/${districtId}/wards`);
+  if (!res.ok) throw new Error('Failed to fetch wards');
+  return res.json();
+}
+
