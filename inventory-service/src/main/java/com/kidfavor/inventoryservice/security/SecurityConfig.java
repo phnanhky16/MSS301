@@ -48,6 +48,9 @@ public class SecurityConfig {
                         // Actuator - public
                         .requestMatchers("/actuator/**").permitAll()
                         
+                        // Internal service-to-service endpoints - no auth required
+                        .requestMatchers("/internal/**").permitAll()
+                        
                         // OPTIONS - permit all for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
@@ -56,10 +59,20 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/warehouses/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/inventory/**").permitAll()
                         
+                        // Geocoding and Location endpoints - public for testing/frontend
+                        .requestMatchers("/geocoding/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/location/**").permitAll()
+                        
+                        // Location-based inventory - public for order placement
+                        .requestMatchers("/location-inventory/**").permitAll()
+                        
                         // POST, PUT, DELETE - require authentication
                         .requestMatchers(HttpMethod.POST, "/api/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/**").authenticated()
+                        
+                        // Location update endpoints - require authentication
+                        .requestMatchers(HttpMethod.POST, "/location/**").authenticated()
                         
                         // Any other request - require authentication
                         .anyRequest().authenticated()

@@ -132,3 +132,19 @@ app:
       stock-low-alert: stock-low-alert
       order-created: order-created
       order-placed: order-placed-topic
+  
+  # Geocoding Configuration for OpenStreetMap
+  geocoding:
+    user-agent: KidFavor-Inventory/1.0
+    email: contact@kidfavor.com
+    rate-limit-ms: 1000  # OSM requires max 1 req/sec
+    timeout-ms: 5000
+    
+  # Store location configuration
+  location:
+    # Default Vietnam bounding box for validation
+    vietnam:
+      min-latitude: 8.0
+      max-latitude: 24.0
+      min-longitude: 102.0
+      max-longitude: 110.0

@@ -1,77 +1,45 @@
 package com.kidfavor.addressservice.service;
 
 import com.kidfavor.addressservice.dto.UnitDto;
-import com.kidfavor.addressservice.exception.ResourceNotFoundException;
-import com.kidfavor.addressservice.repository.AdministrativeUnitRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class AdministrativeUnitService {
+/**
+ * Service interface for managing Vietnamese Administrative Units
+ * (Provinces, Districts, Wards)
+ */
+public interface AdministrativeUnitService {
 
-    private final AdministrativeUnitRepository repository;
-
-    /** Returns all 63 Vietnamese provinces/cities (level = 1). */
-    public List<UnitDto> getProvinces() {
-        return repository.findByLevelOrderByNameAsc(1)
-                .stream()
-                .map(UnitDto::from)
-                .toList();
-    }
+    /**
+     * Returns all 63 Vietnamese provinces/cities (level = 1).
+     *
+     * @return list of province DTOs
+     */
+    List<UnitDto> getProvinces();
 
     /**
      * Returns the districts (level = 2) that belong to a given province.
      *
      * @param provinceId id of the parent province
+     * @return list of district DTOs
      */
-    public List<UnitDto> getDistricts(Long provinceId) {
-        // Validate province exists
-        repository.findById(provinceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Province not found with id: " + provinceId));
-
-        return repository.findByParentIdAndLevelOrderByNameAsc(provinceId, 2)
-                .stream()
-                .map(UnitDto::from)
-                .toList();
-    }
+    List<UnitDto> getDistricts(Long provinceId);
 
     /**
      * Returns the wards (level = 3) that belong to a given district.
      *
      * @param districtId id of the parent district
+     * @return list of ward DTOs
      */
-    public List<UnitDto> getWards(Long districtId) {
-        // Validate district exists
-        repository.findById(districtId)
-                .orElseThrow(() -> new ResourceNotFoundException("District not found with id: " + districtId));
-
-        return repository.findByParentIdAndLevelOrderByNameAsc(districtId, 3)
-                .stream()
-                .map(UnitDto::from)
-                .toList();
-    }
+    List<UnitDto> getWards(Long districtId);
 
     /**
      * Generic / dynamic endpoint:
      * - parentId null  → provinces
      * - parentId set   → children of that parent
+     *
+     * @param parentId id of the parent unit (null for provinces)
+     * @return list of child unit DTOs
      */
-    public List<UnitDto> getChildren(Long parentId) {
-        if (parentId == null) {
-            return getProvinces();
-        }
-
-        return repository.findById(parentId).map(parent -> {
-            int childLevel = parent.getLevel() + 1;
-            return repository.findByParentIdAndLevelOrderByNameAsc(parentId, childLevel)
-                    .stream()
-                    .map(UnitDto::from)
-                    .toList();
-        }).orElseThrow(() -> new ResourceNotFoundException("Administrative unit not found with id: " + parentId));
-    }
+    List<UnitDto> getChildren(Long parentId);
 }

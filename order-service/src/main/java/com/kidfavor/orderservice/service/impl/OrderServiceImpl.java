@@ -17,6 +17,8 @@ import com.kidfavor.orderservice.event.OrderCreatedDomainEvent;
 import com.kidfavor.orderservice.exception.*;
 import com.kidfavor.orderservice.repository.OrderRepository;
 import com.kidfavor.orderservice.service.OrderService;
+import com.kidfavor.orderservice.service.LocationBasedOrderService;
+import com.kidfavor.orderservice.dto.response.LocationBasedOrderResult;
 import lombok.RequiredArgsConstructor;
 import com.kidfavor.orderservice.service.CouponService;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserServiceClient userServiceClient;
     private final ApplicationEventPublisher eventPublisher;
     private final CouponService couponService;
+    private final LocationBasedOrderService locationBasedOrderService;
 
     @Override
     @Transactional
@@ -64,7 +67,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = Order.builder()
                 .orderNumber(generateOrderNumber())
                 .userId(request.getUserId())
-                .storeId(request.getStoreId())
+                // storeId will be set by LocationBasedOrderService
                 .status(OrderStatus.PENDING)
                 .shippingAddress(request.getShippingAddress())
                 .phoneNumber(request.getPhoneNumber())
@@ -113,6 +116,26 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("Order created successfully. Order ID: {}, Order Number: {}",
                 savedOrder.getId(), savedOrder.getOrderNumber());
+
+        // Step 5.5: Process location-based order (geocoding + inventory allocation)
+        if (savedOrder.getShippingAddress() != null && !savedOrder.getShippingAddress().isBlank()) {
+            try {
+                log.info("🌍 Processing location-based order for: {}", savedOrder.getOrderNumber());
+                LocationBasedOrderResult locationResult = locationBasedOrderService.processOrder(savedOrder);
+                
+                // Save updated order with GPS coordinates and storeId
+                savedOrder = orderRepository.save(savedOrder);
+                
+                log.info("✅ Location processing completed. StoreId: {}, GPS: ({}, {}), Shipment: {}", 
+                    savedOrder.getStoreId(), 
+                    savedOrder.getShippingLatitude(), 
+                    savedOrder.getShippingLongitude(),
+                    savedOrder.getShipmentId());
+            } catch (Exception e) {
+                log.error("❌ Location processing failed for order {}: {}", savedOrder.getOrderNumber(), e.getMessage(), e);
+                // Continue - order is already saved, location data is optional
+            }
+        }
 
         // Step 6: Publish domain event (will be sent to Kafka AFTER_COMMIT)
         String customerEmail = user.getEmail();
@@ -415,6 +438,9 @@ public class OrderServiceImpl implements OrderService {
                 .status(order.getStatus())
                 .totalAmount(order.getTotalAmount())
                 .shippingAddress(order.getShippingAddress())
+                .shippingLatitude(order.getShippingLatitude())
+                .shippingLongitude(order.getShippingLongitude())
+                .shipmentId(order.getShipmentId())
                 .phoneNumber(order.getPhoneNumber())
                 .notes(order.getNotes())
                 .items(itemResponses)

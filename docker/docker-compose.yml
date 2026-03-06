@@ -37,6 +37,10 @@ services:
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # JWT Configuration (must match order-service)
+      JWT_SECRET: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+      JWT_ACCESS_TOKEN_EXPIRATION: 3600000    # 1 hour
+      JWT_REFRESH_TOKEN_EXPIRATION: 604800000 # 7 days
       # Google OAuth2 Configuration
       GOOGLE_CLIENT_ID: 1085016969658-o80o0smreofoe1f0q598t88un2mkckru.apps.googleusercontent.com
       GOOGLE_CLIENT_SECRET: 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
@@ -70,6 +74,9 @@ services:
       SPRING_CLOUD_CONSUL_PORT: 8500
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PRODUCT_SERVICE_URL: http://product-service:8083
+      # JWT Configuration
+      JWT_SECRET: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+      JWT_EXPIRATION: 86400000  # 24 hours
     depends_on:
       # wait until the database container reports healthy before starting the
       # Spring Boot process. the "run all services" button in VS Code invokes

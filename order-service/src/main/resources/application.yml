@@ -105,11 +105,19 @@ feign:
 
 # Application Custom Configuration
 app:
+  # Kafka Configuration
   kafka:
     topics:
       order-placed: order-placed-topic
+  
+  # Service URLs
   product-service:
     url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+
+# JWT Configuration (shared with user-service)
+jwt:
+  secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==}
+  expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
 
 # Logging Configuration
 logging:
