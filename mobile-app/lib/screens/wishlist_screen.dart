@@ -390,30 +390,30 @@ class _WishlistScreenState extends State<WishlistScreen> {
                             product.imageUrl!,
                             width: double.infinity,
                             height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: bgColor,
-                          child: const Center(
-                            child: Icon(
-                              Icons.toys,
-                              size: 50,
-                              color: Color(0xFFBDBDBD),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: bgColor,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.toys,
+                                    size: 50,
+                                    color: Color(0xFFBDBDBD),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: bgColor,
+                            child: const Center(
+                              child: Icon(
+                                Icons.toys,
+                                size: 50,
+                                color: Color(0xFFBDBDBD),
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    )
-                      : Container(
-                          color: bgColor,
-                          child: const Center(
-                            child: Icon(
-                              Icons.toys,
-                              size: 50,
-                              color: Color(0xFFBDBDBD),
-                            ),
-                          ),
-                        ),
                   ),
 
                   // Favorite Button

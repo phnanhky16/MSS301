@@ -162,7 +162,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               Row(
                 children: [
                   Consumer<WishlistService>(
-                    builder: (context, wishlistService, _) => _buildCircleButton(
+                    builder: (context, wishlistService, _) =>
+                        _buildCircleButton(
                       icon: wishlistService.isWishlisted(_displayProduct.id)
                           ? Icons.favorite
                           : Icons.favorite_border,

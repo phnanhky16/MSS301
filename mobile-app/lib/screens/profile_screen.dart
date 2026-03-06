@@ -18,32 +18,32 @@ class ProfileScreen extends StatelessWidget {
             children: [
               // Header with gradient background
               _buildHeader(user?.fullName ?? 'Alex Johnson'),
-              
+
               // Main content
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
                     const SizedBox(height: 16),
-                    
+
                     // Grid of 4 cards
                     _buildGridCards(),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Need Help card
                     _buildNeedHelpCard(),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Settings list
                     _buildSettingsList(),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Log Out button
                     _buildLogOutButton(context, authService),
-                    
+
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -96,7 +96,8 @@ class ProfileScreen extends StatelessWidget {
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[300],
-                        child: const Icon(Icons.person, size: 50, color: Colors.white),
+                        child: const Icon(Icons.person,
+                            size: 50, color: Colors.white),
                       );
                     },
                   ),
@@ -128,9 +129,9 @@ class ProfileScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Name
           Text(
             userName,
@@ -140,9 +141,9 @@ class ProfileScreen extends StatelessWidget {
               color: Color(0xFF1E293B),
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Progress bar
           Container(
             width: 128,
@@ -164,15 +165,19 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Platinum Member Badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFCD34D), Color(0xFFFB923C), Color(0xFFFCD34D)],
+                colors: [
+                  Color(0xFFFCD34D),
+                  Color(0xFFFB923C),
+                  Color(0xFFFCD34D)
+                ],
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
@@ -200,9 +205,9 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Stats row
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -552,7 +557,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
+  Widget _buildNavItem(
+      IconData icon, String label, bool isActive, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(

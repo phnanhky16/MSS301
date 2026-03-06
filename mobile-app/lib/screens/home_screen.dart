@@ -8,6 +8,7 @@ import '../models/product.dart';
 import '../models/category.dart';
 import '../models/brand.dart';
 import 'product_detail_screen.dart';
+import 'product_list_screen.dart';
 import 'category_screen.dart';
 import 'profile_screen.dart';
 import 'wishlist_screen.dart';
@@ -664,13 +665,14 @@ class _HomeScreenState extends State<HomeScreen>
                                         width: 44,
                                         height: 44,
                                         alignment: Alignment.center,
+                                        clipBehavior: Clip.antiAlias,
                                         decoration: BoxDecoration(
                                           color: Colors.white,
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.06),
+                                              color: Colors.black
+                                                  .withOpacity(0.06),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),
                                             ),
@@ -688,11 +690,13 @@ class _HomeScreenState extends State<HomeScreen>
                                                     offset: Offset(
                                                       shake < 0.5
                                                           ? (shake * 20 - 5)
-                                                          : ((1 - shake) * 20 - 5),
+                                                          : ((1 - shake) * 20 -
+                                                              5),
                                                       0,
                                                     ),
                                                     child: Icon(
-                                                      Icons.shopping_bag_outlined,
+                                                      Icons
+                                                          .shopping_bag_outlined,
                                                       size: 22,
                                                       color: Colors.grey[700],
                                                     ),
@@ -707,7 +711,8 @@ class _HomeScreenState extends State<HomeScreen>
                                                 child: Container(
                                                   padding:
                                                       const EdgeInsets.all(4),
-                                                  decoration: const BoxDecoration(
+                                                  decoration:
+                                                      const BoxDecoration(
                                                     color: Color(0xFFFF5252),
                                                     shape: BoxShape.circle,
                                                   ),
@@ -721,7 +726,8 @@ class _HomeScreenState extends State<HomeScreen>
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 9,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                     textAlign: TextAlign.center,
                                                   ),
@@ -926,7 +932,12 @@ class _HomeScreenState extends State<HomeScreen>
                               ],
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ProductListScreen(),
+                                ),
+                              ),
                               style: TextButton.styleFrom(
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 8),
