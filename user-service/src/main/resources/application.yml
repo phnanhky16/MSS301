@@ -119,6 +119,11 @@ management:
     caches:
       enabled: true
 
+# External service URLs
+services:
+  product-service:
+    url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+
 # Swagger/OpenAPI Configuration
 springdoc:
   api-docs:

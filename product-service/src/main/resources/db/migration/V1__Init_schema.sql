@@ -110,44 +110,44 @@ INSERT INTO categories (name, description, parent_id, status, created_at, update
 -- Insert Products
 -- Educational Toys
 INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
-('Laugh & Learn Smart Stages Puppy', 'Interactive learning toy that teaches first words, letters, and numbers', 29.99, 6, 1, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('VTech Touch and Learn Activity Desk', 'Interactive desk with activities for letters, numbers, and music', 89.99, 6, 8, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Melissa & Doug Wooden Building Blocks', 'Classic wooden blocks set with 100 pieces', 34.99, 6, 7, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Laugh & Learn Smart Stages Puppy', 'Interactive learning toy that teaches first words, letters, and numbers', 750000, 6, 1, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('VTech Touch and Learn Activity Desk', 'Interactive desk with activities for letters, numbers, and music', 2250000, 6, 8, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Melissa & Doug Wooden Building Blocks', 'Classic wooden blocks set with 100 pieces', 875000, 6, 7, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Building Blocks
 INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
-('LEGO Classic Large Creative Brick Box', '790 pieces of colorful LEGO bricks for creative building', 59.99, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('LEGO DUPLO My First Number Train', 'Learning toy for toddlers to learn numbers', 24.99, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('LEGO City Fire Station', 'Complete fire station set with vehicles and figures', 89.99, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('LEGO Classic Large Creative Brick Box', '790 pieces of colorful LEGO bricks for creative building', 1500000, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('LEGO DUPLO My First Number Train', 'Learning toy for toddlers to learn numbers', 625000, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('LEGO City Fire Station', 'Complete fire station set with vehicles and figures', 2250000, 7, 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Stuffed Animals
 INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
-('Fisher-Price Soothe & Glow Seahorse', 'Soft plush seahorse with soothing music and lights', 19.99, 8, 1, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Melissa & Doug Giant Teddy Bear', 'Large stuffed teddy bear, perfect for hugs', 44.99, 8, 7, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Fisher-Price Soothe & Glow Seahorse', 'Soft plush seahorse with soothing music and lights', 500000, 8, 1, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Melissa & Doug Giant Teddy Bear', 'Large stuffed teddy bear, perfect for hugs', 1125000, 8, 7, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Diapers
 INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
-('Pampers Swaddlers Newborn Diapers Size 1', 'Soft and absorbent diapers for newborns, 198 count', 49.99, 9, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Pampers Baby Dry Size 3', 'Overnight protection diapers, 162 count', 44.99, 9, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Huggies Little Snugglers Size 2', 'Gentle care diapers for sensitive skin, 180 count', 47.99, 9, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Huggies Pull-Ups Training Pants', 'Training pants for potty training, 84 count', 34.99, 9, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Pampers Swaddlers Newborn Diapers Size 1', 'Soft and absorbent diapers for newborns, 198 count', 1250000, 9, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Pampers Baby Dry Size 3', 'Overnight protection diapers, 162 count', 1125000, 9, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Huggies Little Snugglers Size 2', 'Gentle care diapers for sensitive skin, 180 count', 1200000, 9, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Huggies Pull-Ups Training Pants', 'Training pants for potty training, 84 count', 875000, 9, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Baby Wipes
 INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
-('Pampers Sensitive Water Baby Wipes', 'Gentle and hypoallergenic wipes, 9 packs (576 total)', 24.99, 10, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Huggies Natural Care Baby Wipes', 'Thick and gentle wipes, 8 packs (560 total)', 22.99, 10, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Pampers Sensitive Water Baby Wipes', 'Gentle and hypoallergenic wipes, 9 packs (576 total)', 625000, 10, 3, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Huggies Natural Care Baby Wipes', 'Thick and gentle wipes, 8 packs (560 total)', 575000, 10, 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Baby Bottles
 INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
-('Chicco Natural Feeling Bottle Set', 'Anti-colic bottles with natural nipple, 4-pack', 29.99, 11, 6, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Chicco Well-Being Silicone Bottle', 'Silicone feeding bottle with physiological nipple', 19.99, 11, 6, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Chicco Natural Feeling Bottle Set', 'Anti-colic bottles with natural nipple, 4-pack', 750000, 11, 6, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Chicco Well-Being Silicone Bottle', 'Silicone feeding bottle with physiological nipple', 500000, 11, 6, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Baby Formula & Food
 INSERT INTO products (name, description, price, category_id, brand_id, status, created_at, updated_at) VALUES
-('Gerber Good Start Gentle Infant Formula', 'Easy-to-digest infant formula, 12.7 oz', 32.99, 12, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Gerber 1st Foods Banana Baby Food', 'Single ingredient banana puree, 6 jars', 6.99, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Gerber 2nd Foods Variety Pack', 'Mixed vegetables and fruits, 12 jars', 14.99, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Gerber Puffs Cereal Snack', 'Melt-in-mouth snacks for babies, 4 pack', 12.99, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Gerber Good Start Gentle Infant Formula', 'Easy-to-digest infant formula, 12.7 oz', 825000, 12, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Gerber 1st Foods Banana Baby Food', 'Single ingredient banana puree, 6 jars', 175000, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Gerber 2nd Foods Variety Pack', 'Mixed vegetables and fruits, 12 jars', 375000, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Gerber Puffs Cereal Snack', 'Melt-in-mouth snacks for babies, 4 pack', 325000, 13, 5, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Insert Product Images
 -- Product 1: Laugh & Learn Smart Stages Puppy (3 images)

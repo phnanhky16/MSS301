@@ -41,6 +41,7 @@ services:
       JWT_SECRET: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
       JWT_ACCESS_TOKEN_EXPIRATION: 3600000    # 1 hour
       JWT_REFRESH_TOKEN_EXPIRATION: 604800000 # 7 days
+      PRODUCT_SERVICE_URL: http://product-service:8083
       # Google OAuth2 Configuration
       GOOGLE_CLIENT_ID: 1085016969658-o80o0smreofoe1f0q598t88un2mkckru.apps.googleusercontent.com
       GOOGLE_CLIENT_SECRET: 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

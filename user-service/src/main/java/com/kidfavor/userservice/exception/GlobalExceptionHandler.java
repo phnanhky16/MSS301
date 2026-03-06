@@ -7,6 +7,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -16,6 +17,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(401, "Invalid username or password"));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatusException(ResponseStatusException ex) {
+        int statusCode = ex.getStatusCode().value();
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(ApiResponse.error(statusCode, ex.getReason() != null ? ex.getReason() : ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
