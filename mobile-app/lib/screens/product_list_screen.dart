@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/product.dart';
+import '../services/wishlist_service.dart';
 import 'product_detail_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -92,7 +94,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            trailing: const Icon(Icons.arrow_forward_ios),
+                            trailing: Consumer<WishlistService>(
+                              builder: (context, wishlistService, _) => Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () =>
+                                        wishlistService.toggleWishlist(product),
+                                    child: Icon(
+                                      wishlistService.isWishlisted(product.id)
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color:
+                                          wishlistService.isWishlisted(product.id)
+                                              ? Colors.redAccent
+                                              : Colors.grey[400],
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                                ],
+                              ),
+                            ),
                             onTap: () {
                               Navigator.push(
                                 context,

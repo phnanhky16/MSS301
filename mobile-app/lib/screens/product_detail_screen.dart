@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../services/cart_service.dart';
+import '../services/wishlist_service.dart';
 import 'package:intl/intl.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -14,8 +15,8 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  final _currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '\$');
-  bool _isFavorite = false;
+  final _currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  // _isFavorite is now driven by WishlistService
 
   // Mock LEGO product data
   late final Product _displayProduct;
@@ -160,10 +161,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               Row(
                 children: [
-                  _buildCircleButton(
-                    icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    onTap: () => setState(() => _isFavorite = !_isFavorite),
-                    iconColor: _isFavorite ? Colors.red : Colors.black87,
+                  Consumer<WishlistService>(
+                    builder: (context, wishlistService, _) => _buildCircleButton(
+                      icon: wishlistService.isWishlisted(_displayProduct.id)
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      onTap: () =>
+                          wishlistService.toggleWishlist(_displayProduct),
+                      iconColor:
+                          wishlistService.isWishlisted(_displayProduct.id)
+                              ? Colors.red
+                              : Colors.black87,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   _buildCircleButton(
@@ -537,19 +546,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Row(
           children: [
             // Favorite Button
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: IconButton(
-                icon: Icon(
-                  _isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: _isFavorite ? Colors.red : Colors.black87,
+            Consumer<WishlistService>(
+              builder: (context, wishlistService, _) => Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                onPressed: () => setState(() => _isFavorite = !_isFavorite),
+                child: IconButton(
+                  icon: Icon(
+                    wishlistService.isWishlisted(_displayProduct.id)
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: wishlistService.isWishlisted(_displayProduct.id)
+                        ? Colors.red
+                        : Colors.black87,
+                  ),
+                  onPressed: () =>
+                      wishlistService.toggleWishlist(_displayProduct),
+                ),
               ),
             ),
             const SizedBox(width: 16),

@@ -81,6 +81,10 @@ class ApiService {
     print('Response Body: ${response.body}');
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      // 204 No Content — no body
+      if (response.statusCode == 204 || response.body.isEmpty) {
+        return {'status': response.statusCode};
+      }
       return jsonDecode(response.body);
     } else {
       // Try to parse error message from response

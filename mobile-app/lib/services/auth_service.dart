@@ -105,4 +105,50 @@ class AuthService extends ChangeNotifier {
     }
     return false;
   }
+
+  // Register new user
+  Future<bool> register(
+    String fullName,
+    String username,
+    String email,
+    String password,
+  ) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      print('Attempting registration with username: $username, email: $email');
+
+      final response = await ApiService.post(
+        '/user-service/auth/register',
+        {
+          'fullName': fullName,
+          'username': username,
+          'email': email,
+          'password': password,
+        },
+      );
+
+      print('Register response: $response');
+
+      if (response['status'] == 200 || response['status'] == 201) {
+        print('Registration successful');
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        print('Registration failed');
+        print('Response: $response');
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      print('Registration error: $e');
+      return false;
+    }
+  }
 }
