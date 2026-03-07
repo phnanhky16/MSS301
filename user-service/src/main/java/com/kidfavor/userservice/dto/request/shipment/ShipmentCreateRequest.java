@@ -13,4 +13,5 @@ public class ShipmentCreateRequest {
     private String district;
     private String city;
     private int userId;
+    private String note;
 }

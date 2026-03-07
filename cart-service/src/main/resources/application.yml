@@ -82,3 +82,9 @@ logging:
     com.kidfavor.cartservice: DEBUG
     org.springframework.cloud.openfeign: DEBUG
     feign: DEBUG
+
+# JWT Configuration
+jwt:
+  secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+  expiration: 3600000  # 1 hour
+

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/address_service.dart';
+import '../services/auth_service.dart';
+import '../models/shipment.dart';
 
 // --- BẢNG MÀU (Design System) ---
-// primary blue matches other screens (1EB5D9 used widely)
 const Color kfBlue = Color(0xFF1EB5D9);
-// a slightly deeper variant for icons/borders
 const Color kfBlueDeep = Color(0xFF27A6D1);
-// lighter pastel background based on primary
 const Color kfBluePastel = Color(0xFFE0F7FA);
 const Color kfYellow = Color(0xFFFFB800);
 const Color kfTextDark = Color(0xFF1E293B);
@@ -21,30 +22,103 @@ class ShippingAddressScreen extends StatefulWidget {
 }
 
 class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
-  // Biến lưu trữ ID của địa chỉ đang được chọn
-  int _selectedAddressId = 1;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = context.read<AuthService>().currentUser?.id;
+      if (userId != null) {
+        context.read<AddressService>().fetchByUser(userId);
+      }
+    });
+  }
 
-  // Dữ liệu mẫu (Mock Data)
-  final List<Map<String, dynamic>> _addresses = [
-    {
-      'id': 1,
-      'title': 'Home',
-      'address': '123 Candy Lane\nToytown, CA 90210',
-      'isDefault': true,
-    },
-    {
-      'id': 2,
-      'title': "Grandma's House",
-      'address': '456 Cookie Circle\nSweetville, NY 10001',
-      'isDefault': false,
-    },
-    {
-      'id': 3,
-      'title': 'Office',
-      'address': '789 Work Plaza, Suite 200\nBusiness City, TX 75001',
-      'isDefault': false,
-    },
-  ];
+  void _showAddressForm({Shipment? existing}) {
+    final userId = context.read<AuthService>().currentUser?.id ?? 0;
+    final noteCtrl = TextEditingController(text: existing?.note ?? '');
+    final streetCtrl = TextEditingController(text: existing?.street ?? '');
+    final wardCtrl = TextEditingController(text: existing?.ward ?? '');
+    final districtCtrl = TextEditingController(text: existing?.district ?? '');
+    final cityCtrl = TextEditingController(text: existing?.city ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(existing == null ? 'Thêm địa chỉ' : 'Sửa địa chỉ'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: noteCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Tên địa chỉ',
+                  hintText: 'VD: Nhà riêng, Công ty, ...',
+                  prefixIcon: Icon(Icons.label_outline),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: streetCtrl,
+                decoration: const InputDecoration(labelText: 'Số nhà / Đường'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: wardCtrl,
+                decoration: const InputDecoration(labelText: 'Phường / Xã'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: districtCtrl,
+                decoration: const InputDecoration(labelText: 'Quận / Huyện'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: cityCtrl,
+                decoration:
+                    const InputDecoration(labelText: 'Tỉnh / Thành phố'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Huỷ'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kfBlue),
+            onPressed: () async {
+              final svc = context.read<AddressService>();
+              final payload = {
+                'note': noteCtrl.text.trim(),
+                'street': streetCtrl.text.trim(),
+                'ward': wardCtrl.text.trim(),
+                'district': districtCtrl.text.trim(),
+                'city': cityCtrl.text.trim(),
+              };
+              bool ok;
+              if (existing == null) {
+                ok = await svc.create({...payload, 'userId': userId}) != null;
+              } else {
+                ok = await svc.update(existing.shipId, payload) != null;
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content:
+                      Text(ok ? 'Đã lưu địa chỉ' : 'Lỗi! Vui lòng thử lại'),
+                  backgroundColor: ok ? kfBlue : Colors.red,
+                ));
+              }
+            },
+            child:
+                const Text('Lưu', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,29 +145,68 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
           child: Container(color: neutralBorderLight, height: 1),
         ),
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(
-            24, 16, 24, 100), // Padding dưới lớn để không bị nút đè
-        itemCount: _addresses.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final address = _addresses[index];
-          final isSelected = _selectedAddressId == address['id'];
-
-          return _buildAddressCard(
-            title: address['title'],
-            address: address['address'],
-            isDefault: address['isDefault'],
-            isSelected: isSelected,
-            onTap: () {
-              setState(() {
-                _selectedAddressId = address['id'];
-              });
+      body: Consumer<AddressService>(
+        builder: (context, svc, _) {
+          if (svc.isLoading) {
+            return const Center(
+                child: CircularProgressIndicator(color: kfBlue));
+          }
+          if (svc.shipments.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.location_off, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('Chưa có địa chỉ nào',
+                      style: TextStyle(color: Colors.grey, fontSize: 16)),
+                ],
+              ),
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+            itemCount: svc.shipments.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final shipment = svc.shipments[index];
+              final isSelected = svc.selectedId == shipment.shipId;
+              final isDefault = index == 0;
+              return _buildAddressCard(
+                shipment: shipment,
+                isDefault: isDefault,
+                isSelected: isSelected,
+                onTap: () => svc.select(shipment.shipId),
+                onEdit: () => _showAddressForm(existing: shipment),
+                onDelete: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Xác nhận xoá'),
+                      content:
+                          const Text('Bạn có chắc muốn xoá địa chỉ này?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Huỷ'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Xoá',
+                              style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await svc.delete(shipment.shipId);
+                  }
+                },
+              );
             },
           );
         },
       ),
-      // Khu vực nút bấm cố định ở dưới cùng
       bottomSheet: Container(
         padding:
             const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 32),
@@ -103,21 +216,18 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
-              offset: const Offset(0, -5), // Đổ bóng hướng lên trên (upward)
+              offset: const Offset(0, -5),
             ),
           ],
         ),
         child: ElevatedButton(
-          onPressed: () {
-            // Xử lý thêm địa chỉ mới
-          },
+          onPressed: () => _showAddressForm(),
           style: ElevatedButton.styleFrom(
             backgroundColor: kfBlue,
             foregroundColor: Colors.white,
             elevation: 8,
             shadowColor: kfBlue.withOpacity(0.5),
-            minimumSize:
-                const Size(double.infinity, 0), // Trải dài full màn hình
+            minimumSize: const Size(double.infinity, 0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
             ),
@@ -139,13 +249,13 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
     );
   }
 
-  // Widget hiển thị từng Thẻ địa chỉ
   Widget _buildAddressCard({
-    required String title,
-    required String address,
+    required Shipment shipment,
     required bool isDefault,
     required bool isSelected,
     required VoidCallback onTap,
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -197,7 +307,9 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                         spacing: 8,
                         children: [
                           Text(
-                            title,
+                            shipment.note?.isNotEmpty == true
+                                ? shipment.note!
+                                : shipment.city,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -226,7 +338,7 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        address,
+                        shipment.fullAddress,
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
@@ -254,17 +366,13 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                 IconButton(
                   icon: const Icon(Icons.edit, size: 20),
                   color: Colors.grey[400],
-                  onPressed: () {
-                    // Xử lý nút Edit
-                  },
+                  onPressed: onEdit,
                 ),
-                if (!isDefault) // Thường địa chỉ mặc định không cho xóa trực tiếp
+                if (!isDefault)
                   IconButton(
                     icon: const Icon(Icons.delete, size: 20),
                     color: Colors.grey[400],
-                    onPressed: () {
-                      // Xử lý nút Delete
-                    },
+                    onPressed: onDelete,
                   ),
               ],
             ),

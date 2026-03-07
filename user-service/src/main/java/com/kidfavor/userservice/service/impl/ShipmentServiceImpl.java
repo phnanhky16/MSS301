@@ -72,6 +72,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         shipment.setWard(request.getWard());
         shipment.setDistrict(request.getDistrict());
         shipment.setCity(request.getCity());
+        shipment.setNote(request.getNote());
         shipment.setUser(user);
         shipment.setStatus(true);
         return ShipmentResponse.from(shipmentRepository.save(shipment));
@@ -92,20 +93,21 @@ public class ShipmentServiceImpl implements ShipmentService {
         shipment.setWard(request.getWard());
         shipment.setDistrict(request.getDistrict());
         shipment.setCity(request.getCity());
+        shipment.setNote(request.getNote());
         return ShipmentResponse.from(shipmentRepository.save(shipment));
     }
 
     @Override
+    @Transactional
     @Caching(
-            put = @CachePut(value = "shipment", key = "#id"),
             evict = {
+                    @CacheEvict(value = "shipment", key = "#id"),
                     @CacheEvict(value = "shipments", allEntries = true)
             }
     )
     public void changeShipmentStatus(int id) {
         Shipment shipment = shipmentRepository.findById(id)
-                .orElseThrow(()->new RuntimeException("shipment not found with id:"+id));
-        shipment.setStatus(!shipment.getStatus());
-        shipmentRepository.save(shipment);
+                .orElseThrow(() -> new RuntimeException("shipment not found with id:" + id));
+        shipmentRepository.delete(shipment);
     }
 }

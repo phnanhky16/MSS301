@@ -12,4 +12,5 @@ public class ShipmentUpdateRequest {
     private String ward;
     private String district;
     private String city;
+    private String note;
 }

@@ -24,6 +24,7 @@ public class Shipment {
     private String district;
     private String city;
     private Boolean status;
+    private String note;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
