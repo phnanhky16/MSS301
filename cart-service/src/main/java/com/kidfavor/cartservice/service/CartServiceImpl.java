@@ -27,12 +27,18 @@ public class CartServiceImpl implements CartService {
     private final ProductClient productClient;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     @Cacheable(value = "carts", key = "#userId")
     public CartResponse getCartByUserId(Long userId) {
         log.info("Fetching cart from database for user: {}", userId);
         Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId));
+                .orElseGet(() -> {
+                    // nếu người dùng chưa có giỏ nào thì trả về một giỏ rỗng
+                    Cart empty = new Cart();
+                    empty.setUserId(userId);
+                    empty = cartRepository.save(empty);
+                    return empty;
+                });
         
         return mapToCartResponse(cart);
     }
@@ -50,9 +56,11 @@ public class CartServiceImpl implements CartService {
         
         ProductDTO product = productResponse.getData();
         
+        // Handle nullable stock
+        int availableStock = product.getStock() != null ? product.getStock() : 0;
         // Check stock availability
-        if (product.getStock() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock. Available: " + product.getStock());
+        if (availableStock < request.getQuantity()) {
+            throw new RuntimeException("Insufficient stock. Available: " + availableStock);
         }
 
         // Get or create cart for user
@@ -113,8 +121,9 @@ public class CartServiceImpl implements CartService {
         }
 
         ProductDTO product = productResponse.getData();
-        if (product.getStock() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock. Available: " + product.getStock());
+        int availableStock = product.getStock() != null ? product.getStock() : 0;
+        if (availableStock < request.getQuantity()) {
+            throw new RuntimeException("Insufficient stock. Available: " + availableStock);
         }
 
         item.setQuantity(request.getQuantity());
@@ -168,7 +177,7 @@ public class CartServiceImpl implements CartService {
         double totalPrice = itemResponses.stream()
                 .mapToDouble(item -> {
                     if (item.getProduct() != null && item.getProduct().getPrice() != null) {
-                        return item.getProduct().getPrice() * item.getQuantity();
+                        return item.getProduct().getPrice().doubleValue() * item.getQuantity();
                     }
                     return 0.0;
                 })

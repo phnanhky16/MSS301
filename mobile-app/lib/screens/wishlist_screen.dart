@@ -70,9 +70,15 @@ class _WishlistScreenState extends State<WishlistScreen> {
     if (userId == null) return;
 
     int count = 0;
-    for (final product in wishlistService.products) {
+    // clone list since we'll remove while iterating
+    final productsCopy = List<Product>.from(wishlistService.products);
+    for (final product in productsCopy) {
       final ok = await cartService.addToCart(userId, product.id, 1);
-      if (ok) count++;
+      if (ok) {
+        count++;
+        // remove from wishlist asynchronously (ignore failure)
+        await wishlistService.removeFromWishlist(product.id);
+      }
     }
 
     if (mounted) {
@@ -310,10 +316,24 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   MaterialPageRoute(builder: (context) => const HomeScreen()),
                 );
               }),
-              _buildNavItem(Icons.favorite, 'Wishlist', true, () {}),
+              _buildNavItem(Icons.favorite, 'Wishlist', true, () {},
+                  badge: Consumer<WishlistService>(
+                    builder: (_, wishlist, __) => wishlist.count > 0
+                        ? _buildNavBadge(
+                            '${wishlist.count}',
+                            badgeColor: Colors.redAccent,
+                            textColor: Colors.white,
+                          )
+                        : const SizedBox.shrink(),
+                  )),
               _buildNavItem(Icons.shopping_cart_outlined, 'Cart', false, () {
                 Navigator.pushNamed(context, '/cart');
-              }),
+              },
+                  badge: Consumer<CartService>(
+                    builder: (_, cart, __) => cart.itemCount > 0
+                        ? _buildNavBadge('${cart.itemCount}')
+                        : const SizedBox.shrink(),
+                  )),
               _buildNavItem(Icons.person_outline, 'Profile', false, () {
                 Navigator.push(
                   context,
@@ -328,17 +348,51 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
   }
 
+  Widget _buildNavBadge(String text,
+      {Color badgeColor = const Color(0xFFBEF264),
+      Color textColor = const Color(0xFF0F172A)}) {
+    return Positioned(
+      top: -4,
+      right: -4,
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: badgeColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem(
-      IconData icon, String label, bool isActive, VoidCallback onTap) {
+      IconData icon, String label, bool isActive, VoidCallback onTap,
+      {Widget? badge}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF1EB5D9) : Colors.grey[600],
-            size: 26,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? const Color(0xFF27A6D1) : Colors.grey[600],
+                size: 26,
+              ),
+              if (badge != null) badge,
+            ],
           ),
           const SizedBox(height: 4),
           Text(

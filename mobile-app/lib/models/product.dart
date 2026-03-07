@@ -5,6 +5,7 @@ class Product {
   final double price;
   final int stock;
   final String? imageUrl;
+  final List<String> imageUrls;
   final String? categoryName;
   final String? brandName;
 
@@ -15,17 +16,22 @@ class Product {
     required this.price,
     required this.stock,
     this.imageUrl,
+    this.imageUrls = const [],
     this.categoryName,
     this.brandName,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     // Handle backend response format
+    List<String> imageUrls = [];
+    if (json['imageUrls'] != null && json['imageUrls'] is List) {
+      imageUrls =
+          List<String>.from((json['imageUrls'] as List).whereType<String>());
+    }
+
     String? imageUrl;
-    if (json['imageUrls'] != null &&
-        json['imageUrls'] is List &&
-        (json['imageUrls'] as List).isNotEmpty) {
-      imageUrl = json['imageUrls'][0];
+    if (imageUrls.isNotEmpty) {
+      imageUrl = imageUrls[0];
     } else if (json['imageUrl'] != null) {
       imageUrl = json['imageUrl'];
     }
@@ -58,6 +64,7 @@ class Product {
       price: (json['price'] as num).toDouble(),
       stock: stock,
       imageUrl: imageUrl,
+      imageUrls: imageUrls,
       categoryName: categoryName,
       brandName: brandName,
     );

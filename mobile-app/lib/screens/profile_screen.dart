@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/cart_service.dart';
+import '../services/wishlist_service.dart';
+import 'shipping_address_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -37,8 +40,7 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     // Settings list
-                    _buildSettingsList(),
-
+                    _buildSettingsList(context),
                     const SizedBox(height: 32),
 
                     // Log Out button
@@ -385,7 +387,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsList() {
+  Widget _buildSettingsList(BuildContext context) {
     return Column(
       children: [
         _buildSettingsItem(
@@ -404,6 +406,13 @@ class ProfileScreen extends StatelessWidget {
           Icons.location_on,
           'Shipping Addresses',
           '3 Saved Addresses',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const ShippingAddressScreen()),
+            );
+          },
         ),
         const SizedBox(height: 16),
         _buildSettingsItem(
@@ -415,8 +424,9 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsItem(IconData icon, String title, String subtitle) {
-    return Container(
+  Widget _buildSettingsItem(IconData icon, String title, String subtitle,
+      {VoidCallback? onTap}) {
+    Widget card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -476,6 +486,10 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+    if (onTap != null) {
+      card = GestureDetector(onTap: onTap, child: card);
+    }
+    return card;
   }
 
   Widget _buildLogOutButton(BuildContext context, AuthService authService) {
@@ -545,10 +559,24 @@ class ProfileScreen extends StatelessWidget {
               _buildNavItem(Icons.store, 'Shop', false, () {
                 Navigator.pop(context);
               }),
-              _buildNavItem(Icons.favorite_border, 'Wishlist', false, () {}),
+              _buildNavItem(Icons.favorite_border, 'Wishlist', false, () {},
+                  badge: Consumer<WishlistService>(
+                    builder: (_, wishlist, __) => wishlist.count > 0
+                        ? _buildNavBadge(
+                            '${wishlist.count}',
+                            badgeColor: Colors.redAccent,
+                            textColor: Colors.white,
+                          )
+                        : const SizedBox.shrink(),
+                  )),
               _buildNavItem(Icons.shopping_cart_outlined, 'Cart', false, () {
                 Navigator.pushNamed(context, '/cart');
-              }),
+              },
+                  badge: Consumer<CartService>(
+                    builder: (_, cart, __) => cart.itemCount > 0
+                        ? _buildNavBadge('${cart.itemCount}')
+                        : const SizedBox.shrink(),
+                  )),
               _buildNavItem(Icons.person_outline, 'Profile', true, () {}),
             ],
           ),
@@ -557,17 +585,51 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildNavBadge(String text,
+      {Color badgeColor = const Color(0xFFBEF264),
+      Color textColor = const Color(0xFF0F172A)}) {
+    return Positioned(
+      top: -4,
+      right: -4,
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: badgeColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem(
-      IconData icon, String label, bool isActive, VoidCallback onTap) {
+      IconData icon, String label, bool isActive, VoidCallback onTap,
+      {Widget? badge}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF0DB9F2) : Colors.grey,
-            size: 26,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? const Color(0xFF0DB9F2) : Colors.grey,
+                size: 26,
+              ),
+              if (badge != null) badge,
+            ],
           ),
           const SizedBox(height: 4),
           Text(

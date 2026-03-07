@@ -45,8 +45,6 @@ spring:
           filters:
             - StripPrefix=0
 
-
-
         # User Service Swagger API Docs
         - id: user-service-api-docs
           uri: lb://user-service
@@ -278,6 +276,8 @@ springdoc:
         url: /user-service/v3/api-docs
       - name: Address Service
         url: /address-service/v3/api-docs
+      - name: Cart Service
+        url: /cart-service/v3/api-docs
     urls-primary-name: User Service
 
 management:

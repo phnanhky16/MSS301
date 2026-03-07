@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
+import '../services/api_service.dart';
 import '../services/cart_service.dart';
 import '../services/wishlist_service.dart';
+import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product? product;
+  final bool fromCart;
 
-  const ProductDetailScreen({super.key, this.product});
+  const ProductDetailScreen({
+    super.key,
+    this.product,
+    this.fromCart = false,
+  });
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -21,10 +28,67 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // Mock LEGO product data
   late final Product _displayProduct;
 
+  List<String> _galleryImages = [];
+  bool _isLoadingImages = false;
+  int _currentIndex = 0;
+  late PageController _pageController;
+
+  List<String> get _carouselImages {
+    final List<String> images = [];
+    if (_displayProduct.imageUrl != null &&
+        _displayProduct.imageUrl!.isNotEmpty) {
+      images.add(_displayProduct.imageUrl!);
+    }
+    for (final img in _galleryImages) {
+      if (!images.contains(img)) images.add(img);
+    }
+    return images;
+  }
+
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _displayProduct = widget.product ?? _createMockProduct();
+    _fetchGalleryImages();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchGalleryImages() async {
+    // Use imageUrls already embedded in the product if available
+    if (_displayProduct.imageUrls.isNotEmpty) {
+      setState(() {
+        _galleryImages = _displayProduct.imageUrls;
+      });
+      return;
+    }
+
+    setState(() => _isLoadingImages = true);
+    try {
+      final response = await ApiService.get(
+          '/product-service/products/${_displayProduct.id}/images');
+      if (response['success'] == true && response['data'] != null) {
+        final List<dynamic> data = response['data'] as List<dynamic>;
+        final urls = data
+            .map((item) => item['imageUrl'] as String?)
+            .whereType<String>()
+            .toList();
+        if (mounted) {
+          setState(() {
+            _galleryImages = urls;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Fetch gallery images error: \$e');
+    } finally {
+      if (mounted) setState(() => _isLoadingImages = false);
+    }
   }
 
   Product _createMockProduct() {
@@ -42,114 +106,155 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  List<String> _getGalleryImages() {
-    return [
-      'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400',
-      'https://images.unsplash.com/photo-1611604548018-d56bbd85d681?w=400',
-      'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400',
-    ];
-  }
-
   Future<void> _addToCart() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
     final cartService = Provider.of<CartService>(context, listen: false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 12),
-            Text('Added to cart successfully!'),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
+    if (authService.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to add items to cart')),
+      );
+      return;
+    }
+
+    final success = await cartService.addToCart(
+      authService.currentUser!.id,
+      _displayProduct.id,
+      1,
     );
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Added to cart successfully!'),
+            ],
+          ),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to add to cart'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header & Image Section
-            _buildHeaderWithImage(),
+    return WillPopScope(
+      onWillPop: () async {
+        if (widget.fromCart) {
+          Navigator.popUntil(context, ModalRoute.withName('/cart'));
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header & Image Section
+                _buildHeaderWithImage(),
 
-            // Content Section
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title & Price Row
-                  _buildTitleAndPrice(),
-                  const SizedBox(height: 12),
+                // Content Section
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title & Price Row
+                      _buildTitleAndPrice(),
+                      const SizedBox(height: 12),
 
-                  // Rating & Reviews
-                  _buildRatingSection(),
-                  const SizedBox(height: 20),
+                      // Rating & Reviews
+                      _buildRatingSection(),
+                      const SizedBox(height: 20),
 
-                  // Description
-                  _buildDescription(),
-                  const SizedBox(height: 24),
+                      // Description
+                      _buildDescription(),
+                      const SizedBox(height: 24),
 
-                  // Specs Row (Pieces, Minifigs, Build Time)
-                  _buildSpecsRow(),
-                  const SizedBox(height: 24),
+                      // Specs Row (Pieces, Minifigs, Build Time)
+                      _buildSpecsRow(),
+                      const SizedBox(height: 24),
 
-                  // Gallery Section
-                  _buildGallery(),
-                  const SizedBox(height: 24),
+                      // Gallery Section
+                      _buildGallery(),
+                      const SizedBox(height: 24),
 
-                  // Rating Breakdown Section
-                  _buildRatingBreakdown(),
-                  const SizedBox(height: 100), // Space for bottom bar
-                ],
-              ),
+                      // Rating Breakdown Section
+                      _buildRatingBreakdown(),
+                      const SizedBox(height: 100), // Space for bottom bar
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
+        bottomNavigationBar: _buildBottomBar(),
       ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
   Widget _buildHeaderWithImage() {
+    final images = _carouselImages;
+
     return Stack(
       children: [
-        // Main Product Image
+        // PageView Carousel
         ClipRRect(
           borderRadius: const BorderRadius.all(Radius.circular(24)),
-          child: Container(
+          child: SizedBox(
             height: 400,
             width: double.infinity,
-            color: Colors.grey[100],
-            child: _displayProduct.imageUrl != null
-                ? Image.network(
-                    _displayProduct.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Icon(Icons.toys,
-                            size: 100, color: Colors.grey[400]),
+            child: images.isEmpty
+                ? Container(
+                    color: Colors.grey[100],
+                    child: Center(
+                      child:
+                          Icon(Icons.toys, size: 100, color: Colors.grey[400]),
+                    ),
+                  )
+                : PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) =>
+                        setState(() => _currentIndex = index),
+                    itemCount: images.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        color: Colors.grey[100],
+                        child: Image.network(
+                          images[index],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Icon(Icons.toys,
+                                size: 100, color: Colors.grey[400]),
+                          ),
+                        ),
                       );
                     },
-                  )
-                : Center(
-                    child: Icon(Icons.toys, size: 100, color: Colors.grey[400]),
                   ),
           ),
         ),
 
         // Top Action Buttons (Back & Favorite)
         Positioned(
-          top: 50,
+          top: 16,
           left: 16,
           right: 16,
           child: Row(
@@ -157,55 +262,54 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               _buildCircleButton(
                 icon: Icons.arrow_back,
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  if (widget.fromCart) {
+                    Navigator.popUntil(context, ModalRoute.withName('/cart'));
+                  } else {
+                    Navigator.pop(context);
+                  }
+                },
               ),
-              Row(
-                children: [
-                  Consumer<WishlistService>(
-                    builder: (context, wishlistService, _) =>
-                        _buildCircleButton(
-                      icon: wishlistService.isWishlisted(_displayProduct.id)
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      onTap: () =>
-                          wishlistService.toggleWishlist(_displayProduct),
-                      iconColor:
-                          wishlistService.isWishlisted(_displayProduct.id)
-                              ? Colors.red
-                              : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildCircleButton(
-                    icon: Icons.share_outlined,
-                    onTap: () {},
-                  ),
-                ],
+              Consumer<WishlistService>(
+                builder: (context, wishlistService, _) => _buildCircleButton(
+                  icon: wishlistService.isWishlisted(_displayProduct.id)
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  onTap: () => wishlistService.toggleWishlist(_displayProduct),
+                  iconColor: wishlistService.isWishlisted(_displayProduct.id)
+                      ? Colors.red
+                      : Colors.black87,
+                ),
               ),
             ],
           ),
         ),
 
-        // Badges at Bottom Left
-        Positioned(
-          bottom: 16,
-          left: 16,
-          child: Row(
-            children: [
-              _buildBadge(
-                'NEW ARRIVAL',
-                const Color(0xFFFFC107),
-                Colors.black87,
+        // Dot Indicator at Bottom Center
+        if (images.length > 1)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                images.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentIndex == index ? 20 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _currentIndex == index
+                        ? const Color(0xFFFFC107)
+                        : Colors.white.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
               ),
-              const SizedBox(width: 8),
-              _buildBadge(
-                'AGES 9+',
-                const Color(0xFF81D4FA),
-                Colors.black87,
-              ),
-            ],
+            ),
           ),
-        ),
       ],
     );
   }
@@ -225,25 +329,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: iconColor ?? Colors.black87, size: 22),
-      ),
-    );
-  }
-
-  Widget _buildBadge(String label, Color bgColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
       ),
     );
   }
@@ -403,7 +488,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildGallery() {
-    final images = _getGalleryImages();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -417,35 +501,96 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         const SizedBox(height: 12),
         SizedBox(
           height: 100,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding:
-                    EdgeInsets.only(right: index < images.length - 1 ? 12 : 0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    color: Colors.grey[200],
-                    child: Image.network(
-                      images[index],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Icon(Icons.image, color: Colors.grey[400]),
+          child: _isLoadingImages
+              ? const Center(child: CircularProgressIndicator())
+              : _galleryImages.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No images available',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                      ),
+                    )
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _galleryImages.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: EdgeInsets.only(
+                              right:
+                                  index < _galleryImages.length - 1 ? 12 : 0),
+                          child: GestureDetector(
+                            onTap: () => _showFullImage(_galleryImages[index]),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                width: 100,
+                                height: 100,
+                                color: Colors.grey[200],
+                                child: Image.network(
+                                  _galleryImages[index],
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, progress) {
+                                    if (progress == null) return child;
+                                    return const Center(
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2));
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Icon(Icons.broken_image,
+                                          color: Colors.grey[400]),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
                         );
                       },
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
         ),
       ],
+    );
+  }
+
+  void _showFullImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child:
+                      Icon(Icons.broken_image, color: Colors.white, size: 64),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, color: Colors.white, size: 24),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

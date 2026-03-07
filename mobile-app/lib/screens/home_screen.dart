@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/cart_service.dart';
+import '../services/wishlist_service.dart';
 import '../services/api_service.dart';
 import '../models/product.dart';
 import '../models/category.dart';
@@ -31,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Cart animation state
   int _cartCount = 0;
   final GlobalKey _cartKey = GlobalKey();
+  final GlobalKey _wishlistNavKey = GlobalKey();
   AnimationController? _shakeController;
   OverlayEntry? _flyingWidget;
 
@@ -159,10 +163,13 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _loadData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final cartService = Provider.of<CartService>(context, listen: false);
+    final wishlistService =
+        Provider.of<WishlistService>(context, listen: false);
 
     if (authService.currentUser != null) {
       await cartService.fetchCart(authService.currentUser!.id);
     }
+    await wishlistService.fetchWishlist();
 
     // Load categories and brands for filter
     await _loadFilters();
@@ -323,6 +330,88 @@ class _HomeScreenState extends State<HomeScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _buildFilterSheet(),
+    );
+  }
+
+  void _showAddressSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // drag handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Chọn địa chỉ giao hàng',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              // address list
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    _addressTile('Nhà riêng', Icons.home, true),
+                    _addressTile('Công ty', Icons.apartment, false),
+                    _addressTile('Khách sạn', Icons.hotel, false),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  // placeholder for add new address
+                  Navigator.pop(ctx);
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF1EB5D9),
+                ),
+                child: const Text('+ Thêm địa chỉ mới'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _addressTile(String label, IconData icon, bool selected) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.grey[700]),
+      title: Text(
+        label,
+        style: TextStyle(
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal),
+      ),
+      trailing: selected
+          ? const Icon(Icons.check_circle, color: Color(0xFF1EB5D9))
+          : null,
+      onTap: () {
+        // update selection if necessary
+        Navigator.pop(context);
+      },
     );
   }
 
@@ -584,7 +673,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 // Center: Location Selector (Prominent)
                                 GestureDetector(
                                   onTap: () {
-                                    // Show location picker
+                                    _showAddressSelector(context);
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -660,80 +749,67 @@ class _HomeScreenState extends State<HomeScreen>
                                       onTap: () {
                                         Navigator.pushNamed(context, '/cart');
                                       },
-                                      child: Container(
-                                        key: _cartKey,
-                                        width: 44,
-                                        height: 44,
-                                        alignment: Alignment.center,
-                                        clipBehavior: Clip.antiAlias,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black
-                                                  .withOpacity(0.06),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Stack(
-                                          children: [
-                                            Center(
-                                              child: AnimatedBuilder(
-                                                animation: _shakeController!,
-                                                builder: (context, child) {
-                                                  final shake =
-                                                      _shakeController!.value;
-                                                  return Transform.translate(
-                                                    offset: Offset(
-                                                      shake < 0.5
-                                                          ? (shake * 20 - 5)
-                                                          : ((1 - shake) * 20 -
-                                                              5),
-                                                      0,
-                                                    ),
-                                                    child: Icon(
-                                                      Icons
-                                                          .shopping_bag_outlined,
-                                                      size: 22,
-                                                      color: Colors.grey[700],
-                                                    ),
-                                                  );
-                                                },
+                                      child: Consumer<CartService>(
+                                        builder: (_, cartSvc, __) => Container(
+                                          key: _cartKey,
+                                          width: 44,
+                                          height: 44,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.08),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 3),
                                               ),
-                                            ),
-                                            if (_cartCount > 0)
-                                              Positioned(
-                                                right: 0,
-                                                top: 0,
-                                                child: Container(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                    color: Color(0xFFFF5252),
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                    minWidth: 16,
-                                                    minHeight: 16,
-                                                  ),
-                                                  child: Text(
-                                                    '$_cartCount',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 9,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                  ),
+                                            ],
+                                          ),
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Center(
+                                                child: Icon(
+                                                  Icons.shopping_bag_outlined,
+                                                  size: 22,
+                                                  color:
+                                                      const Color(0xFF1EB5D9),
                                                 ),
                                               ),
-                                          ],
+                                              if (cartSvc.itemCount > 0)
+                                                Positioned(
+                                                  top: -2,
+                                                  right: -2,
+                                                  child: Container(
+                                                    width: 17,
+                                                    height: 17,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFBEF264),
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                          color: Colors.white,
+                                                          width: 1.5),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      '${cartSvc.itemCount}',
+                                                      style: const TextStyle(
+                                                        color:
+                                                            Color(0xFF0F172A),
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1036,8 +1112,11 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         );
                       },
-                      onAddToCart: (product) {
-                        _addToCartWithAnimation(product);
+                      onAddToCart: (product, sourceKey) {
+                        _addToCartWithAnimation(product, sourceKey);
+                      },
+                      onWishlistToggle: (product, sourceKey) {
+                        _flyToWishlist(sourceKey);
                       },
                     ),
 
@@ -1077,10 +1156,25 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(
                       builder: (context) => const WishlistScreen()),
                 );
-              }),
+              },
+                  badge: Consumer<WishlistService>(
+                    builder: (_, wishlist, __) => wishlist.count > 0
+                        ? _buildNavBadge(
+                            '${wishlist.count}',
+                            badgeColor: Colors.redAccent,
+                            textColor: Colors.white,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  iconKey: _wishlistNavKey),
               _buildNavItem(Icons.shopping_cart_outlined, 'Cart', false, () {
                 Navigator.pushNamed(context, '/cart');
-              }),
+              },
+                  badge: Consumer<CartService>(
+                    builder: (_, cart, __) => cart.itemCount > 0
+                        ? _buildNavBadge('${cart.itemCount}')
+                        : const SizedBox.shrink(),
+                  )),
               _buildNavItem(Icons.person_outline, 'Profile', false, () {
                 Navigator.push(
                   context,
@@ -1095,17 +1189,52 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildNavBadge(String text,
+      {Color badgeColor = const Color(0xFFBEF264),
+      Color textColor = const Color(0xFF0F172A)}) {
+    return Positioned(
+      top: -4,
+      right: -4,
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: badgeColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem(
-      IconData icon, String label, bool isActive, VoidCallback onTap) {
+      IconData icon, String label, bool isActive, VoidCallback onTap,
+      {Widget? badge, Key? iconKey}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF27A6D1) : Colors.grey[600],
-            size: 26,
+          Stack(
+            key: iconKey,
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? const Color(0xFF27A6D1) : Colors.grey[600],
+                size: 26,
+              ),
+              if (badge != null) badge,
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -1207,146 +1336,62 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // Add to cart with fly animation
-  void _addToCartWithAnimation(Product product) async {
-    print('🎯 Add to cart with animation triggered for: ${product.name}');
-
-    // Use post frame callback to avoid setState during build
+  void _addToCartWithAnimation(Product product, GlobalKey sourceKey) {
+    // Launch bezier fly animation immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startFlyAnimation(product);
+      _flyToCart(sourceKey, _cartKey);
     });
-
-    // Then try to add to cart via API in the background
+    // Call API in background
     _addToCart(product);
   }
 
-  void _startFlyAnimation(Product product) async {
-    print('🚀 Starting fly animation...');
+  void _flyToCart(GlobalKey sourceKey, GlobalKey targetKey) {
+    final sourceBox =
+        sourceKey.currentContext?.findRenderObject() as RenderBox?;
+    final targetBox =
+        targetKey.currentContext?.findRenderObject() as RenderBox?;
+    if (sourceBox == null || targetBox == null) return;
+    final startPos =
+        sourceBox.localToGlobal(sourceBox.size.center(Offset.zero));
+    final endPos = targetBox.localToGlobal(targetBox.size.center(Offset.zero));
 
-    // Get cart icon position
-    final cartBox = _cartKey.currentContext?.findRenderObject() as RenderBox?;
-    if (cartBox == null) {
-      print('❌ Cart icon not found, cannot animate');
-      // Still update count even if animation fails
-      setState(() {
-        _cartCount++;
-      });
-      _shakeController?.forward().then((_) => _shakeController?.reset());
-      return;
-    }
-
-    print('✅ Cart icon found, creating animation...');
-
-    print('✅ Cart icon found, creating animation...');
-
-    final cartPosition = cartBox.localToGlobal(Offset.zero);
-    final cartSize = cartBox.size;
-    final targetX = cartPosition.dx + cartSize.width / 2;
-    final targetY = cartPosition.dy + cartSize.height / 2;
-
-    print('📍 Target position: ($targetX, $targetY)');
-
-    // Create overlay entry with product image
-    final overlay = Overlay.of(context);
-    if (overlay == null) {
-      print('❌ Overlay not found');
-      setState(() {
-        _cartCount++;
-      });
-      _shakeController?.forward().then((_) => _shakeController?.reset());
-      return;
-    }
-
-    late OverlayEntry overlayEntry;
-
-    // Animation values
-    final animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    // Start position (will be set when we know the product card position)
-    // For simplicity, we'll use screen center as starting point
-    final screenSize = MediaQuery.of(context).size;
-    final startX = screenSize.width / 2;
-    final startY = screenSize.height * 0.6; // Approximate product card position
-
-    final animation = CurvedAnimation(
-      parent: animationController,
-      curve: Curves.easeInOut,
-    );
-
-    overlayEntry = OverlayEntry(
-      builder: (context) => AnimatedBuilder(
-        animation: animation,
-        builder: (context, child) {
-          // Calculate current position with parabolic curve
-          final progress = animation.value;
-          final currentX = startX + (targetX - startX) * progress;
-          final currentY = startY +
-              (targetY - startY) * progress -
-              100 * (1 - progress) * progress; // Parabolic arc
-
-          // Scale down as it flies
-          final scale = 1.0 - progress * 0.7;
-
-          return Positioned(
-            left: currentX - 25,
-            top: currentY - 25,
-            child: IgnorePointer(
-              child: Transform.scale(
-                scale: scale,
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1EB5D9).withOpacity(0.3),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1EB5D9).withOpacity(0.5),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.toys,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _HomeFlyingDot(
+        startPos: startPos,
+        endPos: endPos,
+        onComplete: () => entry.remove(),
       ),
     );
-
-    overlay.insert(overlayEntry);
-    _flyingWidget = overlayEntry;
-
-    print('🎬 Animation started!');
-
-    // Start animation
-    await animationController.forward();
-
-    print('✨ Animation completed!');
-
-    // Update cart count and shake cart icon
-    if (mounted) {
-      setState(() {
-        _cartCount++;
-      });
-      _shakeController?.forward().then((_) => _shakeController?.reset());
-    }
-
-    // Clean up
-    await Future.delayed(const Duration(milliseconds: 100));
-    overlayEntry.remove();
-    animationController.dispose();
-
-    print('🧹 Animation cleaned up');
+    Overlay.of(context).insert(entry);
+    _flyingWidget = entry;
   }
+
+  void _flyToWishlist(GlobalKey sourceKey) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sourceBox =
+          sourceKey.currentContext?.findRenderObject() as RenderBox?;
+      final targetBox =
+          _wishlistNavKey.currentContext?.findRenderObject() as RenderBox?;
+      if (sourceBox == null || targetBox == null) return;
+      final startPos =
+          sourceBox.localToGlobal(sourceBox.size.center(Offset.zero));
+      final endPos =
+          targetBox.localToGlobal(targetBox.size.center(Offset.zero));
+
+      late OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (_) => _HomeFlyingHeart(
+          startPos: startPos,
+          endPos: endPos,
+          onComplete: () => entry.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
+    });
+  }
+
+  void _startFlyAnimation(Product product) async {}
 
   Future<void> _addToCart(Product product) async {
     final authService = Provider.of<AuthService>(context, listen: false);
@@ -1366,33 +1411,20 @@ class _HomeScreenState extends State<HomeScreen>
         product.id,
         1,
       );
-      if (mounted && success) {
+      if (mounted && !success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã thêm ${product.name} vào giỏ hàng'),
-            backgroundColor: const Color(0xFF1EB5D9),
+            content: const Text('Không thể thêm vào giỏ hàng'),
+            backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 1),
-          ),
-        );
-      } else if (mounted && !success) {
-        // Show detailed error but don't block the UI
-        print('Failed to add to cart - Backend might be unavailable');
-        // Optional: Show a less prominent error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-                'Đã thêm vào giỏ tạm thời (Chưa đồng bộ với server)'),
-            backgroundColor: Colors.orange.shade600,
-            duration: const Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        print('Cart error: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Đã thêm vào giỏ tạm thời (Lỗi kết nối)'),
+            content: const Text('Lỗi kết nối'),
             backgroundColor: Colors.orange.shade600,
             duration: const Duration(seconds: 2),
           ),
@@ -1408,7 +1440,8 @@ class ProductsGridSliver extends StatelessWidget {
   final ValueNotifier<String> searchQueryNotifier;
   final NumberFormat decimalFormat;
   final Function(Product) onProductTap;
-  final Function(Product) onAddToCart;
+  final Function(Product, GlobalKey) onAddToCart;
+  final Function(Product, GlobalKey) onWishlistToggle;
 
   const ProductsGridSliver({
     super.key,
@@ -1417,6 +1450,7 @@ class ProductsGridSliver extends StatelessWidget {
     required this.decimalFormat,
     required this.onProductTap,
     required this.onAddToCart,
+    required this.onWishlistToggle,
   });
 
   @override
@@ -1483,7 +1517,9 @@ class ProductsGridSliver extends StatelessWidget {
                       product: products[index],
                       decimalFormat: decimalFormat,
                       onTap: () => onProductTap(products[index]),
-                      onAddToCart: () => onAddToCart(products[index]),
+                      onAddToCart: (key) => onAddToCart(products[index], key),
+                      onWishlistToggle: (key) =>
+                          onWishlistToggle(products[index], key),
                     );
                   },
                   childCount: products.length,
@@ -1498,11 +1534,12 @@ class ProductsGridSliver extends StatelessWidget {
 }
 
 // Modern Product Card Widget with Flush Layout
-class ModernProductCard extends StatelessWidget {
+class ModernProductCard extends StatefulWidget {
   final Product product;
   final NumberFormat decimalFormat;
   final VoidCallback onTap;
-  final VoidCallback onAddToCart;
+  final Function(GlobalKey) onAddToCart;
+  final Function(GlobalKey)? onWishlistToggle;
 
   const ModernProductCard({
     super.key,
@@ -1510,12 +1547,23 @@ class ModernProductCard extends StatelessWidget {
     required this.decimalFormat,
     required this.onTap,
     required this.onAddToCart,
+    this.onWishlistToggle,
   });
 
   @override
+  State<ModernProductCard> createState() => _ModernProductCardState();
+}
+
+class _ModernProductCardState extends State<ModernProductCard> {
+  final _addBtnKey = GlobalKey();
+  final _heartBtnKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
+    final decimalFormat = widget.decimalFormat;
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1569,23 +1617,46 @@ class ModernProductCard extends StatelessWidget {
                                 ),
                               ),
                       ),
-                      // Discount Badge
+                      // Wishlist heart button
                       Positioned(
                         top: 8,
                         left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFC107),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            '-20%',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                        child: Consumer<WishlistService>(
+                          builder: (_, wishlist, __) => GestureDetector(
+                            onTap: () {
+                              final ws = Provider.of<WishlistService>(context,
+                                  listen: false);
+                              final wasWishlisted =
+                                  ws.isWishlisted(widget.product.id);
+                              ws.toggleWishlist(widget.product);
+                              if (!wasWishlisted) {
+                                widget.onWishlistToggle?.call(_heartBtnKey);
+                              }
+                            },
+                            child: Container(
+                              key: _heartBtnKey,
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                wishlist.isWishlisted(widget.product.id)
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                size: 16,
+                                color: wishlist.isWishlisted(widget.product.id)
+                                    ? Colors.redAccent
+                                    : Colors.grey[400],
+                              ),
                             ),
                           ),
                         ),
@@ -1667,8 +1738,9 @@ class ModernProductCard extends StatelessWidget {
 
                       // Add to Cart Button
                       GestureDetector(
-                        onTap: onAddToCart,
+                        onTap: () => widget.onAddToCart(_addBtnKey),
                         child: Container(
+                          key: _addBtnKey,
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
@@ -1701,6 +1773,199 @@ class ModernProductCard extends StatelessWidget {
   }
 }
 
+// ─── Home Fly-to-Cart Overlay Animation ────────────────────────────────────
+
+class _HomeFlyingDot extends StatefulWidget {
+  const _HomeFlyingDot({
+    required this.startPos,
+    required this.endPos,
+    required this.onComplete,
+  });
+  final Offset startPos;
+  final Offset endPos;
+  final VoidCallback onComplete;
+
+  @override
+  State<_HomeFlyingDot> createState() => _HomeFlyingDotState();
+}
+
+class _HomeFlyingDotState extends State<_HomeFlyingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+    _ctrl.forward().whenComplete(widget.onComplete);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  /// Quadratic Bézier parabol: P(t) = (1-t)²P0 + 2(1-t)t·P1 + t²P2
+  Offset _bezier(double t) {
+    final p0 = widget.startPos;
+    final p2 = widget.endPos;
+    final ctrl = Offset(
+      (p0.dx + p2.dx) / 2,
+      math.min(p0.dy, p2.dy) - 130,
+    );
+    final mt = 1 - t;
+    return Offset(
+      mt * mt * p0.dx + 2 * mt * t * ctrl.dx + t * t * p2.dx,
+      mt * mt * p0.dy + 2 * mt * t * ctrl.dy + t * t * p2.dy,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) {
+        final t = _anim.value;
+        final pos = _bezier(t);
+        final scale = lerpDouble(1.0, 0.2, t)!;
+        final opacity = t > 0.75 ? (1.0 - t) / 0.25 : 1.0;
+        return Positioned(
+          left: pos.dx - 18,
+          top: pos.dy - 18,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: opacity.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1EB5D9).withOpacity(0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Color(0xFF1EB5D9),
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Home Fly-to-Wishlist Overlay Animation ─────────────────────────────────
+
+class _HomeFlyingHeart extends StatefulWidget {
+  const _HomeFlyingHeart({
+    required this.startPos,
+    required this.endPos,
+    required this.onComplete,
+  });
+  final Offset startPos;
+  final Offset endPos;
+  final VoidCallback onComplete;
+
+  @override
+  State<_HomeFlyingHeart> createState() => _HomeFlyingHeartState();
+}
+
+class _HomeFlyingHeartState extends State<_HomeFlyingHeart>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650));
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+    _ctrl.forward().whenComplete(widget.onComplete);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Offset _bezier(double t) {
+    final p0 = widget.startPos;
+    final p2 = widget.endPos;
+    final ctrl = Offset(
+      (p0.dx + p2.dx) / 2,
+      math.min(p0.dy, p2.dy) - 60,
+    );
+    final mt = 1 - t;
+    return Offset(
+      mt * mt * p0.dx + 2 * mt * t * ctrl.dx + t * t * p2.dx,
+      mt * mt * p0.dy + 2 * mt * t * ctrl.dy + t * t * p2.dy,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) {
+        final t = _anim.value;
+        final pos = _bezier(t);
+        final scale = lerpDouble(1.2, 0.3, t)!;
+        final opacity = t > 0.75 ? (1.0 - t) / 0.25 : 1.0;
+        return Positioned(
+          left: pos.dx - 18,
+          top: pos.dy - 18,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: opacity.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.redAccent.withOpacity(0.45),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.favorite,
+                    color: Colors.redAccent,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 // Optimized Banner Widget
 class MegaSaleBanner extends StatelessWidget {
   const MegaSaleBanner({super.key});
@@ -1709,99 +1974,178 @@ class MegaSaleBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-      constraints: const BoxConstraints(minHeight: 140),
-      clipBehavior: Clip.antiAlias,
+      width: double.infinity,
+      height: 120,
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF2E7FD8),
-            Color(0xFF1EB5D9),
-          ],
+          colors: [Color(0xFF3B82F6), Color(0xFF22D3EE)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Stack(
-        children: [
-          // Content with Padding
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Mega Sale',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            // Hiệu ứng đốm sáng mờ 1 (Góc trên phải)
+            Positioned(
+              top: -20,
+              right: 80,
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 24,
+                      spreadRadius: 10,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'UP TO 50% OFF',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFFFB800),
-                    letterSpacing: 1,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // Hiệu ứng đốm sáng mờ 2 (Góc dưới trái)
+            Positioned(
+              bottom: -10,
+              left: 20,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 16,
+                      spreadRadius: 5,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: SizedBox(
-                    height: 28,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF2E7FD8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 0,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+
+            // Icon Tên lửa (Xoay và đổ bóng)
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Transform.rotate(
+                angle: -10 * math.pi / 180,
+                child: SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Lớp tên lửa mờ phía sau
+                      Icon(
+                        Icons.rocket_launch_rounded,
+                        size: 140,
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                      // Lớp tên lửa vàng rực phía trước
+                      const Icon(
+                        Icons.rocket_launch_rounded,
+                        size: 100,
+                        color: Color(0xFFFDE047),
+                        shadows: [
+                          Shadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Cụm nội dung Chữ & Nút bấm
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Mega Sale',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                      shadows: [
+                        Shadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(0, 2)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'UP TO 50% OFF',
+                    style: TextStyle(
+                      color: Color(0xFFFDE047),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      shadows: [
+                        Shadow(
+                            color: Colors.black12,
+                            blurRadius: 2,
+                            offset: Offset(0, 1)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Nút Shop Now
+                  InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                       child: const Text(
                         'Shop Now',
                         style: TextStyle(
-                          fontSize: 11,
+                          color: Color(0xFF2563EB),
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Rocket Icon - positioned to not overlap text
-          Positioned(
-            right: 0,
-            bottom: -10,
-            child: Transform.rotate(
-              angle: 0.3,
-              child: const Icon(
-                Icons.rocket_launch,
-                size: 100,
-                color: Color(0xFFFFD700),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -66,7 +66,39 @@ class CartService extends ChangeNotifier {
       );
 
       if (response['success'] == true) {
-        _cart = Cart.fromJson(response['data']);
+        // Instead of replacing the whole cart (which may reorder items),
+        // update the existing item locally and adjust totals.
+        if (_cart != null) {
+          final idx =
+              _cart!.items.indexWhere((item) => item.productId == productId);
+          if (idx != -1) {
+            final oldItem = _cart!.items[idx];
+            final updatedItem = CartItem(
+              id: oldItem.id,
+              productId: oldItem.productId,
+              quantity: quantity,
+              product: oldItem.product,
+            );
+            final itemsCopy = List<CartItem>.from(_cart!.items);
+            itemsCopy[idx] = updatedItem;
+            final diff = quantity - oldItem.quantity;
+            final priceChange = (oldItem.product?.price ?? 0) * diff.toDouble();
+
+            _cart = Cart(
+              id: _cart!.id,
+              userId: _cart!.userId,
+              items: itemsCopy,
+              totalItems: _cart!.totalItems + diff,
+              totalPrice: _cart!.totalPrice + priceChange,
+            );
+          } else {
+            // fallback: parse full cart if item not found
+            _cart = Cart.fromJson(response['data']);
+          }
+        } else {
+          // no local cart yet; just set it
+          _cart = Cart.fromJson(response['data']);
+        }
         notifyListeners();
         return true;
       }
