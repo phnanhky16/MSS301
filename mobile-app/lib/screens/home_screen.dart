@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/cart_service.dart';
 import '../services/wishlist_service.dart';
+import '../services/address_service.dart';
 import '../services/api_service.dart';
+import 'shipping_address_screen.dart';
 import '../models/product.dart';
 import '../models/category.dart';
 import '../models/brand.dart';
@@ -73,6 +75,12 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
     );
     _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = context.read<AuthService>().currentUser?.id;
+      if (userId != null) {
+        context.read<AddressService>().fetchByUser(userId);
+      }
+    });
   }
 
   @override
@@ -339,78 +347,121 @@ class _HomeScreenState extends State<HomeScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // drag handle
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        return Consumer<AddressService>(
+          builder: (ctx, svc, _) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Chọn địa chỉ giao hàng',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // drag handle
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Chọn địa chỉ giao hàng',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  if (svc.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: CircularProgressIndicator(
+                          color: Color(0xFF1EB5D9)),
+                    )
+                  else if (svc.shipments.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'Chưa có địa chỉ nào. Hãy thêm địa chỉ mới!',
+                        style:
+                            TextStyle(color: Colors.grey[500], fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: svc.shipments.length,
+                        itemBuilder: (_, i) {
+                          final s = svc.shipments[i];
+                          final isSelected = svc.selectedId == s.shipId;
+                          return ListTile(
+                            leading: Icon(
+                              Icons.location_on,
+                              color: isSelected
+                                  ? const Color(0xFF1EB5D9)
+                                  : Colors.grey[500],
+                            ),
+                            title: Text(
+                              s.note?.isNotEmpty == true ? s.note! : s.city,
+                              style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? const Color(0xFF1EB5D9)
+                                    : Colors.black87,
+                              ),
+                            ),
+                            subtitle: Text(
+                              s.fullAddress,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.black54),
+                            ),
+                            trailing: isSelected
+                                ? const Icon(Icons.check_circle,
+                                    color: Color(0xFF1EB5D9))
+                                : null,
+                            onTap: () {
+                              svc.select(s.shipId);
+                              Navigator.pop(ctx);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    icon: const Icon(Icons.add,
+                        color: Color(0xFF1EB5D9), size: 18),
+                    label: const Text(
+                      'Quản lý địa chỉ',
+                      style: TextStyle(color: Color(0xFF1EB5D9)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ShippingAddressScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
-              const SizedBox(height: 16),
-              // address list
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    _addressTile('Nhà riêng', Icons.home, true),
-                    _addressTile('Công ty', Icons.apartment, false),
-                    _addressTile('Khách sạn', Icons.hotel, false),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  // placeholder for add new address
-                  Navigator.pop(ctx);
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF1EB5D9),
-                ),
-                child: const Text('+ Thêm địa chỉ mới'),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
+            );
+          },
         );
-      },
-    );
-  }
-
-  Widget _addressTile(String label, IconData icon, bool selected) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey[700]),
-      title: Text(
-        label,
-        style: TextStyle(
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal),
-      ),
-      trailing: selected
-          ? const Icon(Icons.check_circle, color: Color(0xFF1EB5D9))
-          : null,
-      onTap: () {
-        // update selection if necessary
-        Navigator.pop(context);
       },
     );
   }
@@ -688,30 +739,48 @@ class _HomeScreenState extends State<HomeScreen>
                                         width: 1,
                                       ),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.location_on,
-                                          size: 18,
-                                          color: Color(0xFF1EB5D9),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text(
-                                          'Ho Chi Minh City',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF2D2D2D),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.keyboard_arrow_down,
-                                          size: 18,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ],
+                                    child: Consumer<AddressService>(
+                                      builder: (_, addrSvc, __) {
+                                        final sel = addrSvc.selectedShipment;
+                                        final label = sel != null
+                                            ? (sel.note?.isNotEmpty == true
+                                                ? sel.note!
+                                                : sel.city)
+                                            : 'Chọn địa chỉ';
+                                        return Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.location_on,
+                                              size: 18,
+                                              color: Color(0xFF1EB5D9),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            ConstrainedBox(
+                                              constraints:
+                                                  const BoxConstraints(
+                                                      maxWidth: 140),
+                                              child: Text(
+                                                label,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF2D2D2D),
+                                                ),
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                maxLines: 1,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.keyboard_arrow_down,
+                                              size: 18,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ),
                                 ),

@@ -41,81 +41,177 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
     final districtCtrl = TextEditingController(text: existing?.district ?? '');
     final cityCtrl = TextEditingController(text: existing?.city ?? '');
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(existing == null ? 'Thêm địa chỉ' : 'Sửa địa chỉ'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: noteCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Tên địa chỉ',
-                  hintText: 'VD: Nhà riêng, Công ty, ...',
-                  prefixIcon: Icon(Icons.label_outline),
-                ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Drag handle ──
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // ── Tiêu đề ──
+                  Text(
+                    existing == null ? 'Thêm địa chỉ mới' : 'Sửa địa chỉ',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: kfTextDark,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  // ── Input fields ──
+                  _inputField(
+                    controller: noteCtrl,
+                    label: 'Tên địa chỉ',
+                    hint: 'VD: Nhà riêng, Công ty, ...',
+                    icon: Icons.label_outline,
+                  ),
+                  const SizedBox(height: 16),
+                  _inputField(
+                    controller: streetCtrl,
+                    label: 'Số nhà / Đường',
+                    icon: Icons.signpost_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _inputField(
+                    controller: wardCtrl,
+                    label: 'Phường / Xã',
+                    icon: Icons.holiday_village_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _inputField(
+                    controller: districtCtrl,
+                    label: 'Quận / Huyện',
+                    icon: Icons.location_city_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _inputField(
+                    controller: cityCtrl,
+                    label: 'Tỉnh / Thành phố',
+                    icon: Icons.map_outlined,
+                  ),
+                  const SizedBox(height: 28),
+                  // ── Nút Lưu ──
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kfBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 4,
+                        shadowColor: kfBlue.withOpacity(0.4),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final svc = context.read<AddressService>();
+                        final payload = {
+                          'note': noteCtrl.text.trim(),
+                          'street': streetCtrl.text.trim(),
+                          'ward': wardCtrl.text.trim(),
+                          'district': districtCtrl.text.trim(),
+                          'city': cityCtrl.text.trim(),
+                        };
+                        bool ok;
+                        if (existing == null) {
+                          ok = await svc
+                                  .create({...payload, 'userId': userId}) !=
+                              null;
+                        } else {
+                          ok = await svc.update(existing.shipId, payload) !=
+                              null;
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(ok
+                                ? 'Đã lưu địa chỉ'
+                                : 'Lỗi! Vui lòng thử lại'),
+                            backgroundColor: ok ? kfBlue : Colors.red,
+                          ));
+                        }
+                      },
+                      child: const Text(
+                        'Lưu địa chỉ',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // ── Nút Huỷ ──
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(
+                        'Huỷ',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 15),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: streetCtrl,
-                decoration: const InputDecoration(labelText: 'Số nhà / Đường'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: wardCtrl,
-                decoration: const InputDecoration(labelText: 'Phường / Xã'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: districtCtrl,
-                decoration: const InputDecoration(labelText: 'Quận / Huyện'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: cityCtrl,
-                decoration:
-                    const InputDecoration(labelText: 'Tỉnh / Thành phố'),
-              ),
-            ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _inputField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    required IconData icon,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: kfBlueDeep),
+        filled: true,
+        fillColor: Colors.grey[100],
+        labelStyle: const TextStyle(color: Colors.black54),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Huỷ'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kfBlue),
-            onPressed: () async {
-              final svc = context.read<AddressService>();
-              final payload = {
-                'note': noteCtrl.text.trim(),
-                'street': streetCtrl.text.trim(),
-                'ward': wardCtrl.text.trim(),
-                'district': districtCtrl.text.trim(),
-                'city': cityCtrl.text.trim(),
-              };
-              bool ok;
-              if (existing == null) {
-                ok = await svc.create({...payload, 'userId': userId}) != null;
-              } else {
-                ok = await svc.update(existing.shipId, payload) != null;
-              }
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content:
-                      Text(ok ? 'Đã lưu địa chỉ' : 'Lỗi! Vui lòng thử lại'),
-                  backgroundColor: ok ? kfBlue : Colors.red,
-                ));
-              }
-            },
-            child:
-                const Text('Lưu', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: kfBlue, width: 1.5),
+        ),
       ),
     );
   }
@@ -183,8 +279,7 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: const Text('Xác nhận xoá'),
-                      content:
-                          const Text('Bạn có chắc muốn xoá địa chỉ này?'),
+                      content: const Text('Bạn có chắc muốn xoá địa chỉ này?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
