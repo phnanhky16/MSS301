@@ -65,7 +65,7 @@ spring:
         - id: order-service
           uri: lb://order-service
           predicates:
-            - Path=/api/orders/**, /api/coupons/**
+            - Path=/api/orders/**, /api/payments/**, /api/coupons/**
           filters:
             - StripPrefix=1
 
@@ -171,7 +171,15 @@ spring:
           filters:
             - RewritePath=/inventory-service/(?<segment>.*), /${segment}
 
-        # Cart Service Routes
+        # Cart Service Routes (direct /api/cart/**)
+        - id: cart-service-api
+          uri: lb://cart-service
+          predicates:
+            - Path=/api/cart/**
+          filters:
+            - StripPrefix=0
+
+        # Cart Service Routes (via /cart-service/** prefix)
         - id: cart-service
           uri: lb://cart-service
           predicates:
@@ -244,28 +252,6 @@ spring:
           filters:
             - RewritePath=/address-service/(?<segment>.*), /${segment}
 
-        # Payment Service Routes
-        - id: payment-service
-          uri: lb://payment-service
-          predicates:
-            - Path=/api/payments/**
-
-        # Payment Service Swagger API Docs
-        - id: payment-service-api-docs
-          uri: lb://payment-service
-          predicates:
-            - Path=/payment-service/v3/api-docs, /payment-service/v3/api-docs/**
-          filters:
-            - RewritePath=/payment-service/(?<segment>.*), /${segment}
-
-        # Payment Service Swagger UI resources
-        - id: payment-service-swagger-ui
-          uri: lb://payment-service
-          predicates:
-            - Path=/payment-service/swagger-ui/**, /payment-service/swagger-ui.html
-          filters:
-            - RewritePath=/payment-service/(?<segment>.*), /${segment}
-
   security:
     oauth2:
       resourceserver:
@@ -298,8 +284,6 @@ springdoc:
         url: /user-service/v3/api-docs
       - name: Address Service
         url: /address-service/v3/api-docs
-      - name: Payment Service
-        url: /payment-service/v3/api-docs
       - name: Cart Service
         url: /cart-service/v3/api-docs
     urls-primary-name: User Service

@@ -1,4 +1,4 @@
-package com.kidfavor.cartservice.service;
+package com.kidfavor.cartservice.service.impl;
 
 import com.kidfavor.cartservice.client.ProductClient;
 import com.kidfavor.cartservice.dto.*;
@@ -10,6 +10,7 @@ import com.kidfavor.cartservice.exception.InvalidQuantityException;
 import com.kidfavor.cartservice.exception.ProductNotFoundException;
 import com.kidfavor.cartservice.repository.CartItemRepository;
 import com.kidfavor.cartservice.repository.CartRepository;
+import com.kidfavor.cartservice.service.CartService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -36,7 +37,6 @@ public class CartServiceImpl implements CartService {
     public CartResponse getCartByUserId(Long userId) {
         log.info("Fetching cart for user: {}", userId);
         Cart cart = cartRepository.findByUserId(userId)
-<<<<<<< HEAD
                 .orElseGet(() -> {
                     // nếu người dùng chưa có giỏ nào thì trả về một giỏ rỗng
                     Cart empty = new Cart();
@@ -44,10 +44,6 @@ public class CartServiceImpl implements CartService {
                     empty = cartRepository.save(empty);
                     return empty;
                 });
-=======
-                .orElseThrow(() -> new CartNotFoundException("Cart not found for user: " + userId));
->>>>>>> d99fb530b7f8eccd66c6574226b8f6d6a8155d93
-        
         return mapToCartResponse(cart);
     }
 
@@ -69,16 +65,11 @@ public class CartServiceImpl implements CartService {
         // Handle nullable stock
         int availableStock = product.getStock() != null ? product.getStock() : 0;
         // Check stock availability
-<<<<<<< HEAD
         if (availableStock < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock. Available: " + availableStock);
-=======
-        if (product.getStock() < request.getQuantity()) {
             throw new InsufficientStockException(
-                String.format("Insufficient stock for product %d. Available: %d, Requested: %d", 
-                    request.getProductId(), product.getStock(), request.getQuantity())
+                String.format("Insufficient stock for product %d. Available: %d, Requested: %d",
+                    request.getProductId(), availableStock, request.getQuantity())
             );
->>>>>>> d99fb530b7f8eccd66c6574226b8f6d6a8155d93
         }
 
         // Get or create cart for user
@@ -150,27 +141,15 @@ public class CartServiceImpl implements CartService {
         CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
                 .orElseThrow(() -> new ProductNotFoundException("Product " + productId + " not found in cart"));
 
-<<<<<<< HEAD
-        // Validate product stock
-        var productResponse = productClient.getProductById(productId);
-        if (productResponse.getData() == null) {
-            throw new RuntimeException("Product not found: " + productId);
-        }
-
-        ProductDTO product = productResponse.getData();
-        int availableStock = product.getStock() != null ? product.getStock() : 0;
-        if (availableStock < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock. Available: " + availableStock);
-=======
         // Validate product still exists and check stock
         ProductDTO product = validateAndGetProduct(productId);
-        
-        if (product.getStock() < request.getQuantity()) {
+        int availableStock = product.getStock() != null ? product.getStock() : 0;
+
+        if (availableStock < request.getQuantity()) {
             throw new InsufficientStockException(
-                String.format("Insufficient stock for product %d. Available: %d, Requested: %d", 
-                    productId, product.getStock(), request.getQuantity())
+                String.format("Insufficient stock for product %d. Available: %d, Requested: %d",
+                    productId, availableStock, request.getQuantity())
             );
->>>>>>> d99fb530b7f8eccd66c6574226b8f6d6a8155d93
         }
 
         int oldQuantity = item.getQuantity();

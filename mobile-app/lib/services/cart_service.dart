@@ -11,13 +11,13 @@ class CartService extends ChangeNotifier {
   int get itemCount => _cart?.totalItems ?? 0;
   double get totalPrice => _cart?.totalPrice ?? 0.0;
 
-  // Get cart
+  // Get cart (backend uses JWT to identify user, no userId in path)
   Future<void> fetchCart(int userId) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final response = await ApiService.get('/cart-service/carts/$userId');
+      final response = await ApiService.get('/cart-service/carts');
       if (response['success'] == true) {
         _cart = Cart.fromJson(response['data']);
       }
@@ -29,11 +29,11 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  // Add to cart
+  // Add to cart (POST /carts/items - backend extracts userId from JWT)
   Future<bool> addToCart(int userId, int productId, int quantity) async {
     try {
       final response = await ApiService.post(
-        '/cart-service/carts',
+        '/cart-service/carts/items',
         {
           'userId': userId,
           'productId': productId,
@@ -53,7 +53,7 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  // Update cart item
+  // Update cart item (PUT /carts/items/{productId} - no userId in path)
   Future<bool> updateCartItem(
     int userId,
     int productId,
@@ -61,7 +61,7 @@ class CartService extends ChangeNotifier {
   ) async {
     try {
       final response = await ApiService.put(
-        '/cart-service/carts/$userId/items/$productId',
+        '/cart-service/carts/items/$productId',
         {'quantity': quantity},
       );
 
@@ -109,11 +109,11 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  // Remove from cart
+  // Remove from cart (DELETE /carts/items/{productId} - no userId in path)
   Future<bool> removeFromCart(int userId, int productId) async {
     try {
       final response = await ApiService.delete(
-        '/cart-service/carts/$userId/items/$productId',
+        '/cart-service/carts/items/$productId',
       );
 
       if (response['success'] == true) {
@@ -128,10 +128,10 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  // Clear cart
+  // Clear cart (DELETE /carts - no userId in path)
   Future<bool> clearCart(int userId) async {
     try {
-      final response = await ApiService.delete('/cart-service/carts/$userId');
+      final response = await ApiService.delete('/cart-service/carts');
       if (response['success'] == true) {
         _cart = null;
         notifyListeners();
