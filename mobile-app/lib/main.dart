@@ -11,6 +11,7 @@ import 'services/auth_service.dart';
 import 'services/cart_service.dart';
 import 'services/wishlist_service.dart';
 import 'services/address_service.dart';
+import 'services/order_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,6 +28,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => WishlistService()),
         ChangeNotifierProvider(create: (_) => AddressService()),
+        ChangeNotifierProvider(create: (_) => OrderService()),
       ],
       child: MaterialApp(
         title: 'Kidflavor',

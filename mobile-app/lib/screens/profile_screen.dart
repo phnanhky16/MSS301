@@ -4,6 +4,8 @@ import '../services/auth_service.dart';
 import '../services/cart_service.dart';
 import '../services/wishlist_service.dart';
 import 'shipping_address_screen.dart';
+import 'order_history_screen.dart';
+import 'account_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -30,7 +32,7 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Grid of 4 cards
-                    _buildGridCards(),
+                    _buildGridCards(context),
 
                     const SizedBox(height: 24),
 
@@ -251,7 +253,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGridCards() {
+  Widget _buildGridCards(BuildContext context) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -260,16 +262,26 @@ class ProfileScreen extends StatelessWidget {
       crossAxisSpacing: 16,
       childAspectRatio: 1.3,
       children: [
-        _buildGridCard(Icons.receipt_long, 'Order\nHistory'),
-        _buildGridCard(Icons.confirmation_number, 'My\nVouchers'),
-        _buildGridCard(Icons.toys, 'Toy\nCollection'),
-        _buildGridCard(Icons.card_giftcard, 'Gift\nCards'),
+        _buildGridCard(
+          context,
+          Icons.receipt_long,
+          'Order\nHistory',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const OrderHistoryScreen()),
+          ),
+        ),
+        _buildGridCard(context, Icons.confirmation_number, 'My\nVouchers'),
+        _buildGridCard(context, Icons.toys, 'Toy\nCollection'),
+        _buildGridCard(context, Icons.card_giftcard, 'Gift\nCards'),
       ],
     );
   }
 
-  Widget _buildGridCard(IconData icon, String label) {
-    return Container(
+  Widget _buildGridCard(BuildContext context, IconData icon, String label,
+      {VoidCallback? onTap}) {
+    final card = Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -311,6 +323,10 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: card);
+    }
+    return card;
   }
 
   Widget _buildNeedHelpCard() {
@@ -394,6 +410,13 @@ class ProfileScreen extends StatelessWidget {
           Icons.person,
           'Account Settings',
           'Manage your details',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const AccountSettingsScreen()),
+            );
+          },
         ),
         const SizedBox(height: 16),
         _buildSettingsItem(

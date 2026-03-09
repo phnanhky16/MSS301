@@ -151,4 +151,83 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
+
+  // Update profile
+  Future<bool> updateProfile({
+    required String fullName,
+    required String email,
+    String? phone,
+  }) async {
+    if (_currentUser == null) return false;
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.put(
+        '/user-service/users/${_currentUser!.id}',
+        {
+          'fullName': fullName,
+          'email': email,
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
+        },
+      );
+
+      final ok = response['status'] == 200 ||
+          response['status'] == 201 ||
+          response['success'] == true;
+
+      if (ok) {
+        final data = response['data'];
+        if (data != null) {
+          _currentUser = User.fromJson(data as Map<String, dynamic>);
+        } else {
+          _currentUser = User(
+            id: _currentUser!.id,
+            fullName: fullName,
+            userName: _currentUser!.userName,
+            email: email,
+            phone: phone ?? _currentUser!.phone,
+            role: _currentUser!.role,
+            status: _currentUser!.status,
+            avatarUrl: _currentUser!.avatarUrl,
+          );
+        }
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      print('Update profile error: $e');
+      return false;
+    }
+  }
+
+  // Change password
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    if (_currentUser == null) return false;
+    try {
+      final response = await ApiService.put(
+        '/user-service/users/${_currentUser!.id}/change-password',
+        {
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        },
+      );
+      return response['status'] == 200 ||
+          response['status'] == 204 ||
+          response['success'] == true;
+    } catch (e) {
+      print('Change password error: $e');
+      return false;
+    }
+  }
 }
