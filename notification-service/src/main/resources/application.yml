@@ -60,6 +60,7 @@ app:
     topics:
       order-placed: order-placed-topic
       user-registered: user-registered-topic
+      payment-completed: payment-completed-topic
 
 # Logging
 logging:

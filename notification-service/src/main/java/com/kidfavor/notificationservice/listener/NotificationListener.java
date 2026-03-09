@@ -1,6 +1,7 @@
 package com.kidfavor.notificationservice.listener;
 
 import com.kidfavor.notificationservice.dto.OrderPlacedEvent;
+import com.kidfavor.notificationservice.dto.PaymentCompletedEvent;
 import com.kidfavor.notificationservice.dto.UserRegisteredEvent;
 import com.kidfavor.notificationservice.service.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +11,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Kafka listener for consuming notification events.
- * Handles OrderPlacedEvent from order-service and UserRegisteredEvent from
- * user-service.
+ * Handles OrderPlacedEvent, PaymentCompletedEvent, and UserRegisteredEvent.
  */
 @Slf4j
 @Component
@@ -36,6 +36,25 @@ public class NotificationListener {
             }
         } catch (Exception e) {
             log.error("Error processing OrderPlacedEvent: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Consumes payment-completed events and sends payment confirmation emails.
+     */
+    @KafkaListener(topics = "${app.kafka.topics.payment-completed}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
+    public void handlePaymentCompletedEvent(PaymentCompletedEvent event) {
+        try {
+            log.info("Received PaymentCompletedEvent for order: {}, customer: {}",
+                    event.getOrderNumber(), event.getCustomerEmail());
+
+            if (event.getCustomerEmail() != null && !event.getCustomerEmail().isBlank()) {
+                emailService.sendPaymentConfirmationEmail(event);
+            } else {
+                log.warn("PaymentCompletedEvent missing customerEmail for order: {}", event.getOrderNumber());
+            }
+        } catch (Exception e) {
+            log.error("Error processing PaymentCompletedEvent: {}", e.getMessage(), e);
         }
     }
 

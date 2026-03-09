@@ -1,5 +1,6 @@
-package com.kidfavor.paymentservice.event;
+package com.kidfavor.notificationservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,12 +10,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Kafka event published when a payment is confirmed by PayOS.
+ * Mirror DTO for PaymentCompletedEvent published by payment-service.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PaymentCompletedEvent {
     private String orderNumber;
     private Long orderCode;

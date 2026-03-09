@@ -1,6 +1,7 @@
 package com.kidfavor.paymentservice.service.impl;
 
 import com.kidfavor.paymentservice.client.OrderServiceClient;
+import com.kidfavor.paymentservice.client.UserServiceClient;
 import com.kidfavor.paymentservice.dto.ApiResponse;
 import com.kidfavor.paymentservice.dto.CreatePaymentResponse;
 import com.kidfavor.paymentservice.dto.OrderDto;
@@ -30,6 +31,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PayOS payOS;
     private final PaymentRepository paymentRepository;
     private final OrderServiceClient orderServiceClient;
+    private final UserServiceClient userServiceClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
 
@@ -172,11 +174,26 @@ public class PaymentServiceImpl implements PaymentService {
 
         log.info("Payment confirmed for order: {} (orderCode: {})", payment.getOrderNumber(), orderCode);
 
+        // Fetch user email for notification
+        String customerEmail = null;
+        String customerName = null;
+        try {
+            var userResponse = userServiceClient.getUserById(payment.getUserId());
+            if (userResponse != null && userResponse.getData() != null) {
+                customerEmail = userResponse.getData().getEmail();
+                customerName = userResponse.getData().getFullName();
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch user info for userId: {}. Email notification may be skipped.", payment.getUserId());
+        }
+
         // Publish Kafka event
         PaymentCompletedEvent event = PaymentCompletedEvent.builder()
                 .orderNumber(payment.getOrderNumber())
                 .orderCode(orderCode)
                 .userId(payment.getUserId())
+                .customerEmail(customerEmail)
+                .customerName(customerName)
                 .amount(payment.getAmount())
                 .transactionReference(reference)
                 .paymentLinkId(payment.getPaymentLinkId())
