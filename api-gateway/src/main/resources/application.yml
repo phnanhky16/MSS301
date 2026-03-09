@@ -67,7 +67,7 @@ spring:
         - id: order-service
           uri: lb://order-service
           predicates:
-            - Path=/api/orders/**, /api/payments/**, /api/coupons/**
+            - Path=/api/orders/**, /api/coupons/**
           filters:
             - StripPrefix=1
 
@@ -251,8 +251,6 @@ spring:
           uri: lb://payment-service
           predicates:
             - Path=/api/payments/**
-          filters:
-            - StripPrefix=1
 
         # Payment Service Swagger API Docs
         - id: payment-service-api-docs
