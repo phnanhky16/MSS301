@@ -1,4 +1,5 @@
 import '../styles/globals.css';
+import '../styles/admin.css';
 import 'antd/dist/reset.css';
 import { useRouter } from 'next/router';
 import { ConfigProvider, App as AntApp } from 'antd';

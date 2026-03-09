@@ -1,38 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Layout as AntLayout, Menu, Button } from 'antd';
+import { Layout as AntLayout, Menu, Button, Tooltip } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { logout } from '../services/auth';
 import dynamic from 'next/dynamic';
 
-// dynamically import icon module and grab the specific export; keeps
-// initial bundle smaller and avoids Next.js resolving paths that vary by
-// library version.
-const HomeOutlined = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.HomeOutlined),
+// ── Dynamic icon imports ──────────────────────────────────────
+const DashboardOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.DashboardOutlined),
   { ssr: false }
 );
 const UserOutlined = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.UserOutlined),
+  () => import('@ant-design/icons').then(m => m.UserOutlined),
   { ssr: false }
 );
 const ShoppingCartOutlined = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.ShoppingCartOutlined),
+  () => import('@ant-design/icons').then(m => m.ShoppingCartOutlined),
   { ssr: false }
 );
-// Use tag icon for coupons navigation
-const TagOutlinedDyn = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.TagOutlined),
+const TagOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.TagOutlined),
+  { ssr: false }
+);
+const AppstoreOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.AppstoreOutlined),
+  { ssr: false }
+);
+const LogoutOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.LogoutOutlined),
+  { ssr: false }
+);
+const BellOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.BellOutlined),
   { ssr: false }
 );
 
 const { Header, Sider, Content, Footer } = AntLayout;
 
+// ── Page title mapping ────────────────────────────────────────
+const pageTitles = {
+  dashboard: 'Dashboard',
+  orders: 'Orders Management',
+  products: 'Products Management',
+  coupons: 'Coupons Management',
+  users: 'Users Management',
+};
+
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     const check = () => setLoggedIn(!!localStorage.getItem('accessToken'));
@@ -41,7 +60,6 @@ export default function AdminLayout({ children }) {
     return () => window.removeEventListener('storage', check);
   }, []);
 
-  // whenever login status changes, try to parse JWT for profile info
   useEffect(() => {
     if (loggedIn) {
       import('../services/auth').then(mod => {
@@ -51,8 +69,8 @@ export default function AdminLayout({ children }) {
       setProfile(null);
     }
   }, [loggedIn]);
-  // determine which menu item should be highlighted based on the current path
-  // note: Next.js router.pathname is the route template (no query string)
+
+  // Active menu key
   const selected = router.pathname.startsWith('/admin/coupons')
     ? 'coupons'
     : router.pathname.startsWith('/admin/orders')
@@ -63,26 +81,55 @@ export default function AdminLayout({ children }) {
           ? 'users'
           : 'dashboard';
 
+  const displayName = profile?.fullName || profile?.name || 'Admin';
+  const initials = displayName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <>
       <Head>
-        {/* set favicon explicitly to avoid default /favicon.ico 404 */}
         <link rel="icon" href="/images.jpg" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
       </Head>
-      <AntLayout style={{ minHeight: '100vh' }}>
-        <Sider collapsible>
-          <div className="logo" style={{ height: 48, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {/* use public/images.jpg as application icon; make it larger */}
-            <img src="/images.jpg" alt="logo" style={{ height: 48, objectFit: 'contain' }} />
+
+      <AntLayout className="admin-layout" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        {/* ── Sidebar ── */}
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={260}
+          collapsedWidth={80}
+          className="admin-sidebar"
+          breakpoint="lg"
+        >
+          {/* Logo */}
+          <div className="admin-sidebar-logo">
+            <img src="/images.jpg" alt="KidFavor" className="admin-sidebar-logo-icon" />
+            {!collapsed && (
+              <div className="admin-sidebar-logo-text">
+                <span className="admin-sidebar-logo-title">KidFavor</span>
+                <span className="admin-sidebar-logo-sub">Admin Panel</span>
+              </div>
+            )}
           </div>
+
+          {/* Navigation */}
           <Menu
             theme="dark"
-            defaultSelectedKeys={[selected]}
+            selectedKeys={[selected]}
             mode="inline"
             items={[
               {
                 key: 'dashboard',
-                icon: <HomeOutlined />,
+                icon: <DashboardOutlined />,
                 label: <Link href="/admin">Dashboard</Link>,
               },
               {
@@ -92,12 +139,12 @@ export default function AdminLayout({ children }) {
               },
               {
                 key: 'products',
-                icon: <ShoppingCartOutlined />,
+                icon: <AppstoreOutlined />,
                 label: <Link href="/admin/products">Products</Link>,
               },
               {
                 key: 'coupons',
-                icon: <TagOutlinedDyn />,
+                icon: <TagOutlined />,
                 label: <Link href="/admin/coupons">Coupons</Link>,
               },
               {
@@ -108,35 +155,77 @@ export default function AdminLayout({ children }) {
             ]}
           />
         </Sider>
+
+        {/* ── Main Area ── */}
         <AntLayout>
-          <Header style={{ background: '#fff', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
-              <img src="/images.jpg" alt="logo" style={{ height: 32, marginRight: 8, objectFit: 'contain' }} />
-              <span>Admin Panel</span>
-            </div>
-            {loggedIn ? (
-              <div style={{ display: 'flex', alignItems: 'center', marginRight: 16 }}>
-                <span style={{ marginRight: 12 }}>
-                  {profile?.fullName || profile?.name || ''}
-                </span>
-                <Button
-                  type="link"
-                  onClick={async () => {
-                    await logout();
-                    router.push('/login');
-                  }}
-                >
-                  Logout
-                </Button>
+          {/* Header */}
+          <Header className="admin-header">
+            <div className="admin-header-left">
+              <div>
+                <div className="admin-header-title">
+                  {pageTitles[selected] || 'Dashboard'}
+                </div>
+                <div className="admin-header-breadcrumb">
+                  Admin / {pageTitles[selected] || 'Dashboard'}
+                </div>
               </div>
-            ) : (
-              <Button type="link" onClick={() => router.push('/login')} style={{ marginRight: 16 }}>
-                Login
-              </Button>
-            )}
+            </div>
+
+            <div className="admin-header-right">
+              {loggedIn ? (
+                <>
+                  <Tooltip title="Notifications">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<BellOutlined style={{ fontSize: 18 }} />}
+                      style={{ color: '#636e72' }}
+                    />
+                  </Tooltip>
+
+                  <div className="admin-header-user">
+                    <div className="admin-header-avatar">{initials}</div>
+                    <div>
+                      <div className="admin-header-name">{displayName}</div>
+                      <div className="admin-header-role">
+                        {profile?.role || 'Administrator'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="admin-logout-btn"
+                    icon={<LogoutOutlined />}
+                    onClick={async () => {
+                      await logout();
+                      router.push('/login');
+                    }}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="primary"
+                  onClick={() => router.push('/login')}
+                  style={{ borderRadius: 10 }}
+                >
+                  Login
+                </Button>
+              )}
+            </div>
           </Header>
-          <Content style={{ margin: '16px' }}>{children}</Content>
-          <Footer style={{ textAlign: 'center' }}>KidFavor Admin ©2026</Footer>
+
+          {/* Content */}
+          <Content className="admin-content">{children}</Content>
+
+          {/* Footer */}
+          <Footer className="admin-footer">
+            <span className="admin-footer-text">
+              KidFavor Admin ©2026 — Built with{' '}
+              <span className="admin-footer-heart">❤️</span>
+            </span>
+          </Footer>
         </AntLayout>
       </AntLayout>
     </>
