@@ -114,12 +114,11 @@ public class ProductServiceImpl implements ProductService {
             String sortField = null;
             String sortDir = null;
             if (effective.getSort().isSorted()) {
-            org.springframework.data.domain.Sort.Order order = effective.getSort().iterator().next();
-            sortField = order.getProperty();
-            sortDir = order.getDirection().name();
+                org.springframework.data.domain.Sort.Order order = effective.getSort().iterator().next();
+                sortField = order.getProperty();
+                sortDir = order.getDirection().name();
             }
-            List<com.kidfavor.productservice.document.ProductDocument> docs =
-                productSearchService.searchProducts(
+            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
                     keyword, categoryId, brandId, status, effective.getPageNumber(), effective.getPageSize(), sortField,
                     sortDir);
 
@@ -143,25 +142,25 @@ public class ProductServiceImpl implements ProductService {
 
             // fetch the full Product entities (with images) from the database
             List<Long> ids = docs.stream()
-                .map(d -> Long.valueOf(d.getId()))
-                .collect(Collectors.toList());
+                    .map(d -> Long.valueOf(d.getId()))
+                    .collect(Collectors.toList());
             List<Product> loaded = productRepository.findByIdInWithRelations(ids);
             Map<Long, Product> map = loaded.stream()
-                .collect(Collectors.toMap(Product::getId, p -> p));
+                    .collect(Collectors.toMap(Product::getId, p -> p));
             List<ProductResponse> responseList = ids.stream()
-                .map(map::get)
-                .filter(java.util.Objects::nonNull)
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+                    .map(map::get)
+                    .filter(java.util.Objects::nonNull)
+                    .map(productMapper::toResponse)
+                    .collect(Collectors.toList());
 
             // We don't have total elements easily from ES without doing a count query or
             // modifying searchService,
             // so giving a rough total for now or we could modify productSearchService to
             // return Page.
             return new org.springframework.data.domain.PageImpl<>(
-                responseList,
-                effective,
-                (effective.getPageNumber() + 1) * effective.getPageSize() + 1); // rough pagination
+                    responseList,
+                    effective,
+                    (effective.getPageNumber() + 1) * effective.getPageSize() + 1); // rough pagination
         }
 
         return productRepository.findAll(spec, effective)
@@ -295,10 +294,10 @@ public class ProductServiceImpl implements ProductService {
 
         // debug logging to help diagnose why keyword filtering sometimes
         // appears to be ignored (see issue where clicking an autocomplete
-        // suggestion still returned the full product list).  We print the raw
+        // suggestion still returned the full product list). We print the raw
         // incoming parameter and whether our branch to query ES is taken.
         log.debug("listProductsSortedByStock called with keyword='{}', categoryId={}, brandId={}, status={}",
-            keyword, categoryId, brandId, status);
+                keyword, categoryId, brandId, status);
 
         // Get product IDs with stock from inventory service
         Set<Long> productIdsWithStock = new HashSet<>();
@@ -345,8 +344,7 @@ public class ProductServiceImpl implements ProductService {
         if (keyword != null && !keyword.trim().isEmpty()) {
             // perform search against elasticsearch index to get the matching ids
             log.debug("keyword non-empty, querying ES");
-            List<com.kidfavor.productservice.document.ProductDocument> docs =
-                productSearchService.searchProducts(
+            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
                     keyword, categoryId, brandId, status, 0, 1000, null, null);
 
             // same post-filter as above for the sorted-by-stock path
@@ -362,19 +360,19 @@ public class ProductServiceImpl implements ProductService {
 
             // collect ids in the order returned by ES so we can preserve it later
             List<Long> ids = docs.stream()
-                .map(doc -> Long.valueOf(doc.getId()))
-                .collect(Collectors.toList());
+                    .map(doc -> Long.valueOf(doc.getId()))
+                    .collect(Collectors.toList());
 
             // fetch full entities (including images) in a single query
             List<Product> loaded = productRepository.findByIdInWithRelations(ids);
 
             // maintain ES ordering; filter out any missing products just in case
             Map<Long, Product> map = loaded.stream()
-                .collect(Collectors.toMap(Product::getId, p -> p));
+                    .collect(Collectors.toMap(Product::getId, p -> p));
             allProducts = ids.stream()
-                .map(map::get)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                    .map(map::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
         } else {
             allProducts = productRepository.findAll(spec);
         }
@@ -412,5 +410,43 @@ public class ProductServiceImpl implements ProductService {
                 responseList,
                 pageable,
                 sortedProducts.size());
+    }
+
+    @Override
+    public ProductResponse setSalePrice(Long id, com.kidfavor.productservice.dto.request.SetSalePriceRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+        // Validate sale price is less than original price
+        if (request.getSalePrice().compareTo(product.getPrice()) >= 0) {
+            throw new RuntimeException("Sale price must be less than the original price");
+        }
+
+        product.setSalePrice(request.getSalePrice());
+        product.setSaleStartDate(request.getSaleStartDate());
+        product.setSaleEndDate(request.getSaleEndDate());
+
+        Product saved = productRepository.save(product);
+        return productMapper.toResponse(saved);
+    }
+
+    @Override
+    public ProductResponse removeSalePrice(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+        product.setSalePrice(null);
+        product.setSaleStartDate(null);
+        product.setSaleEndDate(null);
+
+        Product saved = productRepository.save(product);
+        return productMapper.toResponse(saved);
+    }
+
+    @Override
+    public org.springframework.data.domain.Page<ProductResponse> getOnSaleProducts(
+            org.springframework.data.domain.Pageable pageable) {
+        return productRepository.findOnSaleProducts(java.time.LocalDateTime.now(), pageable)
+                .map(productMapper::toResponse);
     }
 }

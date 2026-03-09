@@ -18,43 +18,59 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     private String name;
-    
+
     @Column(length = 2000)
     private String description;
-    
+
     @Column(nullable = false)
     private BigDecimal price;
-    
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal salePrice;
+
+    private LocalDateTime saleStartDate;
+
+    private LocalDateTime saleEndDate;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EntityStatus status = EntityStatus.ACTIVE;
-    
+
     private LocalDateTime statusChangedAt;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
     private Brand brand;
 
-    
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @OrderBy("isPrimary DESC, displayOrder ASC")
     private List<ProductImage> images;
-    
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
-    
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Transient
+    public boolean isOnSale() {
+        if (salePrice == null)
+            return false;
+        LocalDateTime now = LocalDateTime.now();
+        boolean afterStart = (saleStartDate == null || !now.isBefore(saleStartDate));
+        boolean beforeEnd = (saleEndDate == null || !now.isAfter(saleEndDate));
+        return afterStart && beforeEnd;
+    }
 }

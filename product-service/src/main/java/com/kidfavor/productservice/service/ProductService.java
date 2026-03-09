@@ -8,29 +8,37 @@ import com.kidfavor.productservice.dto.response.ProductResponse;
 import java.util.Optional;
 
 public interface ProductService {
-    
+
         // returns paged list of products with optional filters
         org.springframework.data.domain.Page<ProductResponse> listProducts(
-            org.springframework.data.domain.Pageable pageable,
-            String keyword,
-            Long categoryId,
-            Long brandId,
-            String status);
-    
-    Optional<ProductResponse> getProductById(Long id);
-    
-    ProductResponse createProduct(ProductCreateRequest request);
-    
-    ProductResponse updateProduct(Long id, ProductUpdateRequest request);
-    
-    void deleteProduct(Long id);
-    
-    ProductResponse updateProductStatus(Long id, StatusUpdateRequest request);
-    
-    org.springframework.data.domain.Page<ProductResponse> listProductsSortedByStock(
-        org.springframework.data.domain.Pageable pageable,
-        String keyword,
-        Long categoryId,
-        Long brandId,
-        String status);
+                        org.springframework.data.domain.Pageable pageable,
+                        String keyword,
+                        Long categoryId,
+                        Long brandId,
+                        String status);
+
+        Optional<ProductResponse> getProductById(Long id);
+
+        ProductResponse createProduct(ProductCreateRequest request);
+
+        ProductResponse updateProduct(Long id, ProductUpdateRequest request);
+
+        void deleteProduct(Long id);
+
+        ProductResponse updateProductStatus(Long id, StatusUpdateRequest request);
+
+        org.springframework.data.domain.Page<ProductResponse> listProductsSortedByStock(
+                        org.springframework.data.domain.Pageable pageable,
+                        String keyword,
+                        Long categoryId,
+                        Long brandId,
+                        String status);
+
+        // Sale price management
+        ProductResponse setSalePrice(Long id, com.kidfavor.productservice.dto.request.SetSalePriceRequest request);
+
+        ProductResponse removeSalePrice(Long id);
+
+        org.springframework.data.domain.Page<ProductResponse> getOnSaleProducts(
+                        org.springframework.data.domain.Pageable pageable);
 }
