@@ -1,10 +1,10 @@
 spring:
   application:
-    name: order-service
+    name: payment-service
 
   # PostgreSQL Database Configuration
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/orderdb}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5440/paymentdb}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -25,10 +25,6 @@ spring:
       hibernate:
         format_sql: true
         use_sql_comments: true
-        jdbc:
-          batch_size: 20
-        order_inserts: true
-        order_updates: true
 
   # Consul Configuration
   cloud:
@@ -58,13 +54,15 @@ spring:
         spring.json.add.type.headers: false
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      group-id: order-service-group
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: payment-service-group
       auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
 
 # Server Configuration
 server:
-  port: 8082
+  port: 8089
 
 # Management/Actuator Configuration
 management:
@@ -89,12 +87,6 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     doc-expansion: none
-  # Server URLs for API Gateway and Direct access
-  servers:
-    - url: http://localhost:8080/order-service
-      description: API Gateway Server
-    - url: http://localhost:8082
-      description: Local Development Server
 
 # OpenFeign Configuration
 feign:
@@ -104,33 +96,33 @@ feign:
         connect-timeout: 5000
         read-timeout: 5000
         logger-level: FULL
-      product-service:
-        connect-timeout: 5000
-        read-timeout: 10000
+
+# PayOS Configuration
+payos:
+  client-id: ${PAYOS_CLIENT_ID:534b89f5-5828-40da-9832-094a4671bb47}
+  api-key: ${PAYOS_API_KEY:4c51a134-1524-4467-9043-63fc406c5ddd}
+  checksum-key: ${PAYOS_CHECKSUM_KEY:e27abe734b10fd56acde4dcc393c35ab4d57795c696cb408dadc62fa8ae2b6e2}
 
 # Application Custom Configuration
 app:
-  # Kafka Configuration
+  payment:
+    return-url: ${PAYMENT_RETURN_URL:http://localhost:3000/payment/success}
+    cancel-url: ${PAYMENT_CANCEL_URL:http://localhost:3000/payment/cancel}
   kafka:
     topics:
-      order-placed: order-placed-topic
       payment-completed: payment-completed-topic
-  
-  # Service URLs
-  product-service:
-    url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+      order-placed: order-placed-topic
 
-# JWT Configuration (shared with user-service)
+# JWT Configuration
 jwt:
   secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==}
-  expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
+  expiration-ms: ${JWT_EXPIRATION:86400000}
 
 # Logging Configuration
 logging:
   level:
-    com.kidfavor.orderservice: DEBUG
+    com.kidfavor.paymentservice: DEBUG
     org.springframework.kafka: INFO
-    org.apache.kafka: WARN
     org.hibernate.SQL: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
