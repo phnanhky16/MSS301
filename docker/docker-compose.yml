@@ -255,6 +255,37 @@ services:
     networks:
       - microservices-network
     restart: on-failure
+
+  # --- Payment Service ---
+  payment-service:
+    build:
+      context: ../payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/paymentdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      JWT_SECRET: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+      PAYOS_CLIENT_ID: 534b89f5-5828-40da-9832-094a4671bb47
+      PAYOS_API_KEY: 4c51a134-1524-4467-9043-63fc406c5ddd
+      PAYOS_CHECKSUM_KEY: e27abe734b10fd56acde4dcc393c35ab4d57795c696cb408dadc62fa8ae2b6e2
+    depends_on:
+      postgres-payment:
+        condition: service_started
+      consul:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
   # --- Service Discovery ---
   consul:
     image: hashicorp/consul:latest
@@ -281,7 +312,7 @@ services:
     networks:
       - microservices-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d userdb"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d userdb" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -303,7 +334,7 @@ services:
     # once pg_isready succeeds. this allows the order-service to start only
     # after PostgreSQL has finished initializing the database files.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d orderdb"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d orderdb" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -379,6 +410,20 @@ services:
     networks:
       - microservices-network
 
+  postgres-payment:
+    image: postgres:16-alpine
+    container_name: postgres-payment
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5440:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
   # --- Caching ---
   redis:
     image: redis:7-alpine
@@ -404,7 +449,7 @@ services:
     networks:
       - microservices-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -501,7 +546,7 @@ services:
       # LOGGING_FILE_NAME: /logs/review-service.log
   maven-base:
     image: maven:3.9.6-eclipse-temurin-17
-    entrypoint: ["true"] # immediately exit successfully
+    entrypoint: [ "true" ] # immediately exit successfully
     networks:
       - microservices-network
 
@@ -528,7 +573,7 @@ services:
     networks:
       - microservices-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1" ]
       interval: 10s
       timeout: 10s
       retries: 5
@@ -544,6 +589,7 @@ volumes:
   postgres-review-data:
   postgres-keycloak-data:
   postgres-address-data:
+  postgres-payment-data:
   minio-data:
   elasticsearch-data:
 

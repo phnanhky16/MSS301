@@ -40,6 +40,7 @@
         <module>cart-service</module>
         <module>inventory-service</module>
         <module>address-service</module>
+        <module>payment-service</module>
     </modules>
 
     <!-- ===== Centralised Dependency Management ===== -->

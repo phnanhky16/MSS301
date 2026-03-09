@@ -4,6 +4,7 @@ import com.kidfavor.productservice.dto.response.ResponseWrapper;
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
 import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
+import com.kidfavor.productservice.dto.request.SetSalePriceRequest;
 import com.kidfavor.productservice.dto.response.ProductResponse;
 import com.kidfavor.productservice.service.ProductSearchService;
 import com.kidfavor.productservice.service.ProductService;
@@ -266,5 +267,43 @@ public class ProductController {
                         error.put("message", e.getMessage());
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
                 }
+        }
+
+        // ── Sale Price Management ─────────────────────────────────
+
+        @Operation(summary = "Set sale price for a product")
+        @PutMapping("/{id}/sale")
+        public ResponseEntity<ResponseWrapper<ProductResponse>> setSalePrice(
+                        @PathVariable Long id,
+                        @Valid @RequestBody SetSalePriceRequest request) {
+                ProductResponse response = productService.setSalePrice(id, request);
+                return ResponseEntity.ok(ResponseWrapper.success("Sale price set successfully", response));
+        }
+
+        @Operation(summary = "Remove sale price from a product")
+        @DeleteMapping("/{id}/sale")
+        public ResponseEntity<ResponseWrapper<ProductResponse>> removeSalePrice(
+                        @PathVariable Long id) {
+                ProductResponse response = productService.removeSalePrice(id);
+                return ResponseEntity.ok(ResponseWrapper.success("Sale price removed", response));
+        }
+
+        @Operation(summary = "Get all products currently on sale")
+        @GetMapping("/on-sale")
+        public ResponseEntity<ResponseWrapper<org.springframework.data.domain.Page<ProductResponse>>> getOnSaleProducts(
+                        org.springframework.data.domain.Pageable pageable) {
+                var page = productService.getOnSaleProducts(pageable);
+                return ResponseEntity.ok(ResponseWrapper.success("On-sale products retrieved", page));
+        }
+
+        @Operation(summary = "Get products by list of IDs")
+        @GetMapping("/by-ids")
+        public ResponseEntity<ResponseWrapper<List<ProductResponse>>> getProductsByIds(
+                        @RequestParam("ids") List<Long> ids) {
+                List<ProductResponse> products = ids.stream()
+                                .map(id -> productService.getProductById(id).orElse(null))
+                                .filter(p -> p != null)
+                                .collect(java.util.stream.Collectors.toList());
+                return ResponseEntity.ok(ResponseWrapper.success("Products retrieved", products));
         }
 }

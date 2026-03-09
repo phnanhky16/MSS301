@@ -1,6 +1,7 @@
 package com.kidfavor.notificationservice.service;
 
 import com.kidfavor.notificationservice.dto.OrderPlacedEvent;
+import com.kidfavor.notificationservice.dto.PaymentCompletedEvent;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +72,28 @@ public class EmailService {
                 } catch (Exception e) {
                         log.error("Failed to send welcome email to: {} (username: {}). Error: {}",
                                         to, username, e.getMessage());
+                }
+        }
+
+        /**
+         * Sends a payment confirmation email after successful PayOS payment.
+         */
+        public void sendPaymentConfirmationEmail(PaymentCompletedEvent event) {
+                try {
+                        MimeMessage message = mailSender.createMimeMessage();
+                        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+                        helper.setFrom(senderEmail);
+                        helper.setTo(event.getCustomerEmail());
+                        helper.setSubject("KidFavor - Payment Confirmed #" + event.getOrderNumber());
+                        helper.setText(buildPaymentConfirmationBody(event), true);
+
+                        mailSender.send(message);
+                        log.info("Payment confirmation email sent to: {} for order: {}",
+                                        event.getCustomerEmail(), event.getOrderNumber());
+                } catch (Exception e) {
+                        log.error("Failed to send payment confirmation email to: {} for order: {}. Error: {}",
+                                        event.getCustomerEmail(), event.getOrderNumber(), e.getMessage());
                 }
         }
 
@@ -206,6 +229,39 @@ public class EmailService {
                                 + "<p>Happy Shopping!</p>"
                                 + "<p><strong>The KidFavor Team</strong></p>"
                                 + "</body></html>";
+        }
+
+        private String buildPaymentConfirmationBody(PaymentCompletedEvent event) {
+                String customerName = event.getCustomerName() != null ? event.getCustomerName() : "Customer";
+                String paidAtStr = event.getPaidAt() != null ? event.getPaidAt().format(DATE_FMT) : "N/A";
+                String refStr = event.getTransactionReference() != null ? event.getTransactionReference() : "N/A";
+
+                return "<!DOCTYPE html><html><body style='font-family:Arial,sans-serif;max-width:600px;margin:auto;'>"
+                                + "<div style='background:#4CAF50;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;'>"
+                                + "<h1 style='margin:0;'>✅ Payment Successful!</h1>"
+                                + "</div>"
+                                + "<div style='padding:20px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;'>"
+                                + "<p>Dear <strong>" + customerName + "</strong>,</p>"
+                                + "<p>Your payment has been successfully processed. Here are the details:</p>"
+                                + "<table style='width:100%;border-collapse:collapse;margin:15px 0;'>"
+                                + "<tr style='background:#f8f9fa;'>"
+                                + "<td style='padding:10px;border:1px solid #dee2e6;font-weight:bold;'>Order Number</td>"
+                                + "<td style='padding:10px;border:1px solid #dee2e6;'>" + event.getOrderNumber()
+                                + "</td></tr>"
+                                + "<tr><td style='padding:10px;border:1px solid #dee2e6;font-weight:bold;'>Amount Paid</td>"
+                                + "<td style='padding:10px;border:1px solid #dee2e6;color:#4CAF50;font-weight:bold;'>"
+                                + formatCurrency(event.getAmount()) + "</td></tr>"
+                                + "<tr style='background:#f8f9fa;'>"
+                                + "<td style='padding:10px;border:1px solid #dee2e6;font-weight:bold;'>Transaction Ref</td>"
+                                + "<td style='padding:10px;border:1px solid #dee2e6;'>" + refStr + "</td></tr>"
+                                + "<tr><td style='padding:10px;border:1px solid #dee2e6;font-weight:bold;'>Payment Time</td>"
+                                + "<td style='padding:10px;border:1px solid #dee2e6;'>" + paidAtStr + "</td></tr>"
+                                + "</table>"
+                                + "<p>Your order is now <strong style='color:#4CAF50;'>CONFIRMED</strong> and will be processed shortly.</p>"
+                                + "<br/>"
+                                + "<p>Thank you for shopping with us!</p>"
+                                + "<p><strong>The KidFavor Team</strong></p>"
+                                + "</div></body></html>";
         }
 
         private String formatCurrency(BigDecimal amount) {

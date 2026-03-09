@@ -97,6 +97,20 @@ export default function CheckoutPage() {
             message.warning('Giỏ hàng của bạn đang trống!');
             return;
         }
+
+        // Get userId from login info stored in localStorage
+        let userId = null;
+        try {
+            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+            userId = userInfo?.userId;
+        } catch (_) {}
+
+        if (!userId) {
+            message.error('Vui lòng đăng nhập trước khi đặt hàng!');
+            router.push('/login');
+            return;
+        }
+
         setSubmitting(true);
         try {
             const shippingAddress = [
@@ -107,28 +121,52 @@ export default function CheckoutPage() {
             ].filter(Boolean).join(', ');
 
             const orderPayload = {
+                userId,
                 shippingAddress,
-                recipientName: values.fullName,
-                recipientPhone: values.phone,
-                note: values.note || '',
+                phoneNumber: values.phone,
+                notes: values.note || '',
                 items: cart.map(item => ({
                     productId: item.id,
-                    productName: item.name,
                     quantity: item.quantity,
-                    price: item.price,
                 })),
-                totalAmount: total,
             };
 
-            await request('/orders', {
+            // Step 1: Create order
+            const orderResult = await request('/orders', {
                 method: 'POST',
                 body: JSON.stringify(orderPayload),
             });
 
-            clearCart();
-            setCurrentStep(2);
-            message.success('🎉 Đặt hàng thành công!');
+            // Extract orderNumber from response
+            const orderNumber = orderResult?.orderNumber || orderResult?.data?.orderNumber;
+
+            if (!orderNumber) {
+                throw new Error('Không nhận được mã đơn hàng từ server');
+            }
+
+            // Step 2: Create PayOS payment link and redirect
+            message.loading({ content: 'Đang tạo liên kết thanh toán...', key: 'payment', duration: 0 });
+
+            const paymentResult = await request(`/payments/create?orderNumber=${orderNumber}`, {
+                method: 'POST',
+            });
+
+            message.destroy('payment');
+
+            const checkoutUrl = paymentResult?.checkoutUrl;
+
+            if (checkoutUrl) {
+                clearCart();
+                // Redirect to PayOS checkout page
+                window.location.href = checkoutUrl;
+            } else {
+                // Payment link failed, but order was created
+                clearCart();
+                setCurrentStep(2);
+                message.warning('Đơn hàng đã được tạo nhưng không thể tạo liên kết thanh toán. Vui lòng thanh toán sau.');
+            }
         } catch (err) {
+            message.destroy('payment');
             message.error('Đặt hàng thất bại: ' + err.message);
         } finally {
             setSubmitting(false);
