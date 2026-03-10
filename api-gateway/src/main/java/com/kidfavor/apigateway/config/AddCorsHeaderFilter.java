@@ -26,11 +26,12 @@ public class AddCorsHeaderFilter implements GlobalFilter {
         // before the response is committed (including error responses) add header
         exchange.getResponse().beforeCommit(() -> {
             HttpHeaders headers = exchange.getResponse().getHeaders();
-            if (!headers.containsKey(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN)) {
-                // mirror incoming origin or use wildcard - gateway config already
-                // allows all origins, so '*' is safe here.
-                headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-            }
+            // always override the value with a wildcard.  there were cases
+            // where the same header was accidentally appended twice, resulting
+            // in "*, *" which browsers reject; setting explicitly avoids that
+            // and keeps the behaviour simple (gateway is the single source of
+            // truth for CORS headers).
+            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
             return Mono.empty();
         });
         return chain.filter(exchange);

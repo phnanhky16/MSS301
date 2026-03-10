@@ -45,6 +45,9 @@ const pageTitles = {
   products: 'Products Management',
   coupons: 'Coupons Management',
   users: 'Users Management',
+  stores: 'Store Management',
+  warehouses: 'Warehouse Management',
+  'warehouse-inventory': 'Warehouse Inventory',
 };
 
 export default function AdminLayout({ children }) {
@@ -71,6 +74,8 @@ export default function AdminLayout({ children }) {
   }, [loggedIn]);
 
   // Active menu key
+
+  // Active menu key
   const selected = router.pathname.startsWith('/admin/coupons')
     ? 'coupons'
     : router.pathname.startsWith('/admin/orders')
@@ -79,7 +84,13 @@ export default function AdminLayout({ children }) {
         ? 'products'
         : router.pathname.startsWith('/admin/users')
           ? 'users'
-          : 'dashboard';
+          : router.pathname.startsWith('/admin/stores')
+            ? 'stores'
+            : router.pathname.startsWith('/admin/warehouses')
+              ? 'warehouses'
+              : router.pathname.startsWith('/admin/inventory')
+                ? 'stores' // inventory could reuse store icon
+                : 'dashboard';
 
   const displayName = profile?.fullName || profile?.name || 'Admin';
   const initials = displayName
@@ -93,10 +104,7 @@ export default function AdminLayout({ children }) {
     <>
       <Head>
         <link rel="icon" href="/images.jpg" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
+        {/* font stylesheet moved to _document.js per Next.js warning */}
       </Head>
 
       <AntLayout className="admin-layout" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
@@ -151,6 +159,21 @@ export default function AdminLayout({ children }) {
                 key: 'users',
                 icon: <UserOutlined />,
                 label: <Link href="/admin/users">Users</Link>,
+              },
+              {
+                key: 'stores',
+                icon: <AppstoreOutlined />,
+                label: <Link href="/admin/stores">Stores</Link>,
+              },
+              {
+                key: 'warehouses',
+                icon: <AppstoreOutlined />,
+                label: <Link href="/admin/warehouses">Warehouses</Link>,
+              },
+              {
+                key: 'warehouse-inventory',
+                icon: <AppstoreOutlined />,
+                label: <Link href="/admin/warehouse-inventory">Inventory</Link>,
               },
             ]}
           />

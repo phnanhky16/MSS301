@@ -138,6 +138,9 @@ spring:
           uri: lb://inventory-service
           predicates:
             - Path=/api/warehouses/**, /api/stores/**, /api/inventory/**
+          filters:
+            # default statuses (5xx and 408) are used when no list is provided
+            - Retry=3
 
         # Inventory Service Swagger API Docs (more specific, must come before general route)
         - id: inventory-service-api-docs

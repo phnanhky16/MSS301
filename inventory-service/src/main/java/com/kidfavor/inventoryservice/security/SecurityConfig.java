@@ -27,14 +27,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // explicitly enable a permissive CORS configuration for every
-                // endpoint in the service. the gateway already adds a wildcard
-                // header on every response, but when you hit a backend service
-                // directly (e.g. during development) the Spring Security chain
-                // will still enforce CORS rules unless we provide a source.
-                // we could also configure this via `application.yml` but doing it
-                // here keeps the behaviour consistent across modules.
-                        .cors().and()
+                // CORS handling has been removed entirely.  the gateway is
+                // responsible for any Access-Control-* headers and Spring
+                // Security will no longer apply its own CORS filter.  this makes
+                // the backend oblivious to cross-origin concerns (requests may
+                // still be blocked by the browser if no header is sent).
+                
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -101,15 +99,7 @@ public class SecurityConfig {
          * service is invoked without the gateway (for example during local
          * testing).
          */
-        @Bean
-        public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
-                org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-                configuration.setAllowedOrigins(java.util.List.of("*"));
-                configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-                configuration.setAllowedHeaders(java.util.List.of("*"));
-                configuration.setExposedHeaders(java.util.List.of("Authorization", "Content-Type"));
-                org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
-                return source;
-        }
+        // CORS configuration bean removed; the service no longer advertises
+        // any Access-Control-* headers.  rely on the gateway or clients to
+        // handle cross-origin requirements if necessary.
 }

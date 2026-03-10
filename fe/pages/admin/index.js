@@ -198,6 +198,27 @@ export default function AdminDashboard() {
               </Button>
               <Button
                 className="admin-quick-btn"
+                icon={<AppstoreOutlined />}
+                onClick={() => router.push('/admin/stores')}
+              >
+                Manage Stores
+              </Button>
+              <Button
+                className="admin-quick-btn"
+                icon={<AppstoreOutlined />}
+                onClick={() => router.push('/admin/inventory')}
+              >
+                Store Inventory
+              </Button>
+              <Button
+                className="admin-quick-btn"
+                icon={<AppstoreOutlined />}
+                onClick={() => router.push('/admin/warehouse-inventory')}
+              >
+                Warehouse Inventory
+              </Button>
+              <Button
+                className="admin-quick-btn"
                 icon={<TagOutlined />}
                 onClick={() => router.push('/admin/coupons')}
               >

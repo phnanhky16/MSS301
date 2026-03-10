@@ -64,7 +64,19 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
 
-        return Long.parseLong(claims.getSubject());
+        // tokens issued by the user-service put the numeric id in a separate
+        // claim (`userId`). the subject is the username string, which cannot be
+        // parsed as a long. fall back to subject if the claim is missing.
+        Object uid = claims.get("userId");
+        if (uid instanceof Number) {
+            return ((Number) uid).longValue();
+        }
+        try {
+            return Long.parseLong(claims.getSubject());
+        } catch (NumberFormatException ex) {
+            log.warn("JWT subject is not a number: {}", claims.getSubject());
+            return null;
+        }
     }
 
     /**

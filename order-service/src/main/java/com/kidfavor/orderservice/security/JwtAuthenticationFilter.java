@@ -40,7 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = tokenProvider.getUserIdFromToken(jwt);
                 String username = tokenProvider.getUsernameFromToken(jwt);
 
-                // Create authentication with minimal info
+                // Create authentication with minimal info.  if userId could not be
+                // extracted the auth object will carry null as principal; the
+                // request will still be treated as unauthenticated later.
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userId,
