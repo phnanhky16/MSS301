@@ -219,7 +219,7 @@ export default function AdminDashboard() {
             bordered={false}
             style={{
               borderRadius: 16,
-              background: 'linear-gradient(135deg, #2d3436, #000)',
+              background: 'linear-gradient(135deg, #0e3d4a, #0a2e38)',
               color: '#fff',
               height: '100%',
               position: 'relative',
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
                 Your store is running smoothly.
                 <br />
-                <span style={{ color: '#00cec9', fontWeight: 600 }}>
+                <span style={{ color: '#1ca8c8', fontWeight: 600 }}>
                   {orders.totalOrders} orders
                 </span>{' '}
                 processed so far.
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                 fontSize: 13,
                 color: 'rgba(255,255,255,0.9)'
               }}>
-                <span style={{ color: '#00cec9' }}>●</span> All systems operational
+                <span style={{ color: '#4dd9e8' }}>●</span> All systems operational
               </div>
             </div>
             {/* Decorative circle */}
@@ -257,7 +257,7 @@ export default function AdminDashboard() {
               top: -40, right: -40,
               width: 160, height: 160,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(108, 92, 231, 0.3) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(28, 168, 200, 0.25) 0%, transparent 70%)',
             }} />
           </Card>
         </Col>
