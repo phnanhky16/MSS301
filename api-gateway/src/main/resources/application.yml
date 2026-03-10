@@ -262,10 +262,14 @@ spring:
           issuer-uri: http://localhost:8180/realms/kidfavor
           jwk-set-uri: http://localhost:8180/realms/kidfavor/protocol/openid-connect/certs
 
-# the gateway no longer performs any per-route CORS configuration.  instead a
-# global filter adds a wildcard header on every response, effectively disabling
-# browser CORS restrictions during development.  downstream services should
-# not set CORS headers at all (they were cleaned up earlier).
+# CORS support can be toggled via configuration.  set `gateway.cors.enabled`
+# to true during development to allow requests from localhost:3000; set to
+# false for a stricter same-origin deployment.  (previous versions of this
+# file documented the now-obsolete hard-coded behavior.)
+
+gateway:
+  cors:
+    enabled: true
 
 # Swagger/OpenAPI Configuration for Gateway aggregation
 springdoc:

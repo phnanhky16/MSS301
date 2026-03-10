@@ -26,10 +26,18 @@ export default function Login() {
   // Backend OAuth2 flow: User clicks Google button → Backend handles OAuth2 → 
   // Backend redirects here with ?token=JWT_TOKEN or ?error=ERROR_MESSAGE
   useEffect(() => {
+    if (!router.isReady) return; // wait until query is available
+
     const { token, error } = router.query;
 
+    // Do nothing when there's nothing to process; this prevents showing
+    // an error message every time the user refreshes the login page.
+    if (!token && !error) {
+      return;
+    }
+
     const result = handleOAuth2Callback(token, error);
-    
+
     if (result.success === true) {
       msgApi.success(result.message);
       // after OAuth success we stored userInfo already; route by role
@@ -47,7 +55,12 @@ export default function Login() {
     } else if (result.success === false) {
       msgApi.error(`Login failed: ${result.message}`);
     }
-  }, [router.query]);
+
+    // remove the query parameters so that a subsequent F5 doesn't re-trigger
+    // the same message.  use shallow replace so we don't run getServerSideProps
+    // or unmount the page.
+    router.replace('/login', undefined, { shallow: true });
+  }, [router.isReady, router.query]);
 
   const handleGoogleLogin = () => {
     // Simply call the helper function - it handles everything
@@ -97,7 +110,13 @@ export default function Login() {
           const parsed = JSON.parse(err.message);
           if (parsed && parsed.message) text = parsed.message;
         } catch (_) { }
-        msgApi.error(text);
+        // avoid spamming when request is aborted or network fails; log only
+        if (text && text !== 'Login failed') {
+          msgApi.error(text);
+        } else {
+          // show generic error only once
+          msgApi.error('Login failed');
+        }
         console.error('login error', err);
       });
   };

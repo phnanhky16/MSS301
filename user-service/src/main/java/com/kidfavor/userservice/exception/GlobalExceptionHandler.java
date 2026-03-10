@@ -19,6 +19,15 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(401, "Invalid username or password"));
     }
 
+    // catch any other authentication-related failures (disabled account, etc.)
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(org.springframework.security.core.AuthenticationException ex) {
+        // we don't expose internal details to the client
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(401, "Authentication failed"));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiResponse<Void>> handleResponseStatusException(ResponseStatusException ex) {
         int statusCode = ex.getStatusCode().value();
@@ -50,6 +59,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(400, ex.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataAccess(org.springframework.dao.DataAccessException ex) {
+        // database problems (connection, syntax, etc.)
+        log.error("Database error", ex);
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(503, "Database unavailable", ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

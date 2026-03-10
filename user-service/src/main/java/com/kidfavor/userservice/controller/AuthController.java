@@ -53,14 +53,10 @@ public class AuthController {
         @PostMapping("/login")
         public ResponseEntity<ApiResponse<AuthResponse>> login(
                         @Valid @RequestBody LoginRequest request) {
-                try {
-                        AuthResponse response = authService.login(request);
-                        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
-                } catch (Exception ex) {
-                        // log full stack for debugging; error will propagate as 500
-                        log.error("Error during login for user {}", request.getUsername(), ex);
-                        throw ex;
-                }
+                // authentication exceptions are handled by GlobalExceptionHandler
+        // (bad credentials, disabled account, etc.), so we simply delegate.
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
         }
 
         @Operation(summary = "Refresh access token", description = "Get new access token using refresh token")
