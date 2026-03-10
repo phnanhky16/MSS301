@@ -158,6 +158,17 @@ export function updateProductStatus(id, data) {
   });
 }
 
+export function setSalePrice(id, data) {
+  return request(`/products/${id}/sale`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function removeSalePrice(id) {
+  return request(`/products/${id}/sale`, { method: 'DELETE' });
+}
+
 export function fetchUsers(page = 0, size = 10, filters = {}) {
   const params = new URLSearchParams({ page, size });
   if (filters.keyword) params.append('keyword', filters.keyword);
@@ -294,5 +305,20 @@ export async function fetchWards(districtId) {
   const res = await fetch(`${ADDRESS_BASE}/${districtId}/wards`);
   if (!res.ok) throw new Error('Failed to fetch wards');
   return res.json();
+}
+
+// --- On-Sale & Best-Seller Products ---
+
+export function fetchOnSaleProducts(page = 0, size = 10) {
+  return request(`/products/on-sale?page=${page}&size=${size}`);
+}
+
+export function fetchBestSellerIds(limit = 10) {
+  return request(`/orders/best-sellers?limit=${limit}`);
+}
+
+export function fetchProductsByIds(ids) {
+  if (!ids || ids.length === 0) return Promise.resolve({ data: [] });
+  return request(`/products/by-ids?ids=${ids.join(',')}`);
 }
 
