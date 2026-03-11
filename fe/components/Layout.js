@@ -112,17 +112,17 @@ export default function Layout({ children, isLogin = false }) {
               </button>
             </Link>
             {loggedIn && userInfo ? (
-              <div 
-                  className="user-menu-wrapper"
-                  onMouseEnter={() => {
-                    clearTimeout(hideTimer.current);
-                    setShowUserMenu(true);
-                  }}
-                  onMouseLeave={() => {
-                    // delay hiding a bit to allow mouse to move into dropdown
-                    hideTimer.current = setTimeout(() => setShowUserMenu(false), 150);
-                  }}
-                >
+              <div
+                className="user-menu-wrapper"
+                onMouseEnter={() => {
+                  clearTimeout(hideTimer.current);
+                  setShowUserMenu(true);
+                }}
+                onMouseLeave={() => {
+                  // delay hiding a bit to allow mouse to move into dropdown
+                  hideTimer.current = setTimeout(() => setShowUserMenu(false), 150);
+                }}
+              >
                 <div className="user-avatar">
                   <div className="avatar-circle">
                     {userInfo.email ? userInfo.email.charAt(0).toUpperCase() : 'U'}
@@ -147,6 +147,14 @@ export default function Layout({ children, isLogin = false }) {
                         <div className="dropdown-role">{userInfo.role}</div>
                       </div>
                     </div>
+                    <div className="dropdown-divider"></div>
+                    <button
+                      className="dropdown-item"
+                      onClick={() => { setShowUserMenu(false); router.push('/profile'); }}
+                    >
+                      <UserOutlined />
+                      <span>My Profile</span>
+                    </button>
                     <div className="dropdown-divider"></div>
                     <button
                       className="dropdown-item logout-item"

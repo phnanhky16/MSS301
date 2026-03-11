@@ -54,14 +54,18 @@ spring:
         deregister-critical-service-after: 30s
 
   # --- CORS configuration (permissive, disables browser restrictions) ------
-  mvc:
-    cors:
-      mappings:
-        "/**":
-          allowed-origins: "*"
-          allowed-methods: "*"
-          allowed-headers: "*"
-          allow-credentials: true
+  # CORS is now managed by the API gateway; individual services should not
+  # declare their own mappings.  this block is left commented out for
+  # reference but is inactive to avoid duplicate headers or unexpected
+  # behaviour.
+  #mvc:
+  #  cors:
+  #    mappings:
+  #      "/**":
+  #        allowed-origins: "*"
+  #        allowed-methods: "*"
+  #        allowed-headers: "*"
+  #        allow-credentials: true
 
 management:
   endpoints:

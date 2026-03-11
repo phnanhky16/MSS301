@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Typography, message, Button, Skeleton } from 'antd';
+import { Row, Col, Card, Typography, message as antdMessage, Button, Skeleton } from 'antd';
 import {
   UserOutlined,
   ShoppingCartOutlined,
@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [greeting, setGreeting] = useState('Hello');
   const [adminName, setAdminName] = useState('Admin');
+  const [msgApi, msgHolder] = antdMessage.useMessage();
 
   useEffect(() => {
     // Compute greeting client-side only to avoid hydration mismatch
@@ -35,8 +36,12 @@ export default function AdminDashboard() {
     } catch (_) { }
 
     Promise.all([
-      fetchUserCount().then(count => setUsers(count)).catch(() => message.error('Failed to load user count')),
-      fetchOrderStats().then(data => setOrders(data)).catch(() => message.error('Failed to load order stats')),
+      fetchUserCount()
+        .then(count => setUsers(count))
+        .catch(() => { msgApi.error('Failed to load user count'); setUsers(0); }),
+      fetchOrderStats()
+        .then(data => setOrders(data))
+        .catch(() => { msgApi.error('Failed to load order stats'); setOrders({ totalOrders:0, totalRevenue:0, byStatus:{}}); }),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -52,6 +57,7 @@ export default function AdminDashboard() {
 
   return (
     <div>
+      {msgHolder}
       {/* ── Dashboard Header ── */}
       <div className="admin-dash-header">
         <Title className="admin-dash-title" level={2}>
@@ -66,7 +72,7 @@ export default function AdminDashboard() {
       <Row gutter={[20, 20]} className="admin-stat-row">
         {/* Users */}
         <Col xs={24} sm={12} lg={6}>
-          <Card className="admin-stat-card accent" bordered={false}>
+          <Card className="admin-stat-card accent" variant="borderless">
             {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 <div className="admin-stat-icon accent">
@@ -86,7 +92,7 @@ export default function AdminDashboard() {
 
         {/* Orders */}
         <Col xs={24} sm={12} lg={6}>
-          <Card className="admin-stat-card success" bordered={false}>
+          <Card className="admin-stat-card success" variant="borderless">
             {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 <div className="admin-stat-icon success">
@@ -106,7 +112,7 @@ export default function AdminDashboard() {
 
         {/* Revenue */}
         <Col xs={24} sm={12} lg={6}>
-          <Card className="admin-stat-card warning" bordered={false}>
+          <Card className="admin-stat-card warning" variant="borderless">
             {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 <div className="admin-stat-icon warning">
@@ -128,7 +134,7 @@ export default function AdminDashboard() {
 
         {/* Status Overview */}
         <Col xs={24} sm={12} lg={6}>
-          <Card className="admin-stat-card info" bordered={false}>
+          <Card className="admin-stat-card info" variant="borderless">
             {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 <div className="admin-stat-icon info">
@@ -158,7 +164,7 @@ export default function AdminDashboard() {
               <Col key={status} xs={12} sm={8} md={6} lg={4}>
                 <Card
                   className="admin-status-card"
-                  bordered={false}
+                  variant="borderless"
                   style={{ animationDelay: `${idx * 0.06}s` }}
                 >
                   <div style={{ fontSize: 28, marginBottom: 8 }}>{config.icon}</div>
@@ -174,7 +180,7 @@ export default function AdminDashboard() {
       {/* ── Welcome / Quick Actions ── */}
       <Row gutter={[20, 20]}>
         <Col xs={24} lg={16}>
-          <Card className="admin-welcome-card" bordered={false}>
+          <Card className="admin-welcome-card" variant="borderless">
             <div className="admin-welcome-title">
               🚀 Quick Actions
             </div>
@@ -195,6 +201,27 @@ export default function AdminDashboard() {
                 onClick={() => router.push('/admin/products')}
               >
                 Manage Products
+              </Button>
+              <Button
+                className="admin-quick-btn"
+                icon={<AppstoreOutlined />}
+                onClick={() => router.push('/admin/stores')}
+              >
+                Manage Stores
+              </Button>
+              <Button
+                className="admin-quick-btn"
+                icon={<AppstoreOutlined />}
+                onClick={() => router.push('/admin/inventory')}
+              >
+                Store Inventory
+              </Button>
+              <Button
+                className="admin-quick-btn"
+                icon={<AppstoreOutlined />}
+                onClick={() => router.push('/admin/warehouse-inventory')}
+              >
+                Warehouse Inventory
               </Button>
               <Button
                 className="admin-quick-btn"
@@ -219,7 +246,7 @@ export default function AdminDashboard() {
             bordered={false}
             style={{
               borderRadius: 16,
-              background: 'linear-gradient(135deg, #2d3436, #000)',
+              background: 'linear-gradient(135deg, #0e3d4a, #0a2e38)',
               color: '#fff',
               height: '100%',
               position: 'relative',
@@ -232,7 +259,7 @@ export default function AdminDashboard() {
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
                 Your store is running smoothly.
                 <br />
-                <span style={{ color: '#00cec9', fontWeight: 600 }}>
+                <span style={{ color: '#1ca8c8', fontWeight: 600 }}>
                   {orders.totalOrders} orders
                 </span>{' '}
                 processed so far.
@@ -248,7 +275,7 @@ export default function AdminDashboard() {
                 fontSize: 13,
                 color: 'rgba(255,255,255,0.9)'
               }}>
-                <span style={{ color: '#00cec9' }}>●</span> All systems operational
+                <span style={{ color: '#4dd9e8' }}>●</span> All systems operational
               </div>
             </div>
             {/* Decorative circle */}
@@ -257,7 +284,7 @@ export default function AdminDashboard() {
               top: -40, right: -40,
               width: 160, height: 160,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(108, 92, 231, 0.3) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(28, 168, 200, 0.25) 0%, transparent 70%)',
             }} />
           </Card>
         </Col>

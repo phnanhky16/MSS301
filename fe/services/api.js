@@ -158,6 +158,17 @@ export function updateProductStatus(id, data) {
   });
 }
 
+export function setSalePrice(id, data) {
+  return request(`/products/${id}/sale`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function removeSalePrice(id) {
+  return request(`/products/${id}/sale`, { method: 'DELETE' });
+}
+
 export function fetchUsers(page = 0, size = 10, filters = {}) {
   const params = new URLSearchParams({ page, size });
   if (filters.keyword) params.append('keyword', filters.keyword);
@@ -188,6 +199,142 @@ export function fetchOrderById(id) {
 export function fetchProductById(id) {
   return request(`/products/${id}`);
 }
+
+// Inventory service - stores
+export function fetchStores() {
+  return request('/stores');
+}
+
+export function fetchActiveStores() {
+  return request('/stores/active');
+}
+
+export function fetchStoreById(id) {
+  return request(`/stores/${id}`);
+}
+
+export function fetchStoreByCode(code) {
+  return request(`/stores/code/${code}`);
+}
+
+export function createStore(data) {
+  return request('/stores', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateStore(id, data) {
+  return request(`/stores/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function deleteStore(id) {
+  return request(`/stores/${id}`, { method: 'DELETE' });
+}
+
+// inventory operations for stores
+export function fetchInventoryByStore(storeId) {
+  return request(`/stores/${storeId}/inventory`);
+}
+
+export function fetchStoreInventory(storeId, productId) {
+  return request(`/stores/${storeId}/inventory/${productId}`);
+}
+
+export function addOrUpdateInventory(storeId, data) {
+  return request(`/stores/${storeId}/inventory`, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateStock(storeId, productId, data) {
+  return request(`/stores/${storeId}/inventory/${productId}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function removeInventory(storeId, productId) {
+  return request(`/stores/${storeId}/inventory/${productId}`, { method: 'DELETE' });
+}
+
+export function fetchLowStockProducts(storeId) {
+  return request(`/stores/${storeId}/low-stock`);
+}
+
+export function fetchOutOfStockProducts(storeId) {
+  return request(`/stores/${storeId}/out-of-stock`);
+}
+
+export function fetchInStockProducts(storeId) {
+  return request(`/stores/${storeId}/in-stock`);
+}
+
+export function fetchProductsByStatus(storeId, status) {
+  return request(`/stores/${storeId}/inventory/status/${status}`);
+}
+
+export function checkStoreAvailability(productId) {
+  return request(`/stores/availability?productId=${productId}`);
+}
+
+export function restockFromWarehouse(data) {
+  return request('/stores/restock', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function fetchProductIdsWithStock() {
+  return request('/stores/products-with-stock');
+}
+
+export function fetchInventoryByProduct(productId) {
+  return request(`/stores/inventory/product/${productId}`);
+}
+
+// warehouses
+export function fetchWarehouses() {
+  return request('/warehouses');
+}
+
+export function fetchWarehouseById(id) {
+  return request(`/warehouses/${id}`);
+}
+
+export function createWarehouse(data) {
+  return request('/warehouses', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateWarehouse(id, data) {
+  return request(`/warehouses/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function deleteWarehouse(id) {
+  return request(`/warehouses/${id}`, { method: 'DELETE' });
+}
+
+export function fetchWarehouseProducts(warehouseId) {
+  return request(`/warehouses/${warehouseId}/products`);
+}
+
+export function updateWarehouseProductStock(warehouseId, productId, data) {
+  return request(`/warehouses/${warehouseId}/products/${productId}/stock`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function addOrUpdateWarehouseProduct(warehouseId, data) {
+  return request(`/warehouses/${warehouseId}/products`, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function removeWarehouseProduct(warehouseId, productId) {
+  return request(`/warehouses/${warehouseId}/products/${productId}`, { method: 'DELETE' });
+}
+
+export function fetchLowStockWarehouseProducts(warehouseId) {
+  return request(`/warehouses/${warehouseId}/low-stock`);
+}
+
+export function fetchOutOfStockWarehouseProducts(warehouseId) {
+  return request(`/warehouses/${warehouseId}/out-of-stock`);
+}
+
+export function fetchInStockWarehouseProducts(warehouseId) {
+  return request(`/warehouses/${warehouseId}/in-stock`);
+}
+
+export function fetchWarehouseProductsByStatus(warehouseId, status) {
+  return request(`/warehouses/${warehouseId}/products/status/${status}`);
+}
+
 
 export function fetchUserById(id) {
   return request(`/users/${id}`);
@@ -294,5 +441,20 @@ export async function fetchWards(districtId) {
   const res = await fetch(`${ADDRESS_BASE}/${districtId}/wards`);
   if (!res.ok) throw new Error('Failed to fetch wards');
   return res.json();
+}
+
+// --- On-Sale & Best-Seller Products ---
+
+export function fetchOnSaleProducts(page = 0, size = 10) {
+  return request(`/products/on-sale?page=${page}&size=${size}`);
+}
+
+export function fetchBestSellerIds(limit = 10) {
+  return request(`/orders/best-sellers?limit=${limit}`);
+}
+
+export function fetchProductsByIds(ids) {
+  if (!ids || ids.length === 0) return Promise.resolve({ data: [] });
+  return request(`/products/by-ids?ids=${ids.join(',')}`);
 }
 

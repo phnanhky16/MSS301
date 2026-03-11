@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchProducts, fetchCategories, fetchBrands, createProduct, updateProduct, deleteProduct, updateProductStatus, fetchProductImages, uploadProductImage, deleteProductImage, setPrimaryImage, updateProductImageFile, uploadMultipleProductImages, reorderProductImages } from '../../services/api';
-import { Table, Typography, message, Input, Select, Button, Modal, Form, InputNumber, Switch, Upload, Card, Space, Divider, Tag as AntTag, App as AntApp } from 'antd';
+import { fetchProducts, fetchCategories, fetchBrands, createProduct, updateProduct, deleteProduct, updateProductStatus, fetchProductImages, uploadProductImage, deleteProductImage, setPrimaryImage, updateProductImageFile, uploadMultipleProductImages, reorderProductImages, setSalePrice, removeSalePrice } from '../../services/api';
+import { Table, Typography, message, Input, Select, Button, Modal, Form, InputNumber, Switch, Upload, Card, Space, Divider, Tag as AntTag, App as AntApp, DatePicker } from 'antd';
 import {
   DndContext,
   closestCenter,
@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
-import { DragOutlined, PlusOutlined, DeleteOutlined, StarFilled, EditOutlined } from '@ant-design/icons';
+import { DragOutlined, PlusOutlined, DeleteOutlined, StarFilled, EditOutlined, TagsOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
 
@@ -36,6 +36,11 @@ export default function ProductsPage() {
   const [brands, setBrands] = useState([]);
   const [formVisible, setFormVisible] = useState(false);
   const [editing, setEditing] = useState(null);
+
+  // Sale price modal state
+  const [saleModalVisible, setSaleModalVisible] = useState(false);
+  const [saleTarget, setSaleTarget] = useState(null); // product being edited
+  const [saleForm] = Form.useForm();
 
   const load = (page = currentPage - 1, size = pageSize) => {
     // always request every status when loading the admin table
@@ -92,6 +97,43 @@ export default function ProductsPage() {
       .catch(() => message.error('Failed to save product'));
   }
 
+  function openSaleModal(record) {
+    setSaleTarget(record);
+    saleForm.setFieldsValue({
+      salePrice: record.salePrice || null,
+      saleStartDate: null,
+      saleEndDate: null,
+    });
+    setSaleModalVisible(true);
+  }
+
+  function handleSetSale() {
+    saleForm.validateFields().then(values => {
+      const data = {
+        salePrice: values.salePrice,
+        saleStartDate: values.saleStartDate ? values.saleStartDate.format('YYYY-MM-DDTHH:mm:ss') : null,
+        saleEndDate: values.saleEndDate ? values.saleEndDate.format('YYYY-MM-DDTHH:mm:ss') : null,
+      };
+      setSalePrice(saleTarget.id, data)
+        .then(() => {
+          message.success('Sale price updated!');
+          setSaleModalVisible(false);
+          load(currentPage - 1, pageSize);
+        })
+        .catch(() => message.error('Failed to set sale price'));
+    });
+  }
+
+  function handleRemoveSale() {
+    removeSalePrice(saleTarget.id)
+      .then(() => {
+        message.success('Sale price removed');
+        setSaleModalVisible(false);
+        load(currentPage - 1, pageSize);
+      })
+      .catch(() => message.error('Failed to remove sale'));
+  }
+
   const columns = [
     {
       title: 'Image',
@@ -112,6 +154,23 @@ export default function ProductsPage() {
     { title: 'Price', dataIndex: 'price', key: 'price', render: v => `$${v}` },
     { title: 'Category', dataIndex: ['category', 'name'], key: 'category' },
     { title: 'Brand', dataIndex: ['brand', 'name'], key: 'brand' },
+    {
+      title: 'Sale',
+      key: 'sale',
+      width: 140,
+      render: (_, record) => {
+        if (record.onSale && record.salePrice) {
+          const discount = Math.round(((record.price - record.salePrice) / record.price) * 100);
+          return (
+            <div>
+              <AntTag color="red" style={{ marginBottom: 2 }}>-{discount}%</AntTag>
+              <div style={{ fontSize: 12, color: '#ff4d4f', fontWeight: 600 }}>{Number(record.salePrice).toLocaleString()}₫</div>
+            </div>
+          );
+        }
+        return <AntTag color="default">No sale</AntTag>;
+      }
+    },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -151,6 +210,7 @@ export default function ProductsPage() {
       render: (_text, record) => (
         <>
           <Button type="link" onClick={() => openForm(record)}>Edit</Button>
+          <Button type="link" style={{ color: '#fa8c16' }} onClick={() => openSaleModal(record)}><TagsOutlined /> Sale</Button>
           <Button type="link" danger onClick={() => {
             modal.confirm({
               title: 'Delete Product',
@@ -238,6 +298,60 @@ export default function ProductsPage() {
         brands={brands}
         initialValues={editing}
       />
+
+      {/* Sale price modal */}
+      <Modal
+        open={saleModalVisible}
+        title={`Set Sale Price — ${saleTarget?.name || ''}`}
+        okText="Save Sale"
+        cancelText="Cancel"
+        onCancel={() => setSaleModalVisible(false)}
+        onOk={handleSetSale}
+        footer={(_, { OkBtn, CancelBtn }) => (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Button danger onClick={handleRemoveSale} disabled={!saleTarget?.onSale}>
+              Remove Sale
+            </Button>
+            <Space>
+              <CancelBtn />
+              <OkBtn />
+            </Space>
+          </div>
+        )}
+      >
+        {saleTarget && (
+          <div style={{ marginBottom: 16, padding: 12, background: '#f6f6f6', borderRadius: 8 }}>
+            <strong>Original price:</strong> {Number(saleTarget.price).toLocaleString()}₫
+            {saleTarget.onSale && saleTarget.salePrice && (
+              <span style={{ marginLeft: 16, color: '#ff4d4f' }}>
+                <strong>Current sale:</strong> {Number(saleTarget.salePrice).toLocaleString()}₫
+                ({Math.round(((saleTarget.price - saleTarget.salePrice) / saleTarget.price) * 100)}% off)
+              </span>
+            )}
+          </div>
+        )}
+        <Form form={saleForm} layout="vertical">
+          <Form.Item name="salePrice" label="Sale Price" rules={[{ required: true, message: 'Enter sale price' }]}>
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              max={saleTarget?.price || 999999999}
+              placeholder={`Must be less than ${saleTarget?.price || 0}`}
+              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/,/g, '')}
+              addonAfter="₫"
+            />
+          </Form.Item>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item name="saleStartDate" label="Start Date (optional)">
+              <DatePicker showTime style={{ width: '100%' }} placeholder="From..." />
+            </Form.Item>
+            <Form.Item name="saleEndDate" label="End Date (optional)">
+              <DatePicker showTime style={{ width: '100%' }} placeholder="Until..." />
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }
