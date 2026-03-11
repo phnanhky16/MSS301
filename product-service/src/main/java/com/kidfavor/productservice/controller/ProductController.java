@@ -1,5 +1,6 @@
 package com.kidfavor.productservice.controller;
 
+import com.kidfavor.productservice.document.ProductDocument;
 import com.kidfavor.productservice.dto.response.ResponseWrapper;
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
@@ -10,12 +11,16 @@ import com.kidfavor.productservice.service.ProductSearchService;
 import com.kidfavor.productservice.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/products")
@@ -40,7 +46,7 @@ public class ProductController {
                         @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
         })
         public ResponseEntity<ResponseWrapper<org.springframework.data.domain.Page<ProductResponse>>> getAllProducts(
-                        org.springframework.data.domain.Pageable pageable,
+                        Pageable pageable,
                         @RequestParam(name = "keyword", required = false) String keyword,
                         @RequestParam(name = "categoryId", required = false) Long categoryId,
                         @RequestParam(name = "brandId", required = false) Long brandId,
@@ -55,7 +61,7 @@ public class ProductController {
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
         })
-        public ResponseEntity<ResponseWrapper<org.springframework.data.domain.Page<ProductResponse>>> getProductsSortedByStock(
+        public ResponseEntity<ResponseWrapper<Page<ProductResponse>>> getProductsSortedByStock(
                         org.springframework.data.domain.Pageable pageable,
                         @RequestParam(name = "keyword", required = false) String keyword,
                         @RequestParam(name = "categoryId", required = false) Long categoryId,
@@ -141,7 +147,7 @@ public class ProductController {
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Successfully retrieved suggestions")
         })
-        public ResponseEntity<ResponseWrapper<java.util.List<com.kidfavor.productservice.document.ProductDocument>>> autocomplete(
+        public ResponseEntity<ResponseWrapper<java.util.List<ProductDocument>>> autocomplete(
                         @RequestParam(name = "keyword") String keyword) {
                 if (keyword == null || keyword.trim().isEmpty()) {
                         return ResponseEntity.ok(ResponseWrapper.success("Suggestions", java.util.List.of()));
@@ -168,7 +174,7 @@ public class ProductController {
                 }
         }
 
-        @PostMapping(value = "/{productId}/images", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<Map<String, Object>> uploadProductImage(
                         @PathVariable Long productId,
                         @RequestParam("file") MultipartFile file) {
@@ -217,7 +223,7 @@ public class ProductController {
                 }
         }
 
-        @PutMapping(value = "/images/{imageId}", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PutMapping(value = "/images/{imageId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<Map<String, Object>> updateProductImage(
                         @PathVariable Long imageId, @RequestParam("file") MultipartFile file) {
                 try {
@@ -234,7 +240,7 @@ public class ProductController {
                 }
         }
 
-        @PostMapping(value = "/{productId}/images/batch", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/{productId}/images/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<Map<String, Object>> uploadBatch(
                         @PathVariable Long productId, @RequestParam("files") List<MultipartFile> files) {
                 try {
@@ -290,7 +296,7 @@ public class ProductController {
 
         @Operation(summary = "Get all products currently on sale")
         @GetMapping("/on-sale")
-        public ResponseEntity<ResponseWrapper<org.springframework.data.domain.Page<ProductResponse>>> getOnSaleProducts(
+        public ResponseEntity<ResponseWrapper<Page<ProductResponse>>> getOnSaleProducts(
                         org.springframework.data.domain.Pageable pageable) {
                 var page = productService.getOnSaleProducts(pageable);
                 return ResponseEntity.ok(ResponseWrapper.success("On-sale products retrieved", page));
@@ -303,7 +309,7 @@ public class ProductController {
                 List<ProductResponse> products = ids.stream()
                                 .map(id -> productService.getProductById(id).orElse(null))
                                 .filter(p -> p != null)
-                                .collect(java.util.stream.Collectors.toList());
+                                .collect(Collectors.toList());
                 return ResponseEntity.ok(ResponseWrapper.success("Products retrieved", products));
         }
 }

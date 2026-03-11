@@ -6,6 +6,7 @@ import '../services/cart_service.dart';
 import '../services/wishlist_service.dart';
 import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
+import 'customer_reviews_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product? product;
@@ -608,12 +609,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(
-              'View all',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.blue[600],
-                fontWeight: FontWeight.w600,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => CustomerReviewsScreen()),
+                );
+              },
+              child: Text(
+                'View all',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue[600],
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

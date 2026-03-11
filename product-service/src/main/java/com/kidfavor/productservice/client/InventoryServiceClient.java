@@ -73,4 +73,20 @@ public interface InventoryServiceClient {
      */
     @GetMapping("/api/stores/products-with-stock")
     ApiResponseDto<List<Long>> getAllProductIdsWithStock();
+
+    /**
+     * Get total stock in all warehouses by product IDs.
+     */
+    @GetMapping("/api/warehouses/products/total-stock")
+    ApiResponseDto<java.util.Map<Long, Integer>> getTotalWarehouseStockForProducts(
+            @org.springframework.web.bind.annotation.RequestParam("productIds") List<Long> productIds
+    );
+
+    /**
+     * Get total stock in all warehouses for a single product.
+     */
+    @GetMapping("/api/warehouses/products/{productId}/total-stock")
+    ApiResponseDto<Integer> getTotalWarehouseStockForProduct(
+            @PathVariable("productId") Long productId
+    );
 }

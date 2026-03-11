@@ -40,4 +40,8 @@ public interface WarehouseProductService {
     Integer getAvailableStock(Long warehouseId, Long productId);
     
     WarehouseTransferResponse transferBetweenWarehouses(WarehouseTransferRequest request);
+    
+    java.util.Map<Long, Integer> getTotalStockForProducts(List<Long> productIds);
+    
+    Integer getTotalStockForProduct(Long productId);
 }

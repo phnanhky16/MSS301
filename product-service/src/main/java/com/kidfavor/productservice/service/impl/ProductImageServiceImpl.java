@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -291,7 +292,7 @@ public class ProductImageServiceImpl implements ProductImageService {
         List<ProductImage> images = productImageRepository.findByProductId(productId);
 
         // Map for quick lookup
-        java.util.Map<Long, ProductImage> imageMap = images.stream()
+        Map<Long, ProductImage> imageMap = images.stream()
                 .collect(java.util.stream.Collectors.toMap(ProductImage::getId, img -> img));
 
         for (int i = 0; i < imageIds.size(); i++) {

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import '../models/order.dart';
 
@@ -11,15 +12,30 @@ class OrderService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  // ── Lấy userId từ SharedPreferences (được lưu khi đăng nhập) ──────────────
+  Future<int?> _getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('userId');
+  }
+
+  // ── Fetch tất cả đơn hàng của user hiện tại ───────────────────────────────
   Future<void> fetchOrders() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await ApiService.get('/order-service/orders');
+      final userId = await _getUserId();
+      if (userId == null) {
+        _error = 'User not logged in';
+        return;
+      }
 
-      // Support { data: [...] }, { result: [...] }, or raw list
+      // GET /orders/user/{userId} — chỉ lấy đơn của user hiện tại
+      final response =
+          await ApiService.get('/order-service/orders/user/$userId');
+
+      // Backend trả { data: [...] } hoặc { result: [...] } hoặc raw list
       List<dynamic> rawList = [];
       if (response['data'] is List) {
         rawList = response['data'] as List;
@@ -33,7 +49,7 @@ class OrderService extends ChangeNotifier {
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      // Sort newest first
+      // Sắp xếp mới nhất lên đầu
       _orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } catch (e) {
       _error = e.toString();
@@ -44,6 +60,42 @@ class OrderService extends ChangeNotifier {
     }
   }
 
+  // ── Fetch đơn hàng theo status (lọc thêm theo userId ở client) ───────────
+  Future<List<Order>> fetchOrdersByStatus(String status) async {
+    try {
+      final userId = await _getUserId();
+      // GET /orders/status/{status}
+      final response = await ApiService.get(
+          '/order-service/orders/status/${status.toUpperCase()}');
+
+      List<dynamic> rawList = [];
+      if (response['data'] is List) {
+        rawList = response['data'] as List;
+      } else if (response['result'] is List) {
+        rawList = response['result'] as List;
+      } else if (response is List) {
+        rawList = response as List;
+      }
+
+      final allByStatus = rawList
+          .map((e) => Order.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      // Lọc thêm theo userId của người dùng hiện tại nếu có
+      if (userId != null) {
+        return allByStatus
+            .where((o) => _orders.any((local) => local.id == o.id))
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
+      return allByStatus;
+    } catch (e) {
+      print('Fetch orders by status error: $e');
+      return [];
+    }
+  }
+
+  // ── Fetch chi tiết 1 đơn hàng ─────────────────────────────────────────────
   Future<Order?> fetchOrderDetail(int orderId) async {
     try {
       final response = await ApiService.get('/order-service/orders/$orderId');
@@ -58,10 +110,12 @@ class OrderService extends ChangeNotifier {
     }
   }
 
+  // ── Huỷ đơn hàng (PATCH /{id}/cancel) ────────────────────────────────────
   Future<bool> cancelOrder(int orderId) async {
     try {
-      final response =
-          await ApiService.put('/order-service/orders/$orderId/cancel', {});
+      // Backend dùng PATCH /orders/{id}/cancel
+      final response = await ApiService.patch(
+          '/order-service/orders/$orderId/cancel', {});
       final status = response['status'] as int?;
       final success = response['success'] == true ||
           status == 200 ||
@@ -69,7 +123,6 @@ class OrderService extends ChangeNotifier {
       if (success) {
         final idx = _orders.indexWhere((o) => o.id == orderId);
         if (idx != -1) {
-          // rebuild with CANCELLED status
           final old = _orders[idx];
           _orders[idx] = Order(
             id: old.id,

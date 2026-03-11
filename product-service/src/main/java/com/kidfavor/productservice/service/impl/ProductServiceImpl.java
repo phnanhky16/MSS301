@@ -3,8 +3,10 @@ package com.kidfavor.productservice.service.impl;
 import com.kidfavor.productservice.client.InventoryServiceClient;
 import com.kidfavor.productservice.client.dto.ApiResponseDto;
 import com.kidfavor.productservice.client.dto.StoreInventoryDto;
+import com.kidfavor.productservice.document.ProductDocument;
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
+import com.kidfavor.productservice.dto.request.SetSalePriceRequest;
 import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
 import com.kidfavor.productservice.dto.response.ProductResponse;
 import com.kidfavor.productservice.dto.response.StoreStockInfo;
@@ -20,19 +22,18 @@ import com.kidfavor.productservice.repository.ProductRepository;
 import com.kidfavor.productservice.service.ProductSearchService;
 import com.kidfavor.productservice.service.ProductSearchSyncService;
 import com.kidfavor.productservice.service.ProductService;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,14 +52,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ProductResponse> listProducts(
-            org.springframework.data.domain.Pageable pageable,
+    public Page<ProductResponse> listProducts(
+            Pageable pageable,
             String keyword,
             Long categoryId,
             Long brandId,
             String status) {
         // build dynamic specification
-        org.springframework.data.jpa.domain.Specification<Product> spec = (root, query, cb) -> {
+       Specification<Product> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
             // by default (no status param) we only return ACTIVE products to
             // mimic original behaviour. if the caller passes "ALL" (case-
@@ -89,24 +90,15 @@ public class ProductServiceImpl implements ProductService {
             if (brandId != null) {
                 preds.add(cb.equal(root.get("brand").get("id"), brandId));
             }
-            return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+            return preds.isEmpty() ? null : cb.and(preds.toArray(new Predicate[0]));
         };
-        // if the caller requested all statuses we want a totally stable order
-        // that doesn't change when a product flips between ACTIVE/INACTIVE.
-        // using the provided `pageable` sort may put items in a different page
-        // once their `createdAt`/`updatedAt` fields change, so we override it
-        // when status=ALL and the sort is unspecified or includes mutable
-        // columns. here we simply sort by `id` ascending which is fixed.
-        org.springframework.data.domain.Pageable effective = pageable;
-        // when the admin requests ALL statuses but doesn't supply any sort
-        // criteria we fall back to a deterministic `id` sort so that paging
-        // doesn't jump as rows change status. if the client explicitly
-        // asked for a sort (price, createdAt, etc.) we respect it instead.
+        Pageable effective = pageable;
+
         if (status != null && status.equalsIgnoreCase("ALL") && !pageable.getSort().isSorted()) {
-            effective = org.springframework.data.domain.PageRequest.of(
+            effective = PageRequest.of(
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
-                    org.springframework.data.domain.Sort.by("id").ascending());
+                    Sort.by("id").ascending());
         }
 
         // Use Elasticsearch if keyword is provided
@@ -118,21 +110,13 @@ public class ProductServiceImpl implements ProductService {
                 sortField = order.getProperty();
                 sortDir = order.getDirection().name();
             }
-            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
+            List<ProductDocument> docs = productSearchService.searchProducts(
                     keyword, categoryId, brandId, status, effective.getPageNumber(), effective.getPageSize(), sortField,
                     sortDir);
 
-            // if the user supplied a keyword that exactly matches one or more
-            // product names we want to return only those results. the
-            // default Elasticsearch query is fuzzy/multi-match and may return
-            // many other items that happen to share tokens with the phrase;
-            // this surprises users who click an autocomplete suggestion and
-            // expect the list to narrow down to that single product. the
-            // easiest fix is to post-filter the hits here rather than change
-            // the ES query logic.
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String term = keyword.trim();
-                List<com.kidfavor.productservice.document.ProductDocument> exact = docs.stream()
+                List<ProductDocument> exact = docs.stream()
                         .filter(d -> term.equalsIgnoreCase(d.getName()))
                         .collect(Collectors.toList());
                 if (!exact.isEmpty()) {
@@ -153,18 +137,18 @@ public class ProductServiceImpl implements ProductService {
                     .map(productMapper::toResponse)
                     .collect(Collectors.toList());
 
-            // We don't have total elements easily from ES without doing a count query or
-            // modifying searchService,
-            // so giving a rough total for now or we could modify productSearchService to
-            // return Page.
-            return new org.springframework.data.domain.PageImpl<>(
+            populateTotalStockForProducts(responseList);
+
+            return new PageImpl<>(
                     responseList,
                     effective,
                     (effective.getPageNumber() + 1) * effective.getPageSize() + 1); // rough pagination
         }
 
-        return productRepository.findAll(spec, effective)
+        Page<ProductResponse> resultPage = productRepository.findAll(spec, effective)
                 .map(productMapper::toResponse);
+        populateTotalStockForProducts(resultPage.getContent());
+        return resultPage;
     }
 
     @Override
@@ -196,14 +180,13 @@ public class ProductServiceImpl implements ProductService {
                                     .collect(Collectors.toList());
 
                             response.setStoreStocks(storeStocks);
-                            response.setTotalStock(storeStocks.stream()
-                                    .mapToInt(s -> s.getQuantity() != null ? s.getQuantity() : 0)
-                                    .sum());
                         }
                     } catch (Exception e) {
                         log.warn("Failed to fetch stock information for product {}: {}", id, e.getMessage());
                         // Continue without stock info if inventory service is unavailable
                     }
+
+                    populateTotalStockForProducts(Collections.singletonList(response));
 
                     return response;
                 });
@@ -285,8 +268,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ProductResponse> listProductsSortedByStock(
-            org.springframework.data.domain.Pageable pageable,
+    public Page<ProductResponse> listProductsSortedByStock(Pageable pageable,
             String keyword,
             Long categoryId,
             Long brandId,
@@ -312,8 +294,8 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // Build dynamic specification
-        org.springframework.data.jpa.domain.Specification<Product> spec = (root, query, cb) -> {
-            java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+        Specification<Product> spec = (root, query, cb) -> {
+            List<Predicate> preds = new ArrayList<>();
 
             if (status == null) {
                 preds.add(cb.equal(root.get("status"), EntityStatus.ACTIVE));
@@ -344,7 +326,7 @@ public class ProductServiceImpl implements ProductService {
         if (keyword != null && !keyword.trim().isEmpty()) {
             // perform search against elasticsearch index to get the matching ids
             log.debug("keyword non-empty, querying ES");
-            List<com.kidfavor.productservice.document.ProductDocument> docs = productSearchService.searchProducts(
+            List<ProductDocument> docs = productSearchService.searchProducts(
                     keyword, categoryId, brandId, status, 0, 1000, null, null);
 
             // same post-filter as above for the sorted-by-stock path
@@ -406,14 +388,16 @@ public class ProductServiceImpl implements ProductService {
                 .map(productMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new org.springframework.data.domain.PageImpl<>(
+        populateTotalStockForProducts(responseList);
+
+        return new PageImpl<>(
                 responseList,
                 pageable,
                 sortedProducts.size());
     }
 
     @Override
-    public ProductResponse setSalePrice(Long id, com.kidfavor.productservice.dto.request.SetSalePriceRequest request) {
+    public ProductResponse setSalePrice(Long id, SetSalePriceRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
@@ -444,9 +428,36 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public org.springframework.data.domain.Page<ProductResponse> getOnSaleProducts(
-            org.springframework.data.domain.Pageable pageable) {
-        return productRepository.findOnSaleProducts(java.time.LocalDateTime.now(), pageable)
+    public Page<ProductResponse> getOnSaleProducts(
+           Pageable pageable) {
+        Page<ProductResponse> resultPage = productRepository.findOnSaleProducts(java.time.LocalDateTime.now(), pageable)
                 .map(productMapper::toResponse);
+        populateTotalStockForProducts(resultPage.getContent());
+        return resultPage;
+    }
+
+    private void populateTotalStockForProducts(List<ProductResponse> products) {
+        if (products == null || products.isEmpty()) {
+            return;
+        }
+
+        try {
+            List<Long> productIds = products.stream()
+                    .map(ProductResponse::getId)
+                    .collect(Collectors.toList());
+
+            ApiResponseDto<Map<Long, Integer>> inventoryResponse = inventoryServiceClient
+                    .getTotalWarehouseStockForProducts(productIds);
+
+            if (inventoryResponse != null && inventoryResponse.getStatus() == 200
+                    && inventoryResponse.getData() != null) {
+                Map<Long, Integer> stockMap = inventoryResponse.getData();
+                for (ProductResponse product : products) {
+                    product.setTotalStock(stockMap.getOrDefault(product.getId(), 0));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch total stock for products: {}", e.getMessage());
+        }
     }
 }

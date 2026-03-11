@@ -18,26 +18,35 @@ class OrderItem {
   double get subtotal => price * quantity;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
-    // Support both flat and nested product object
-    final product = json['product'] as Map<String, dynamic>?;
-    String? imageUrl;
-    if (product != null) {
-      final urls = product['imageUrls'];
-      if (urls is List && urls.isNotEmpty) {
-        imageUrl = urls[0] as String?;
-      } else {
-        imageUrl = product['imageUrl'] as String?;
-      }
-    }
+    // Backend trả unitPrice (Java BigDecimal), fallback sang price nếu có
+    final rawPrice = json['unitPrice'] ?? json['price'] ?? json['subtotal'] ?? 0;
+    final price = (rawPrice is num)
+        ? rawPrice.toDouble()
+        : double.tryParse(rawPrice.toString()) ?? 0.0;
+
+    // productId: backend trả Long, Dart parse thành int
+    final rawProductId = json['productId'];
+    final productId = (rawProductId is int)
+        ? rawProductId
+        : int.tryParse(rawProductId.toString()) ?? 0;
+
+    // id: backend trả Long
+    final rawId = json['id'];
+    final id = (rawId is int) ? rawId : int.tryParse(rawId.toString()) ?? 0;
+
+    // quantity
+    final rawQty = json['quantity'];
+    final quantity =
+        (rawQty is int) ? rawQty : int.tryParse(rawQty.toString()) ?? 0;
 
     return OrderItem(
-      id: json['id'] as int,
-      productId: (json['productId'] ?? product?['id']) as int,
+      id: id,
+      productId: productId,
       productName:
-          (json['productName'] ?? product?['name'] ?? 'Unknown') as String,
-      productImageUrl: imageUrl ?? json['productImageUrl'] as String?,
-      quantity: json['quantity'] as int,
-      price: (json['price'] as num).toDouble(),
+          (json['productName'] ?? json['name'] ?? 'Unknown') as String,
+      productImageUrl: json['productImageUrl'] as String?,
+      quantity: quantity,
+      price: price,
     );
   }
 }
@@ -63,12 +72,28 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'] as List<dynamic>? ?? [];
+
+    // id: backend trả Long
+    final rawId = json['id'];
+    final id = (rawId is int) ? rawId : int.tryParse(rawId.toString()) ?? 0;
+
+    // totalAmount: backend trả BigDecimal — JSON có thể là num hoặc String
+    final rawTotal = json['totalAmount'] ?? json['total'] ?? 0;
+    final totalAmount = (rawTotal is num)
+        ? rawTotal.toDouble()
+        : double.tryParse(rawTotal.toString()) ?? 0.0;
+
+    // status: backend trả enum OrderStatus dạng String
+    final rawStatus = json['status'];
+    final status =
+        (rawStatus != null ? rawStatus.toString() : 'PENDING').toUpperCase();
+
     return Order(
-      id: json['id'] as int,
-      status: (json['status'] as String? ?? 'PENDING').toUpperCase(),
-      totalAmount: (json['totalAmount'] ?? json['total'] ?? 0 as num).toDouble(),
+      id: id,
+      status: status,
+      totalAmount: totalAmount,
       createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       items: rawItems
           .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))

@@ -268,8 +268,7 @@ class ProfileScreen extends StatelessWidget {
           'Order\nHistory',
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (_) => const OrderHistoryScreen()),
+            MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
           ),
         ),
         _buildGridCard(context, Icons.confirmation_number, 'My\nVouchers'),
@@ -413,8 +412,7 @@ class ProfileScreen extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const AccountSettingsScreen()),
+              MaterialPageRoute(builder: (_) => const AccountSettingsScreen()),
             );
           },
         ),
@@ -516,46 +514,37 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildLogOutButton(BuildContext context, AuthService authService) {
-    return GestureDetector(
-      onTap: () async {
-        await authService.logout();
-        if (context.mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFE57373)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFE57373).withOpacity(0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    // switch to a sharper outlined button style instead of faded container
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          await authService.logout();
+          if (context.mounted) {
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+        },
+        icon: const Icon(
+          Icons.logout,
+          color: Colors.white,
+          size: 18,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(
-              Icons.logout,
-              color: Color(0xFFE57373),
-              size: 18,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Log Out',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFE57373),
-              ),
-            ),
-          ],
+        label: const Text(
+          'Log Out',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red.shade600,
+          shadowColor: Colors.red.withOpacity(0.3),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20),
         ),
       ),
     );

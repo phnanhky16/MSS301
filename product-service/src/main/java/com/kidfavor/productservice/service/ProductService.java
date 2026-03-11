@@ -4,14 +4,16 @@ import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
 import com.kidfavor.productservice.dto.request.StatusUpdateRequest;
 import com.kidfavor.productservice.dto.response.ProductResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
 public interface ProductService {
 
         // returns paged list of products with optional filters
-        org.springframework.data.domain.Page<ProductResponse> listProducts(
-                        org.springframework.data.domain.Pageable pageable,
+        Page<ProductResponse> listProducts(
+                        Pageable pageable,
                         String keyword,
                         Long categoryId,
                         Long brandId,
@@ -27,8 +29,8 @@ public interface ProductService {
 
         ProductResponse updateProductStatus(Long id, StatusUpdateRequest request);
 
-        org.springframework.data.domain.Page<ProductResponse> listProductsSortedByStock(
-                        org.springframework.data.domain.Pageable pageable,
+    Page<ProductResponse> listProductsSortedByStock(
+                        Pageable pageable,
                         String keyword,
                         Long categoryId,
                         Long brandId,
@@ -39,6 +41,6 @@ public interface ProductService {
 
         ProductResponse removeSalePrice(Long id);
 
-        org.springframework.data.domain.Page<ProductResponse> getOnSaleProducts(
-                        org.springframework.data.domain.Pageable pageable);
+        Page<ProductResponse> getOnSaleProducts(
+                        Pageable pageable);
 }

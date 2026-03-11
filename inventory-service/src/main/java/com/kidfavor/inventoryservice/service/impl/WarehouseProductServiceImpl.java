@@ -271,4 +271,25 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
                 .notes(request.getNotes())
                 .build();
     }
+
+    @Override
+    public java.util.Map<Long, Integer> getTotalStockForProducts(List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        List<Object[]> results = warehouseProductRepository.findTotalStockByProductIds(productIds);
+        java.util.Map<Long, Integer> map = new java.util.HashMap<>();
+        for (Object[] row : results) {
+            Long productId = (Long) row[0];
+            Number sum = (Number) row[1];
+            map.put(productId, sum != null ? sum.intValue() : 0);
+        }
+        return map;
+    }
+
+    @Override
+    public Integer getTotalStockForProduct(Long productId) {
+        Integer total = warehouseProductRepository.findTotalStockByProductId(productId);
+        return total != null ? total : 0;
+    }
 }
