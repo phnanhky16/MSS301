@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Layout as AntLayout, Menu, Button, Tooltip } from 'antd';
+import { Layout as AntLayout, Menu, Button, Tooltip, Input } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { logout } from '../services/auth';
@@ -33,6 +33,34 @@ const LogoutOutlined = dynamic(
 );
 const BellOutlined = dynamic(
   () => import('@ant-design/icons').then(m => m.BellOutlined),
+  { ssr: false }
+);
+const MessageOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.MessageOutlined),
+  { ssr: false }
+);
+const SearchOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.SearchOutlined),
+  { ssr: false }
+);
+const BarChartOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.BarChartOutlined),
+  { ssr: false }
+);
+const PercentageOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.PercentageOutlined),
+  { ssr: false }
+);
+const SettingOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.SettingOutlined),
+  { ssr: false }
+);
+const QuestionCircleOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.QuestionCircleOutlined),
+  { ssr: false }
+);
+const ApiOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.ApiOutlined),
   { ssr: false }
 );
 
@@ -73,9 +101,6 @@ export default function AdminLayout({ children }) {
     }
   }, [loggedIn]);
 
-  // Active menu key
-
-  // Active menu key
   const selected = router.pathname.startsWith('/admin/coupons')
     ? 'coupons'
     : router.pathname.startsWith('/admin/orders')
@@ -89,7 +114,7 @@ export default function AdminLayout({ children }) {
             : router.pathname.startsWith('/admin/warehouses')
               ? 'warehouses'
               : router.pathname.startsWith('/admin/inventory')
-                ? 'stores' // inventory could reuse store icon
+                ? 'stores'
                 : 'dashboard';
 
   const displayName = profile?.fullName || profile?.name || 'Admin';
@@ -104,7 +129,6 @@ export default function AdminLayout({ children }) {
     <>
       <Head>
         <link rel="icon" href="/images.jpg" />
-        {/* font stylesheet moved to _document.js per Next.js warning */}
       </Head>
 
       <AntLayout className="admin-layout" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
@@ -113,70 +137,55 @@ export default function AdminLayout({ children }) {
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
-          width={260}
-          collapsedWidth={80}
+          width={220}
+          collapsedWidth={72}
           className="admin-sidebar"
           breakpoint="lg"
         >
           {/* Logo */}
           <div className="admin-sidebar-logo">
-            <img src="/images.jpg" alt="KidFavor" className="admin-sidebar-logo-icon" />
+            <div className="admin-sidebar-logo-circle">K</div>
             {!collapsed && (
               <div className="admin-sidebar-logo-text">
                 <span className="admin-sidebar-logo-title">KidFavor</span>
-                <span className="admin-sidebar-logo-sub">Admin Panel</span>
               </div>
             )}
           </div>
 
           {/* Navigation */}
-          <Menu
-            theme="dark"
-            selectedKeys={[selected]}
-            mode="inline"
-            items={[
-              {
-                key: 'dashboard',
-                icon: <DashboardOutlined />,
-                label: <Link href="/admin">Dashboard</Link>,
-              },
-              {
-                key: 'orders',
-                icon: <ShoppingCartOutlined />,
-                label: <Link href="/admin/orders">Orders</Link>,
-              },
-              {
-                key: 'products',
-                icon: <AppstoreOutlined />,
-                label: <Link href="/admin/products">Products</Link>,
-              },
-              {
-                key: 'coupons',
-                icon: <TagOutlined />,
-                label: <Link href="/admin/coupons">Coupons</Link>,
-              },
-              {
-                key: 'users',
-                icon: <UserOutlined />,
-                label: <Link href="/admin/users">Users</Link>,
-              },
-              {
-                key: 'stores',
-                icon: <AppstoreOutlined />,
-                label: <Link href="/admin/stores">Stores</Link>,
-              },
-              {
-                key: 'warehouses',
-                icon: <AppstoreOutlined />,
-                label: <Link href="/admin/warehouses">Warehouses</Link>,
-              },
-              {
-                key: 'warehouse-inventory',
-                icon: <AppstoreOutlined />,
-                label: <Link href="/admin/warehouse-inventory">Inventory</Link>,
-              },
-            ]}
-          />
+          <div className="admin-sidebar-scroll">
+            <Menu
+              theme="light"
+              selectedKeys={[selected]}
+              mode="inline"
+              className="admin-sidebar-menu"
+              items={[
+                {
+                  type: 'group',
+                  label: collapsed ? '' : 'MENU',
+                  children: [
+                    { key: 'dashboard', icon: <DashboardOutlined />, label: <Link href="/admin">Dashboard</Link> },
+                    { key: 'orders', icon: <ShoppingCartOutlined />, label: <Link href="/admin/orders">Orders</Link> },
+                    { key: 'products', icon: <AppstoreOutlined />, label: <Link href="/admin/products">Products</Link> },
+                    { key: 'users', icon: <UserOutlined />, label: <Link href="/admin/users">Customers</Link> },
+                    { key: 'reports', icon: <BarChartOutlined />, label: <Link href="/admin/warehouses">Reports</Link> },
+                    { key: 'coupons', icon: <PercentageOutlined />, label: <Link href="/admin/coupons">Discounts</Link> },
+                  ],
+                },
+                {
+                  type: 'group',
+                  label: collapsed ? '' : 'SUPPORT',
+                  children: [
+                    { key: 'stores', icon: <ApiOutlined />, label: <Link href="/admin/stores">Integrations</Link> },
+                    { key: 'warehouses', icon: <QuestionCircleOutlined />, label: <Link href="/admin/warehouses">Help</Link> },
+                    { key: 'warehouse-inventory', icon: <SettingOutlined />, label: <Link href="/admin/warehouse-inventory">Settings</Link> },
+                  ],
+                },
+              ]}
+            />
+          </div>
+
+
         </Sider>
 
         {/* ── Main Area ── */}
@@ -184,26 +193,25 @@ export default function AdminLayout({ children }) {
           {/* Header */}
           <Header className="admin-header">
             <div className="admin-header-left">
-              <div>
-                <div className="admin-header-title">
-                  {pageTitles[selected] || 'Dashboard'}
-                </div>
-                <div className="admin-header-breadcrumb">
-                  Admin / {pageTitles[selected] || 'Dashboard'}
-                </div>
+              <div className="admin-header-title">
+                {pageTitles[selected] || 'Dashboard'}
               </div>
             </div>
 
             <div className="admin-header-right">
+              <Input
+                prefix={<SearchOutlined style={{ color: '#bbb' }} />}
+                placeholder="Search stock, order, etc"
+                className="admin-header-search"
+                bordered={false}
+              />
               {loggedIn ? (
                 <>
+                  <Tooltip title="Messages">
+                    <Button type="text" shape="circle" icon={<MessageOutlined style={{ fontSize: 17 }} />} className="admin-header-icon-btn" />
+                  </Tooltip>
                   <Tooltip title="Notifications">
-                    <Button
-                      type="text"
-                      shape="circle"
-                      icon={<BellOutlined style={{ fontSize: 18 }} />}
-                      style={{ color: '#636e72' }}
-                    />
+                    <Button type="text" shape="circle" icon={<BellOutlined style={{ fontSize: 17 }} />} className="admin-header-icon-btn" />
                   </Tooltip>
 
                   <div className="admin-header-user">
@@ -211,7 +219,7 @@ export default function AdminLayout({ children }) {
                     <div>
                       <div className="admin-header-name">{displayName}</div>
                       <div className="admin-header-role">
-                        {profile?.role || 'Administrator'}
+                        {profile?.role || 'Admin'}
                       </div>
                     </div>
                   </div>

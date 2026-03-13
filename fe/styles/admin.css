@@ -907,3 +907,492 @@
   border-radius: 8px;
   font-weight: 500;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   EzMart-style Light Sidebar Overrides
+   ═══════════════════════════════════════════════════════════════ */
+
+.admin-sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid #f0f2f5 !important;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04) !important;
+}
+
+.admin-sidebar::before {
+  display: none;
+}
+
+.admin-sidebar .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Light logo */
+.admin-sidebar-logo {
+  padding: 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #f5f5f5;
+  margin-bottom: 4px;
+}
+
+.admin-sidebar-logo-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #17a2b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.admin-sidebar-logo-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+  background: none;
+  -webkit-text-fill-color: #1a1a2e;
+}
+
+/* Scrollable menu area */
+.admin-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 2px;
+}
+
+/* Light menu */
+.admin-sidebar-menu.ant-menu-light {
+  background: transparent !important;
+  border-right: none !important;
+  padding: 0 8px;
+}
+
+.admin-sidebar-menu .ant-menu-item-group-title {
+  color: #17a2b8 !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 14px 12px 4px !important;
+}
+
+.admin-sidebar-menu .ant-menu-item {
+  border-radius: 10px !important;
+  height: 42px !important;
+  line-height: 42px !important;
+  margin: 2px 0 !important;
+  font-size: 14px;
+  font-weight: 500;
+  color: #636e72 !important;
+  transition: all 0.2s ease;
+}
+
+.admin-sidebar-menu .ant-menu-item:hover {
+  background: #f0fbfd !important;
+  color: #17a2b8 !important;
+  transform: none;
+}
+
+.admin-sidebar-menu .ant-menu-item-selected {
+  background: #17a2b8 !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(23,162,184,0.3);
+}
+
+.admin-sidebar-menu .ant-menu-item-selected .anticon,
+.admin-sidebar-menu .ant-menu-item-selected a {
+  color: #fff !important;
+}
+
+.admin-sidebar-menu .ant-menu-item-selected::before {
+  display: none;
+}
+
+.admin-sidebar-menu .ant-menu-item a {
+  color: inherit !important;
+  text-decoration: none;
+}
+
+.admin-sidebar-menu .ant-menu-item .anticon {
+  font-size: 16px !important;
+  color: inherit;
+}
+
+/* Pro Plan card */
+.admin-pro-card {
+  margin: 12px 12px 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #17a2b8, #0d7d92);
+  border-radius: 14px;
+  color: #fff;
+}
+
+.admin-pro-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 6px;
+}
+
+.admin-pro-desc {
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.admin-pro-btn {
+  background: #fff !important;
+  color: #17a2b8 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  height: 34px !important;
+  font-size: 13px !important;
+}
+
+.admin-pro-btn:hover {
+  background: #e8f7fb !important;
+}
+
+/* Collapse trigger override */
+.admin-sidebar .ant-layout-sider-trigger {
+  background: #f8f9fa !important;
+  border-top: 1px solid #f0f0f0 !important;
+  color: #636e72 !important;
+}
+
+/* Header overrides for light theme */
+.admin-header {
+  background: #fff !important;
+  border-bottom: 1px solid #f0f2f5 !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+  backdrop-filter: none;
+}
+
+.admin-header-title {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #1a1a2e !important;
+  background: none;
+  -webkit-text-fill-color: #1a1a2e;
+}
+
+/* Header search input */
+.admin-header-search {
+  width: 240px;
+  background: #f5f7fa !important;
+  border-radius: 10px !important;
+  border: 1px solid #eee !important;
+  height: 38px;
+  font-size: 13px;
+}
+
+.admin-header-search .ant-input {
+  background: transparent !important;
+  font-size: 13px;
+}
+
+.admin-header-icon-btn {
+  color: #8a8fa8 !important;
+  width: 38px !important;
+  height: 38px !important;
+}
+
+.admin-header-icon-btn:hover {
+  color: #17a2b8 !important;
+  background: #f0fbfd !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EzMart Dashboard Page Components
+   ═══════════════════════════════════════════════════════════════ */
+
+.ezmart-dash {
+  animation: adminFadeIn 0.3s ease-out;
+}
+
+.ezmart-page-title {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  color: #1a1a2e !important;
+  margin: 0 0 20px !important;
+}
+
+/* ── Stat Cards ── */
+.ez-stat-card {
+  border-radius: 14px !important;
+  border: 1px solid #f0f2f5 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+  position: relative;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.ez-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.09) !important;
+}
+
+.ez-stat-card .ant-card-body {
+  padding: 22px 24px !important;
+}
+
+.ez-stat-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ez-stat-label {
+  font-size: 13px;
+  color: #8a8fa8;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.ez-stat-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.ez-stat-change {
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ez-stat-change.up {
+  color: #00b894;
+}
+
+.ez-stat-change.down {
+  color: #ff6b6b;
+}
+
+.ez-vs {
+  color: #aaa;
+  font-weight: 400;
+}
+
+.ez-stat-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ez-stat-icon-wrap.teal {
+  background: #e0f7fa;
+  color: #17a2b8;
+}
+
+.ez-stat-icon-wrap.blue {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.ez-stat-icon-wrap.outline {
+  background: #f0f8f0;
+  color: #00b894;
+  border: 1.5px solid #c8ecd7;
+}
+
+/* ── Chart Cards ── */
+.ez-chart-card {
+  border-radius: 14px !important;
+  border: 1px solid #f0f2f5 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+  height: 100%;
+}
+
+.ez-chart-card .ant-card-head {
+  border-bottom: 1px solid #f5f5f5 !important;
+  padding: 0 20px !important;
+  min-height: 52px !important;
+}
+
+.ez-chart-card .ant-card-body {
+  padding: 16px 20px 20px !important;
+}
+
+.ez-chart-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.ez-period-badge {
+  font-size: 12px;
+  color: #17a2b8;
+  background: #e8f7fb;
+  border-radius: 8px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.ez-see-all {
+  font-size: 12px;
+  color: #17a2b8;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Revenue chart legend */
+.ez-chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #636e72;
+}
+
+.ez-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.ez-legend-dot.teal { background: #17a2b8; }
+.ez-legend-dot.gray { background: #b2d8e0; border: 1.5px dashed #b2d8e0; border-radius: 50%; }
+
+/* ── Monthly Target ── */
+.ez-target-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.ez-target-desc {
+  font-size: 12px;
+  color: #8a8fa8;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.ez-target-stats {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #f5f5f5;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.ez-target-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.ez-target-stat-label.teal { color: #17a2b8; }
+.ez-target-stat-label.blue { color: #1976d2; }
+
+.ez-target-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+/* ── Active User Section ── */
+.ez-badge-green {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #00b894;
+  background: rgba(0,184,148,0.1);
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.ez-country-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.ez-country-pct {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.ez-progress-bg {
+  height: 6px;
+  background: #f0f2f5;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ez-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #17a2b8, #4dd9e8);
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+
+/* ── Top Categories ── */
+.ez-cat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f8f8f8;
+}
+
+.ez-cat-row:last-child {
+  border-bottom: none;
+}
+
+.ez-cat-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #555;
+}
+
+.ez-cat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ez-cat-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
