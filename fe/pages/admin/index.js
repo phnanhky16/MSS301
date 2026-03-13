@@ -153,13 +153,6 @@ export default function AdminDashboard() {
     { label: 'Other', pct: 15, color: '#f0f8fa', sales: '' },
   ];
 
-  const countryBars = [
-    { name: 'United States', pct: 36 },
-    { name: 'United Kingdom', pct: 24 },
-    { name: 'Indonesia', pct: 17.5 },
-    { name: 'Russia', pct: 15 },
-  ];
-
   return (
     <div className="ezmart-dash">
       {msgHolder}
@@ -266,21 +259,8 @@ export default function AdminDashboard() {
         <Col xs={24} lg={8}>
           <Card className="ez-chart-card" variant="borderless" title={<span className="ez-chart-title">Active User</span>}>
             <div className="ez-stat-value" style={{ fontSize: 28 }}>{users.toLocaleString()}</div>
-            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>Users</div>
+            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>Total Users</div>
             <span className="ez-badge-green">+8.02% from last month</span>
-            <div style={{ marginTop: 16 }}>
-              {countryBars.map(b => (
-                <div key={b.name} style={{ marginBottom: 12 }}>
-                  <div className="ez-country-row">
-                    <span>{b.name}</span>
-                    <span className="ez-country-pct">{b.pct}%</span>
-                  </div>
-                  <div className="ez-progress-bg">
-                    <div className="ez-progress-fill" style={{ width: `${b.pct}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
           </Card>
         </Col>
         <Col xs={24} lg={8}>
