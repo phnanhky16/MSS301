@@ -33,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen>
   String _selectedCategory = 'Popular';
   final _decimalFormat = NumberFormat.decimalPattern('vi_VN');
 
+  // Banner carousel state
+  late PageController _bannerPageController;
+  int _currentBannerIndex = 0;
+
   // Cart animation state
   int _cartCount = 0;
   final GlobalKey _cartKey = GlobalKey();
@@ -60,6 +64,9 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+
+    // Initialize banner carousel controller
+    _bannerPageController = PageController(initialPage: 0);
 
     // Initialize controllers and ValueNotifiers in initState (Best Practice)
     _searchController = TextEditingController();
@@ -93,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen>
     _debounceTimer?.cancel();
     _shakeController?.dispose();
     _flyingWidget?.remove();
+    _bannerPageController.dispose();
     super.dispose();
   }
 
@@ -985,10 +993,17 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
 
-                    // Promotion Banner - Mega Sale (hide when searching)
+                    // Promotion Banner Carousel (hide when searching)
                     if (_searchKeyword.isEmpty)
-                      const SliverToBoxAdapter(
-                        child: MegaSaleBanner(),
+                      SliverToBoxAdapter(
+                        child: BannerCarousel(
+                          pageController: _bannerPageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentBannerIndex = index;
+                            });
+                          },
+                        ),
                       ),
 
                     // Category Chips Section (hide when searching)
@@ -2229,6 +2244,259 @@ class MegaSaleBanner extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   // Nút Shop Now
+                  InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'Shop Now',
+                        style: TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Banner Carousel Widget ──────────────────────────────────────────────────
+
+class BannerCarousel extends StatefulWidget {
+  final PageController pageController;
+  final ValueChanged<int>? onPageChanged;
+
+  const BannerCarousel({
+    super.key,
+    required this.pageController,
+    this.onPageChanged,
+  });
+
+  @override
+  State<BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<BannerCarousel> {
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.pageController.addListener(() {
+      final newIndex = widget.pageController.page?.round() ?? 0;
+      if (newIndex != _currentIndex) {
+        setState(() {
+          _currentIndex = newIndex;
+        });
+        widget.onPageChanged?.call(newIndex);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final banners = [
+      const MegaSaleBanner(),
+      const LegoOfferBanner(),
+    ];
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 140,
+          child: PageView(
+            controller: widget.pageController,
+            children: banners,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Indicator dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            banners.length,
+            (index) => Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentIndex == index
+                    ? const Color(0xFF1EB5D9)
+                    : Colors.grey[300],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Summer Sale Banner Widget ───────────────────────────────────────────────
+
+class LegoOfferBanner extends StatelessWidget {
+  const LegoOfferBanner({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      width: double.infinity,
+      height: 120,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF3B82F6), // Tailwind blue-500
+            Color(0xFF22D3EE), // Tailwind cyan-400
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            // Hiệu ứng đốm sáng mờ 1 (Góc trên phải)
+            Positioned(
+              top: -20,
+              right: 80,
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 24,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Hiệu ứng đốm sáng mờ 2 (Góc dưới trái)
+            Positioned(
+              bottom: -10,
+              left: 20,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 16,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Icon Lego (Mảnh ghép) xoay nghiêng
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Transform.rotate(
+                angle: 12 * math.pi / 180,
+                child: SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Bóng mờ (Icon lớp dưới)
+                      Icon(
+                        Icons.extension,
+                        size: 140,
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                      // Hình chính (Icon lớp trên)
+                      const Icon(
+                        Icons.extension,
+                        size: 100,
+                        color: Color(0xFFFDE047),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Nội dung văn bản và Nút bấm
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'LEGO Offer',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                      shadows: [
+                        Shadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(0, 2)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'SALE 15% OFF',
+                    style: TextStyle(
+                      color: Color(0xFFFDE047),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      shadows: [
+                        Shadow(
+                            color: Colors.black12,
+                            blurRadius: 2,
+                            offset: Offset(0, 1)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   InkWell(
                     onTap: () {},
                     borderRadius: BorderRadius.circular(20),

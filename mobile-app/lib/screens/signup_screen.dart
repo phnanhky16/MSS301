@@ -15,6 +15,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _fullNameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
@@ -26,6 +27,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _fullNameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -45,6 +47,7 @@ class _SignupScreenState extends State<SignupScreen> {
           _usernameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text,
+          _phoneController.text.trim(),
         );
 
         if (success && mounted) {
@@ -277,7 +280,26 @@ class _SignupScreenState extends State<SignupScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Password Field
+                          // Phone Field
+                          _buildLabel('Phone Number'),
+                          const SizedBox(height: 8),
+                          _buildInputField(
+                            controller: _phoneController,
+                            hintText: '0123456789',
+                            prefixIcon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Vui lòng nhập số điện thoại';
+                              }
+                              final phoneRegex = RegExp(r'^[0-9]{10,11}$');
+                              if (!phoneRegex.hasMatch(value)) {
+                                return 'Số điện thoại phải có 10-11 chữ số';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
                           _buildLabel('Password'),
                           const SizedBox(height: 8),
                           _buildInputField(

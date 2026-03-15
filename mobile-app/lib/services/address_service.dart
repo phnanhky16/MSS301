@@ -27,15 +27,29 @@ class AddressService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      print('[AddressService] Fetching shipments for userId: $userId');
       final response =
           await ApiService.get('/user-service/shipments/user/$userId');
+      print('[AddressService] Response: $response');
+
       final List<dynamic> data = response['data'] ?? [];
-      _shipments = data.map((e) => Shipment.fromJson(e)).toList();
+      print('[AddressService] Data list: $data');
+      print('[AddressService] Data count: ${data.length}');
+
+      _shipments = data.map((e) {
+        print('[AddressService] Parsing shipment: $e');
+        return Shipment.fromJson(e);
+      }).toList();
+
+      print('[AddressService] Total shipments loaded: ${_shipments.length}');
+
       if (_selectedId == null && _shipments.isNotEmpty) {
         _selectedId = _shipments.first.shipId;
+        print('[AddressService] Selected first shipment: $_selectedId');
       }
     } catch (e) {
-      print('AddressService.fetchByUser error: $e');
+      print('[AddressService] fetchByUser error: $e');
+      _shipments = [];
     } finally {
       _isLoading = false;
       notifyListeners();

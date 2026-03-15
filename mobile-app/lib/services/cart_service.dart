@@ -80,48 +80,62 @@ class CartService extends ChangeNotifier {
   }
 
   // Add to cart (POST /carts/items - backend extracts userId from JWT)
-  Future<bool> addToCart(int userId, int productId, int quantity) async {
-    try {
-      print('🛒 Adding to cart - productId: $productId, quantity: $quantity');
+  Future<bool> addToCart(int userId, int productId, int quantity,
+      {int maxRetries = 5}) async {
+    int retryCount = 0;
 
-      final response = await ApiService.post(
-        '/cart-service/carts/items',
-        {
-          'userId': userId,
-          'productId': productId,
-          'quantity': quantity,
-        },
-      );
+    while (retryCount < maxRetries) {
+      try {
+        final response = await ApiService.post(
+          '/cart-service/carts/items',
+          {
+            'userId': userId,
+            'productId': productId,
+            'quantity': quantity,
+          },
+        );
 
-      print('📱 Add to cart response: $response');
+        if (response['success'] == true) {
+          _lastErrorMessage = null;
+          _cart = Cart.fromJson(response['data']);
+          notifyListeners();
+          return true;
+        } else {
+          final errorMsg = response['message'] ?? 'Unknown error';
+          _lastErrorMessage = errorMsg;
+          return false;
+        }
+      } catch (e) {
+        retryCount++;
 
-      if (response['success'] == true) {
-        print('✅ Product added successfully to cart');
-        _lastErrorMessage = null;
-        _cart = Cart.fromJson(response['data']);
-        notifyListeners();
-        return true;
-      } else {
-        final errorMsg = response['message'] ?? 'Unknown error';
-        print('❌ Add to cart failed: $errorMsg');
-        _lastErrorMessage = errorMsg;
+        // Parse error details
+        final errorString = e.toString();
+        final isSeviceUnavailable =
+            errorString.contains('503') || errorString.contains('Connection');
+        final isInternalError = errorString.contains('500');
+
+        if ((isSeviceUnavailable || isInternalError) &&
+            retryCount < maxRetries) {
+          final delayMs = 300 + (200 * retryCount);
+          await Future.delayed(Duration(milliseconds: delayMs));
+          continue; // Retry
+        }
+
+        _lastErrorMessage = _extractErrorMessage(errorString);
+
+        if (errorString.contains('401') ||
+            errorString.contains('Unauthorized')) {
+          _lastErrorMessage =
+              '⚠️ Phiên đăng nhập hết hiệu lực. Vui lòng đăng nhập lại.';
+        }
+
         return false;
       }
-    } catch (e) {
-      print('❌ Add to cart error: $e');
-      // Parse backend error message from exception
-      _lastErrorMessage = _extractErrorMessage(e.toString());
-      print('📝 Error message extracted: $_lastErrorMessage');
-
-      // If it's a 401, token might have expired
-      if (e.toString().contains('401') ||
-          e.toString().contains('Unauthorized')) {
-        print('⚠️  JWT Token may have expired or not set');
-        _lastErrorMessage =
-            '⚠️ Phiên đăng nhập hết hiệu lực. Vui lòng đăng nhập lại.';
-      }
-      return false;
     }
+
+    _lastErrorMessage =
+        'Không thể thêm vào giỏ hàng sau $maxRetries lần thử. Vui lòng thử lại sau.';
+    return false;
   }
 
   // Update cart item (PUT /carts/items/{productId} - no userId in path)
@@ -131,15 +145,12 @@ class CartService extends ChangeNotifier {
     int quantity,
   ) async {
     try {
-      print(
-          '🔄 Updating cart item - productId: $productId, newQuantity: $quantity');
       final response = await ApiService.put(
         '/cart-service/carts/items/$productId',
         {'quantity': quantity},
       );
 
       if (response['success'] == true) {
-        print('✅ Cart item updated successfully');
         // Instead of replacing the whole cart (which may reorder items),
         // update the existing item locally and adjust totals.
         if (_cart != null) {
@@ -176,11 +187,8 @@ class CartService extends ChangeNotifier {
         notifyListeners();
         return true;
       }
-      print(
-          '❌ Update cart item failed: ${response['message'] ?? 'Unknown error'}');
       return false;
     } catch (e) {
-      print('❌ Update cart error: $e');
       return false;
     }
   }
@@ -188,22 +196,17 @@ class CartService extends ChangeNotifier {
   // Remove from cart (DELETE /carts/items/{productId} - no userId in path)
   Future<bool> removeFromCart(int userId, int productId) async {
     try {
-      print('🗑️ Removing item from cart - productId: $productId');
       final response = await ApiService.delete(
         '/cart-service/carts/items/$productId',
       );
 
       if (response['success'] == true) {
-        print('✅ Item removed from cart successfully');
         _cart = Cart.fromJson(response['data']);
         notifyListeners();
         return true;
       }
-      print(
-          '❌ Remove from cart failed: ${response['message'] ?? 'Unknown error'}');
       return false;
     } catch (e) {
-      print('❌ Remove from cart error: $e');
       return false;
     }
   }
@@ -211,18 +214,14 @@ class CartService extends ChangeNotifier {
   // Clear cart (DELETE /carts - no userId in path)
   Future<bool> clearCart(int userId) async {
     try {
-      print('🧹 Clearing entire cart...');
       final response = await ApiService.delete('/cart-service/carts');
       if (response['success'] == true) {
-        print('✅ Cart cleared successfully');
         _cart = null;
         notifyListeners();
         return true;
       }
-      print('❌ Clear cart failed: ${response['message'] ?? 'Unknown error'}');
       return false;
     } catch (e) {
-      print('❌ Clear cart error: $e');
       return false;
     }
   }

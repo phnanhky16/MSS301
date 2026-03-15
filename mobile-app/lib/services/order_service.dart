@@ -142,4 +142,40 @@ class OrderService extends ChangeNotifier {
       return false;
     }
   }
+
+  // ── Tạo đơn hàng mới ────────────────────────────────────────────────────────
+  Future<Order?> createOrder({
+    required int userId,
+    required List<Map<String, dynamic>> items,
+    required int shippingAddressId,
+    required String paymentMethod,
+    String? couponCode,
+  }) async {
+    try {
+      final payload = {
+        'userId': userId,
+        'items': items,
+        'shippingAddressId': shippingAddressId,
+        'paymentMethod': paymentMethod,
+        if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
+      };
+
+      final response = await ApiService.post('/order-service/orders', payload);
+
+      final data = response['data'] ?? response['result'] ?? response;
+      if (data is Map<String, dynamic>) {
+        final createdOrder = Order.fromJson(data);
+        // Thêm đơn hàng vào danh sách
+        _orders.insert(0, createdOrder);
+        notifyListeners();
+        return createdOrder;
+      }
+      return null;
+    } catch (e) {
+      print('Create order error: $e');
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
 }

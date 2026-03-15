@@ -22,7 +22,7 @@ spring:
   cache:
     type: redis
     redis:
-      time-to-live: 3600000  # 1 hour in milliseconds
+      time-to-live: 3600000 # 1 hour in milliseconds
       cache-null-values: false
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -53,9 +53,32 @@ feign:
   client:
     config:
       default:
-        connectTimeout: 2000
-        readTimeout: 3000
-        loggerLevel: BASIC
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: FULL
+      product-service:
+        connectTimeout: 5000
+        readTimeout: 10000
+
+# Resilience4j Configuration
+resilience4j:
+  retry:
+    instances:
+      product-service:
+        maxAttempts: 3
+        waitDuration: 1000
+        retryExceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.HttpServerErrorException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpClientErrorException
+      product-client:
+        maxAttempts: 3
+        waitDuration: 1000
+        retryExceptions:
+          - feign.FeignException.InternalServerError
+          - feign.FeignException.ServiceUnavailable
 
 # Management endpoints
 management:
@@ -86,5 +109,5 @@ logging:
 # JWT Configuration
 jwt:
   secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
-  expiration: 3600000  # 1 hour
+  expiration: 3600000 # 1 hour
 

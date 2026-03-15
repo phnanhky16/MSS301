@@ -270,34 +270,6 @@ class _CartScreenState extends State<CartScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Subtotal
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Tạm tính',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                              Text(
-                                _currencyFormat.format(subtotal),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1A1A1A),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Divider
-                          Divider(color: Colors.grey[100], height: 1),
-                          const SizedBox(height: 16),
-
                           // Total
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -482,15 +454,6 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Danh mục: ${item.product?.categoryName ?? ''}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF64748B),
-                              ),
                             ),
                           ],
                         ),

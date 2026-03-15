@@ -112,6 +112,7 @@ class AuthService extends ChangeNotifier {
     String username,
     String email,
     String password,
+    String phone,
   ) async {
     _isLoading = true;
     notifyListeners();
@@ -126,6 +127,7 @@ class AuthService extends ChangeNotifier {
           'username': username,
           'email': email,
           'password': password,
+          'phone': phone,
         },
       );
 

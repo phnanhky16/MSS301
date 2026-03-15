@@ -248,17 +248,7 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                 child: CircularProgressIndicator(color: kfBlue));
           }
           if (svc.shipments.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.location_off, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('Chưa có địa chỉ nào',
-                      style: TextStyle(color: Colors.grey, fontSize: 16)),
-                ],
-              ),
-            );
+            return _buildEmptyState();
           }
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
@@ -471,6 +461,73 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                   ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Hàm xây dựng Empty State khi chưa có địa chỉ nào ──
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // ── Khối Hình Ảnh ──
+            Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDBEAFE),
+                shape: BoxShape.circle,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Icon lớp dưới (Map outline)
+                  Icon(
+                    Icons.map_outlined,
+                    size: 70,
+                    color: Colors.blue.withOpacity(0.5),
+                  ),
+                  // Icon lớp trên (Location pin)
+                  Positioned(
+                    bottom: 30,
+                    right: 25,
+                    child: Icon(
+                      Icons.location_on,
+                      size: 45,
+                      color: kfBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+            // ── Khối Văn Bản: Tiêu Đề ──
+            Text(
+              'Chưa có địa chỉ nào!',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // ── Khối Văn Bản: Mô Tả ──
+            Text(
+              'Hãy thêm địa chỉ giao hàng để chúng tôi có thể mang những món đồ chơi tuyệt vời đến tận cửa nhà bạn nhé.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF64748B),
+                height: 1.6,
+              ),
+            ),
+            // ── Cân bằng khoảng không ──
+            const SizedBox(height: 80),
           ],
         ),
       ),
