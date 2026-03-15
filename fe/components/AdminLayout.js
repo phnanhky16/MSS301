@@ -203,7 +203,7 @@ export default function AdminLayout({ children }) {
                 prefix={<SearchOutlined style={{ color: '#bbb' }} />}
                 placeholder="Search stock, order, etc"
                 className="admin-header-search"
-                bordered={false}
+                variant="unstyled"
               />
               {loggedIn ? (
                 <>
