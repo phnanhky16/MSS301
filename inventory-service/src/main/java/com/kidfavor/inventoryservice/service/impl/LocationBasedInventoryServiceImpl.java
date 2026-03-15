@@ -308,16 +308,18 @@ public class LocationBasedInventoryServiceImpl implements LocationBasedInventory
             int availableStock = inventory.map(StoreInventory::getQuantity).orElse(0);
             boolean hasSufficientStock = availableStock >= requiredQuantity;
             
-            availability.add(new StoreAvailability(
-                    store.getStoreCode(),
-                    store.getStoreName(),
-                    store.getLatitude(),
-                    store.getLongitude(),
-                    distance,
-                    availableStock,
-                    requiredQuantity,
-                    hasSufficientStock
-            ));
+            if (hasSufficientStock) {
+                availability.add(new StoreAvailability(
+                        store.getStoreCode(),
+                        store.getStoreName(),
+                        store.getLatitude(),
+                        store.getLongitude(),
+                        distance,
+                        availableStock,
+                        requiredQuantity,
+                        hasSufficientStock
+                ));
+            }
         }
         
         // Sort by distance

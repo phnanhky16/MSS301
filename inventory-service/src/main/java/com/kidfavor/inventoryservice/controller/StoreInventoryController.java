@@ -9,6 +9,8 @@ import com.kidfavor.inventoryservice.dto.StoreRestockRequest;
 import com.kidfavor.inventoryservice.dto.StoreRestockResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import com.kidfavor.inventoryservice.service.StoreInventoryService;
+import com.kidfavor.inventoryservice.service.LocationBasedInventoryService;
+import com.kidfavor.inventoryservice.service.impl.LocationBasedInventoryServiceImpl.StoreAvailability;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,6 +31,7 @@ import java.util.List;
 public class StoreInventoryController {
 
     private final StoreInventoryService storeInventoryService;
+    private final LocationBasedInventoryService locationBasedInventoryService;
 
     @GetMapping("/{storeId}/inventory")
     @Operation(summary = "Get all inventory in a store", description = "Retrieve all product inventory for a specific store")
@@ -151,6 +154,28 @@ public class StoreInventoryController {
         return ResponseEntity.ok(ResponseWrapper.success(
                 String.format("Found %d store(s) with product %d", availability.size(), productId), 
                 availability));
+    }
+
+    @GetMapping("/nearest-with-stock")
+    @Operation(summary = "Find nearest stores with sufficient stock for a product",
+               description = "Returns a list of stores that have the requested product in stock, sorted by distance from the provided coordinates")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Nearest stores retrieved successfully")
+    })
+    public ResponseEntity<ResponseWrapper<List<StoreAvailability>>> findNearestStores(
+            @Parameter(description = "User's latitude", required = true) @RequestParam Double latitude,
+            @Parameter(description = "User's longitude", required = true) @RequestParam Double longitude,
+            @Parameter(description = "Product ID to search", required = true) @RequestParam Long productId,
+            @Parameter(description = "Minimum quantity required") @RequestParam(required = false, defaultValue = "1") Integer minQuantity,
+            @Parameter(description = "Maximum distance to search in km") @RequestParam(required = false, defaultValue = "50.0") Double maxDistanceKm) {
+        
+        List<StoreAvailability> nearestStores = locationBasedInventoryService.findStoresWithStock(
+                latitude, longitude, productId, minQuantity, maxDistanceKm);
+                
+        return ResponseEntity.ok(ResponseWrapper.success(
+                String.format("Found %d store(s) with product %d within %s km", 
+                        nearestStores.size(), productId, maxDistanceKm), 
+                nearestStores));
     }
 
     @PostMapping("/restock")

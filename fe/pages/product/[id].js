@@ -10,13 +10,13 @@ import {
     Breadcrumb,
     Skeleton,
     Spin,
-    message,
     Image as AntImage,
     Carousel,
     Pagination,
     Avatar,
     Space,
-    Radio
+    Radio,
+    App as AntApp
 } from 'antd';
 import {
     ShoppingCartOutlined,
@@ -29,17 +29,19 @@ import {
     LeftOutlined,
     RightOutlined,
     UserOutlined,
-    FilterOutlined
+    FilterOutlined,
+    EnvironmentOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
-import { fetchProductById, fetchProductReviews, fetchProductAverageRating } from '../../services/api';
+import { fetchProductById, fetchProductReviews, fetchProductAverageRating, fetchNearestStores } from '../../services/api';
 import { useCart } from '../../hooks/useCart';
 import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function ProductDetailPage() {
+    const { message } = AntApp.useApp();
     const router = useRouter();
     const { id } = router.query;
     const [product, setProduct] = useState(null);
@@ -52,6 +54,10 @@ export default function ProductDetailPage() {
     const scrollContainerRef = useRef(null);
     // computed height used for container so exactly two items are visible
     const [containerHeight, setContainerHeight] = useState(140);
+
+    // Nearest Store Feature States
+    const [nearestStores, setNearestStores] = useState(null);
+    const [findingLocation, setFindingLocation] = useState(false);
 
     // Review States
     const [reviews, setReviews] = useState([]);
@@ -157,6 +163,40 @@ export default function ProductDetailPage() {
             addToCart(product);
         }
         message.success(`Added ${quantity} ${product.name} to cart!`);
+    };
+
+    const handleFindNearestStore = () => {
+        if (!navigator.geolocation) {
+            message.error("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setFindingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                try {
+                    const result = await fetchNearestStores(latitude, longitude, id);
+                    if (result && result.length > 0) {
+                        setNearestStores(result);
+                        message.success(`Tìm thấy ${result.length} cửa hàng gần bạn!`);
+                    } else {
+                        setNearestStores([]);
+                        message.warning("Không tìm thấy cửa hàng nào gần bạn có sản phẩm này.");
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch nearest stores", err);
+                    message.error("Có lỗi xảy ra khi tìm cửa hàng gần bạn.");
+                } finally {
+                    setFindingLocation(false);
+                }
+            },
+            (err) => {
+                console.error("Geolocation error", err);
+                message.error("Không thể lấy vị trí hiện tại của bạn. Vui lòng cho phép quyền truy cập vị trí.");
+                setFindingLocation(false);
+            }
+        );
     };
 
     return (
@@ -320,10 +360,62 @@ export default function ProductDetailPage() {
                                 ))}
                             </div>
                         )}
-                    </div>
 
-                    {/* Right: Product Info */}
-                    <div className="product-info-column" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                        {/* Nearest Store Section */}
+                        <div style={{ marginTop: 20 }}>
+                            <Button 
+                                type="dashed" 
+                                icon={<EnvironmentOutlined />} 
+                                loading={findingLocation}
+                                onClick={handleFindNearestStore}
+                                block
+                                size="large"
+                                style={{ borderRadius: 8, borderColor: '#1ca8c8', color: '#1ca8c8' }}
+                            >
+                                Tìm cửa hàng gần bạn
+                            </Button>
+
+                        {nearestStores !== null && (
+                            <div style={{ marginTop: 16 }}>
+                                {nearestStores.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        {nearestStores.slice(0, 3).map((s, idx) => (
+                                            <div key={idx} style={{ 
+                                                padding: 12, 
+                                                border: '1px solid #1ca8c8', 
+                                                borderRadius: 8, 
+                                                background: '#f0fafd',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, color: '#333' }}>{s.storeName}</div>
+                                                    <div style={{ fontSize: 12, color: '#555' }}>Còn {s.availableStock} sản phẩm</div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <Tag color="cyan">Cách {s.distanceKm.toFixed(1)} km</Tag>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {nearestStores.length > 3 && (
+                                            <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                                                Và {nearestStores.length - 3} cửa hàng khác...
+                                            </Text>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginTop: 10 }}>
+                                        Không có cửa hàng nào gần bạn
+                                    </Text>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right: Product Info */}
+                <div className="product-info-column" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <Tag color="blue" style={{ marginBottom: 12, borderRadius: 4, textTransform: 'uppercase', fontWeight: 600 }}>

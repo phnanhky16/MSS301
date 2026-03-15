@@ -34,6 +34,12 @@ export async function request(path, options = {}) {
         window.location.href = '/login';
       }
     }
+    if (res.status === 503) {
+      // service unavailable / maintenance
+      if (typeof window !== 'undefined') {
+        window.location.href = '/maintenance';
+      }
+    }
     throw new Error(text || res.statusText);
   }
   let json;
@@ -268,6 +274,11 @@ export function fetchProductsByStatus(storeId, status) {
 
 export function checkStoreAvailability(productId) {
   return request(`/stores/availability?productId=${productId}`);
+}
+
+export function fetchNearestStores(latitude, longitude, productId, minQuantity = 1, maxDistanceKm = 50.0) {
+  const params = new URLSearchParams({ latitude, longitude, productId, minQuantity, maxDistanceKm });
+  return request(`/stores/nearest-with-stock?${params.toString()}`);
 }
 
 export function restockFromWarehouse(data) {
