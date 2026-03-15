@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/stores/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/warehouses/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/inventory/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/warehouse-stock/**").permitAll()
                         
                         // Geocoding and Location endpoints - public for testing/frontend
                         .requestMatchers("/geocoding/**").permitAll()

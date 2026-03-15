@@ -52,6 +52,9 @@ spring:
         instance-id: ${spring.application.name}:${server.port}
         prefer-ip-address: true
         deregister-critical-service-after: 30s
+    openfeign:
+      discovery:
+        enabled: true
 
   # --- CORS configuration (permissive, disables browser restrictions) ------
   # CORS is now managed by the API gateway; individual services should not

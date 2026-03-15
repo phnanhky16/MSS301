@@ -77,7 +77,9 @@ public interface InventoryServiceClient {
     /**
      * Get total stock in all warehouses by product IDs.
      */
-    @GetMapping("/api/warehouses/products/total-stock")
+    // NOTE: endpoint is implemented in inventory-service under an inventory prefix so it is
+    // covered by the existing GET-permit security rules.
+    @GetMapping("/api/inventory/warehouses/total-stock")
     ApiResponseDto<java.util.Map<Long, Integer>> getTotalWarehouseStockForProducts(
             @org.springframework.web.bind.annotation.RequestParam("productIds") List<Long> productIds
     );
