@@ -5,6 +5,7 @@ import '../services/cart_service.dart';
 import '../services/wishlist_service.dart';
 import 'shipping_address_screen.dart';
 import 'order_history_screen.dart';
+import 'my_orders_screen.dart';
 import 'account_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -273,7 +274,15 @@ class ProfileScreen extends StatelessWidget {
         ),
         _buildGridCard(context, Icons.confirmation_number, 'My\nVouchers'),
         _buildGridCard(context, Icons.toys, 'Toy\nCollection'),
-        _buildGridCard(context, Icons.card_giftcard, 'Gift\nCards'),
+        _buildGridCard(
+          context,
+          Icons.shopping_bag_outlined,
+          'My\nOrders',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+          ),
+        ),
       ],
     );
   }

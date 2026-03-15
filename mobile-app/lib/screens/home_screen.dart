@@ -352,8 +352,7 @@ class _HomeScreenState extends State<HomeScreen>
             return Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
@@ -381,16 +380,15 @@ class _HomeScreenState extends State<HomeScreen>
                   if (svc.isLoading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
-                      child: CircularProgressIndicator(
-                          color: Color(0xFF1EB5D9)),
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF1EB5D9)),
                     )
                   else if (svc.shipments.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
                         'Chưa có địa chỉ nào. Hãy thêm địa chỉ mới!',
-                        style:
-                            TextStyle(color: Colors.grey[500], fontSize: 14),
+                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
                         textAlign: TextAlign.center,
                       ),
                     )
@@ -757,9 +755,8 @@ class _HomeScreenState extends State<HomeScreen>
                                             ),
                                             const SizedBox(width: 6),
                                             ConstrainedBox(
-                                              constraints:
-                                                  const BoxConstraints(
-                                                      maxWidth: 140),
+                                              constraints: const BoxConstraints(
+                                                  maxWidth: 140),
                                               child: Text(
                                                 label,
                                                 style: const TextStyle(
@@ -767,8 +764,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                   fontWeight: FontWeight.bold,
                                                   color: Color(0xFF2D2D2D),
                                                 ),
-                                                overflow:
-                                                    TextOverflow.ellipsis,
+                                                overflow: TextOverflow.ellipsis,
                                                 maxLines: 1,
                                               ),
                                             ),
@@ -1474,26 +1470,58 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
+    // Check stock before adding
+    if (product.stock <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('⚠️ Sản phẩm này hiện đã hết hàng'),
+            backgroundColor: Colors.orange.shade600,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
     try {
+      print('🛒 Adding product ${product.id} to cart...');
       final success = await cartService.addToCart(
         authService.currentUser!.id,
         product.id,
         1,
       );
-      if (mounted && !success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Không thể thêm vào giỏ hàng'),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 1),
-          ),
-        );
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('✅ Đã thêm vào giỏ hàng'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        } else {
+          // Get detailed error message from CartService
+          final errorMsg =
+              cartService.lastErrorMessage ?? 'Không thể thêm vào giỏ hàng';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ $errorMsg'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
+      print('🔥 Exception adding to cart: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Lỗi kết nối'),
+            content:
+                Text('⚠️ Lỗi: ${e.toString().replaceFirst('Exception: ', '')}'),
             backgroundColor: Colors.orange.shade600,
             duration: const Duration(seconds: 2),
           ),
@@ -1762,14 +1790,23 @@ class _ModernProductCardState extends State<ModernProductCard> {
                       Icon(
                         Icons.inventory_2_outlined,
                         size: 12,
-                        color: Colors.grey[600],
+                        color: product.stock > 0
+                            ? Colors.grey[600]
+                            : Colors.redAccent,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${product.stock} left',
+                        product.stock > 0
+                            ? '${product.stock} left'
+                            : 'Hết hàng',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey[600],
+                          color: product.stock > 0
+                              ? Colors.grey[600]
+                              : Colors.redAccent,
+                          fontWeight: product.stock <= 0
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1807,25 +1844,34 @@ class _ModernProductCardState extends State<ModernProductCard> {
 
                       // Add to Cart Button
                       GestureDetector(
-                        onTap: () => widget.onAddToCart(_addBtnKey),
+                        onTap: product.stock > 0
+                            ? () => widget.onAddToCart(_addBtnKey)
+                            : null,
                         child: Container(
                           key: _addBtnKey,
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1EB5D9),
+                            color: product.stock > 0
+                                ? const Color(0xFF1EB5D9)
+                                : Colors.grey[300],
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF1EB5D9).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            boxShadow: product.stock > 0
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF1EB5D9)
+                                          .withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.add,
-                            color: Colors.white,
+                            color: product.stock > 0
+                                ? Colors.white
+                                : Colors.grey[500],
                             size: 18,
                           ),
                         ),

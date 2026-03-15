@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const LoginScreen(),
+        home: const SplashScreen(),
         routes: {
           '/home': (context) => const HomeScreen(),
           '/products': (context) => const ProductListScreen(),
@@ -62,6 +62,71 @@ class MyApp extends StatelessWidget {
           '/signup': (context) => const SignupScreen(),
           '/wishlist': (context) => const WishlistScreen(),
         },
+      ),
+    );
+  }
+}
+
+/// Splash screen to load saved session before showing home or login
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _loadSession();
+  }
+
+  Future<void> _loadSession() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      final authService = context.read<AuthService>();
+      bool sessionLoaded = await authService.loadSession();
+
+      if (mounted) {
+        // If session was loaded and user is authenticated, go to home
+        // Otherwise, go to login
+        Navigator.of(context).pushReplacementNamed(
+          sessionLoaded ? '/home' : '/login',
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.shopping_bag,
+              size: 64,
+              color: Color(0xFF2196F3),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Kidfavor',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2196F3),
+              ),
+            ),
+            const SizedBox(height: 48),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+            ),
+          ],
+        ),
       ),
     );
   }
