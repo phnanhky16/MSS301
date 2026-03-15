@@ -9,6 +9,7 @@ import 'home_screen.dart';
 import 'wishlist_screen.dart';
 import 'profile_screen.dart';
 import 'product_detail_screen.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -19,7 +20,6 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final _currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
-  final _promoCodeController = TextEditingController();
 
   @override
   void initState() {
@@ -29,7 +29,6 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   void dispose() {
-    _promoCodeController.dispose();
     super.dispose();
   }
 
@@ -124,21 +123,6 @@ class _CartScreenState extends State<CartScreen> {
         ),
       );
     }
-  }
-
-  void _applyPromoCode() {
-    if (_promoCodeController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập mã giảm giá')),
-      );
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã áp dụng mã "${_promoCodeController.text}"'),
-        backgroundColor: const Color(0xFF1EB5D9),
-      ),
-    );
   }
 
   double get _shipping => 30000.0;
@@ -255,84 +239,8 @@ class _CartScreenState extends State<CartScreen> {
                             )
                           : ListView.builder(
                               padding: const EdgeInsets.all(16),
-                              itemCount: items.length + 1, // +1 for promo code
+                              itemCount: items.length,
                               itemBuilder: (context, index) {
-                                if (index == items.length) {
-                                  // Promo Code Section
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _promoCodeController,
-                                            decoration: InputDecoration(
-                                              hintText: 'Mã giảm giá',
-                                              hintStyle: TextStyle(
-                                                color: Colors.grey[400],
-                                                fontSize: 14,
-                                              ),
-                                              filled: true,
-                                              fillColor: Colors.white,
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                borderSide: BorderSide(
-                                                  color: Colors.grey[200]!,
-                                                ),
-                                              ),
-                                              enabledBorder: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                borderSide: BorderSide(
-                                                  color: Colors.grey[200]!,
-                                                ),
-                                              ),
-                                              focusedBorder: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                borderSide: const BorderSide(
-                                                  color: Color(0xFF1EB5D9),
-                                                ),
-                                              ),
-                                              contentPadding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 14,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ElevatedButton(
-                                          onPressed: _applyPromoCode,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                const Color(0xFF1EB5D9),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 24,
-                                              vertical: 14,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            elevation: 0,
-                                          ),
-                                          child: const Text(
-                                            'Áp dụng',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
-
                                 final item = items[index];
                                 return _buildCartItem(item);
                               },
@@ -376,30 +284,6 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               Text(
                                 _currencyFormat.format(subtotal),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1A1A1A),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Shipping
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Phí vận chuyển',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                              Text(
-                                _currencyFormat.format(_shipping),
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -465,11 +349,13 @@ class _CartScreenState extends State<CartScreen> {
                               color: Colors.transparent,
                               child: InkWell(
                                 onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content:
-                                          Text('Đang chuyển đến thanh toán...'),
-                                      backgroundColor: Color(0xFF1EB5D9),
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CheckoutScreen(
+                                        cartItems: items,
+                                        cartTotal: subtotal,
+                                      ),
                                     ),
                                   );
                                 },
