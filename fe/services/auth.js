@@ -1,5 +1,12 @@
 import { request } from './api';
 
+function emitAuthChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('auth-changed'));
+  }
+}
+
 export function login(username, password) {
   return request('/auth/login', {
     method: 'POST',
@@ -14,6 +21,7 @@ export function login(username, password) {
     if (payload && payload.refreshToken) {
       localStorage.setItem('refreshToken', payload.refreshToken);
     }
+    emitAuthChanged();
     return payload;
   });
 }
@@ -39,6 +47,7 @@ export function logout() {
   // clear tokens immediately so UI state updates even if network stalls
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
+  emitAuthChanged();
   if (token) {
     // return promise so callers can await
     return request('/auth/logout', {
@@ -102,6 +111,7 @@ export function loginWithGoogle(googleIdToken) {
     if (payload && payload.refreshToken) {
       localStorage.setItem('refreshToken', payload.refreshToken);
     }
+    emitAuthChanged();
     return payload;
   });
 }

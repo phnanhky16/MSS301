@@ -6,6 +6,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { fetchUserCount, fetchOrderStats } from '../../services/api';
+import { formatVnd } from '../../utils/currency';
 
 const { Title } = Typography;
 
@@ -142,7 +143,7 @@ export default function AdminDashboard() {
               <div className="ez-stat-inner">
                 <div>
                   <div className="ez-stat-label">Total Revenue</div>
-                  <div className="ez-stat-value">${orders.totalRevenue.toLocaleString()}</div>
+                  <div className="ez-stat-value">{formatVnd(orders.totalRevenue)}</div>
                 </div>
                 <div className="ez-stat-icon-wrap teal"><DollarOutlined /></div>
               </div>
@@ -202,11 +203,11 @@ export default function AdminDashboard() {
                 <div className="ez-target-stats">
                   <div>
                     <div className="ez-target-stat-label teal">TARGET</div>
-                    <div className="ez-target-stat-val">${revenueTarget.toLocaleString()}</div>
+                    <div className="ez-target-stat-val">{formatVnd(revenueTarget)}</div>
                   </div>
                   <div>
                     <div className="ez-target-stat-label blue">REVENUE</div>
-                    <div className="ez-target-stat-val">${(orders.totalRevenue || 0).toLocaleString()}</div>
+                    <div className="ez-target-stat-val">{formatVnd(orders.totalRevenue || 0)}</div>
                   </div>
                 </div>
               </>

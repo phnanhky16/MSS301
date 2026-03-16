@@ -42,7 +42,15 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return claims.get("userId", Long.class);
+
+            Object rawUserId = claims.get("userId");
+            if (rawUserId == null) {
+                return null;
+            }
+            if (rawUserId instanceof Number) {
+                return ((Number) rawUserId).longValue();
+            }
+            return Long.parseLong(rawUserId.toString());
         } catch (Exception e) {
             log.error("Error extracting userId from token: {}", e.getMessage());
             return null;

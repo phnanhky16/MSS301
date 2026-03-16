@@ -11,6 +11,7 @@ import {
 import { useCart } from '../hooks/useCart';
 import { fetchProvinces, fetchDistricts, fetchWards, request } from '../services/api';
 import Link from 'next/link';
+import { formatVnd } from '../utils/currency';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -202,7 +203,7 @@ export default function CheckoutPage() {
             align: 'right',
             render: (_, r) => (
                 <Text strong style={{ color: '#1ca8c8' }}>
-                    ${(r.price * r.quantity).toFixed(2)}
+                    {formatVnd(r.price * r.quantity)}
                 </Text>
             ),
         },
@@ -445,7 +446,7 @@ export default function CheckoutPage() {
 
                                 <div style={styles.summaryRow}>
                                     <Text type="secondary">Tạm tính:</Text>
-                                    <Text>${total.toFixed(2)}</Text>
+                                    <Text>{formatVnd(total)}</Text>
                                 </div>
                                 <div style={styles.summaryRow}>
                                     <Text type="secondary">Phí giao hàng:</Text>
@@ -455,7 +456,7 @@ export default function CheckoutPage() {
                                 <div style={{ ...styles.summaryRow, marginTop: 4 }}>
                                     <Text strong style={{ fontSize: 16 }}>Tổng cộng:</Text>
                                     <Text strong style={{ fontSize: 20, color: '#1ca8c8' }}>
-                                        ${total.toFixed(2)}
+                                        {formatVnd(total)}
                                     </Text>
                                 </div>
 

@@ -19,6 +19,7 @@ import {
 import { useCart } from '../hooks/useCart';
 import { extractOAuth2Params, handleOAuth2Callback } from '../services/oauth';
 import { fetchOnSaleProducts, fetchBestSellerIds, fetchProductsByIds, fetchActiveProducts, fetchBrands } from '../services/api';
+import { formatVnd } from '../utils/currency';
 
 /* ─────────────────────────── DATA ─────────────────────────── */
 
@@ -47,8 +48,7 @@ const PHOTOS = [
 /* ─────────────────────────── HELPERS ─────────────────────────── */
 
 function formatPrice(val) {
-  if (val == null) return '0.00';
-  return Number(val).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return formatVnd(val);
 }
 
 function calcDiscount(original, sale) {
@@ -93,9 +93,9 @@ function RealProductCard({ product, onAdd, showSaleBadge = false }) {
       <div className="prod-info">
         <p className="prod-name">{product.name}</p>
         <div className="prod-price-row">
-          <span className="prod-price">{formatPrice(effectivePrice)}₫</span>
+          <span className="prod-price">{formatPrice(effectivePrice)}</span>
           {isOnSale && (
-            <span className="prod-old-price">{formatPrice(product.price)}₫</span>
+            <span className="prod-old-price">{formatPrice(product.price)}</span>
           )}
         </div>
         {product._totalSold && (
@@ -480,7 +480,7 @@ export default function Home() {
             </div>
             <div>
               <h4 className="feature-title">Free Shipping</h4>
-              <p className="feature-sub">On orders over $50</p>
+              <p className="feature-sub">On orders over 500,000 VND</p>
             </div>
           </div>
           <div className="feature-divider" />

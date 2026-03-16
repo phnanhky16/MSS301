@@ -183,7 +183,8 @@ spring:
           predicates:
             - Path=/api/cart/**
           filters:
-            - StripPrefix=0
+            # /api/cart/carts -> /carts for cart-service controller mappings
+            - StripPrefix=2
 
         # Cart Service Routes (via /cart-service/** prefix)
         - id: cart-service

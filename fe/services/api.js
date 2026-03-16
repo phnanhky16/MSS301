@@ -391,6 +391,38 @@ export function fetchUserById(id) {
   return request(`/users/${id}`);
 }
 
+// --- Cart Service ---
+
+export function fetchMyCart() {
+  return request('/cart/carts');
+}
+
+export function addCartItem(productId, quantity = 1) {
+  return request('/cart/carts/items', {
+    method: 'POST',
+    body: JSON.stringify({ productId, quantity }),
+  });
+}
+
+export function updateCartItemQuantity(productId, quantity) {
+  return request(`/cart/carts/items/${productId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ quantity }),
+  });
+}
+
+export function removeCartItem(productId) {
+  return request(`/cart/carts/items/${productId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function clearMyCart() {
+  return request('/cart/carts', {
+    method: 'DELETE',
+  });
+}
+
 // --- Image Management ---
 
 export function fetchProductImages(productId) {

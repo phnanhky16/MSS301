@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddToCartRequest {
-    
-    @NotNull(message = "User ID is required")
+
+    // userId is derived from authenticated JWT in controller, not from client payload
     private Long userId;
     
     @NotNull(message = "Product ID is required")

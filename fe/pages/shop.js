@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Rate, Empty, Spin } from 'antd';
+import { Rate, Empty, Spin, message } from 'antd';
 import {
     HeartOutlined,
     HeartFilled,
@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
 import { fetchProductsSortedByStock, fetchCategories, fetchBrands, fetchProductSuggestions } from '../services/api';
+import { formatVnd } from '../utils/currency';
 
 const SORT_MAPPING = {
     'Default sorting': 'name,asc',
@@ -81,7 +82,7 @@ function ShopProductCard({ product, onAdd }) {
             <div className="shop-prod-info">
                 <p className="shop-prod-name">{product.name}</p>
                 <div className="shop-prod-price-row">
-                    <span className="shop-prod-price">${product.price ? product.price.toFixed(2) : '0.00'}</span>
+                    <span className="shop-prod-price">{formatVnd(product.price)}</span>
                 </div>
                 {/* Rating is mock as backend doesn't provide it */}
                 <Rate disabled defaultValue={5} allowHalf style={{ fontSize: 12, color: '#fab400' }} />
@@ -107,7 +108,7 @@ function PopularProductItem({ product }) {
                 </div>
                 <div className="popular-info">
                     <p className="popular-name">{product.name}</p>
-                    <span className="popular-price">${product.price ? product.price.toFixed(2) : '0.00'}</span>
+                    <span className="popular-price">{formatVnd(product.price)}</span>
                     <Rate disabled defaultValue={5} allowHalf style={{ fontSize: 11, color: '#fab400' }} />
                 </div>
             </Link>
@@ -136,6 +137,15 @@ export default function ShopPage() {
     const [totalResults, setTotalResults] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const { addToCart } = useCart();
+
+    const handleAddToCart = async (product) => {
+        const ok = await addToCart(product, 1);
+        if (ok) {
+            message.success(`Da them ${product.name} vao gio hang`);
+            return;
+        }
+        message.error('Khong the them vao gio hang. Vui long thu lai.');
+    };
 
     const pageSize = 9;
 
@@ -348,7 +358,7 @@ export default function ShopPage() {
             {/* ── TOP BAR ── */}
             <div className="shop-topbar">
                 <div className="shop-topbar-inner">
-                    <span className="shop-topbar-msg">🚚 Free shipping with over $150</span>
+                    <span className="shop-topbar-msg">🚚 Free shipping with over 500,000 VND</span>
                 </div>
             </div>
 
@@ -539,8 +549,8 @@ export default function ShopPage() {
                                 className="price-range-input"
                             />
                             <div className="price-range-labels">
-                                <span>${priceRange[0]}</span>
-                                <span>${priceRange[1]}</span>
+                                <span>{formatVnd(priceRange[0])}</span>
+                                <span>{formatVnd(priceRange[1])}</span>
                             </div>
                             <button className="price-apply-btn">Apply</button>
                         </div>
@@ -604,7 +614,7 @@ export default function ShopPage() {
                                 <div style={{ marginTop: 12, color: '#999' }}>Loading products...</div>
                             </div>
                         ) : products.length > 0 ? (
-                            products.map(p => <ShopProductCard key={p.id} product={p} onAdd={addToCart} />)
+                            products.map(p => <ShopProductCard key={p.id} product={p} onAdd={handleAddToCart} />)
                         ) : (
                             <div style={{ textAlign: 'center', width: '100%', padding: '50px' }}>
                                 <Empty description="No products found" />

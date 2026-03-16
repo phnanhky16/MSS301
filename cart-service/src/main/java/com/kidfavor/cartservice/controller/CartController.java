@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -166,14 +167,24 @@ public class CartController {
      */
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getDetails() instanceof Long) {
-            return (Long) authentication.getDetails();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new InsufficientAuthenticationException("Authentication is required");
         }
-        // Fallback: try to parse from name if it's a number
+
+        Object details = authentication.getDetails();
+        if (details instanceof Number) {
+            return ((Number) details).longValue();
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof Number) {
+            return ((Number) principal).longValue();
+        }
+
         try {
             return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            throw new RuntimeException("Unable to extract user ID from authentication token");
+        } catch (Exception e) {
+            throw new InsufficientAuthenticationException("Unable to extract user ID from authentication token");
         }
     }
 }
