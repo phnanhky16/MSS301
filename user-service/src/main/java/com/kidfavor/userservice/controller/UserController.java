@@ -4,6 +4,7 @@ import com.kidfavor.userservice.dto.ApiResponse;
 import com.kidfavor.userservice.dto.request.user.UserUpdateRequest;
 import com.kidfavor.userservice.dto.response.UserResponse;
 import com.kidfavor.userservice.entity.enums.Role;
+import com.kidfavor.userservice.service.AuthService;
 import com.kidfavor.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +33,7 @@ import java.util.List;
 @SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
     UserService userService;
+        AuthService authService;
     @Operation(
             summary = "Get all users",
             description = "Retrieve a list of all users in the system"
@@ -177,4 +180,17 @@ public class UserController {
                         return ResponseEntity.ok(ApiResponse.success("User changed status successfully", null));
                 }
     }
+
+        @Operation(
+                        summary = "Send password reset link by admin",
+                        description = "Allow admin/support to send a password reset link directly to user email"
+        )
+        @PostMapping("/{id}/password-reset-link")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> sendPasswordResetLinkByAdmin(
+                        @Parameter(description = "User ID", required = true)
+                        @PathVariable Integer id) {
+                authService.sendResetPasswordLinkByAdmin(id);
+                return ResponseEntity.ok(ApiResponse.success("Password reset link sent to user email", null));
+        }
 }

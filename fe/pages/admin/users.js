@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Table, Typography, message, Button, Input, Select, App as AntApp } from 'antd';
-import { fetchUsers, deleteUser } from '../../services/api';
+import { fetchUsers, deleteUser, sendUserPasswordResetLink } from '../../services/api';
 
 const { Title } = Typography;
 
@@ -12,6 +12,7 @@ export default function UsersPage() {
   const [pageSize, setPageSize] = useState(10);
   const [loadError, setLoadError] = useState(null);
   const [filters, setFilters] = useState({});
+  const [sendingResetId, setSendingResetId] = useState(null);
 
   const load = (page = currentPage - 1, size = pageSize) => {
     fetchUsers(page, size, filters)
@@ -54,20 +55,42 @@ export default function UsersPage() {
       title: 'Action',
       key: 'action',
       render: (_text, record) => (
-        <Button
-          type="link"
-          danger
-          onClick={() => {
-            deleteUser(record.id, true)
-              .then(() => {
-                message.success('Deleted');
-                load(0, pageSize);
-              })
-              .catch(() => message.error('Delete failed'));
-          }}
-        >
-          Delete
-        </Button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button
+            type="link"
+            onClick={() => {
+              setSendingResetId(record.id);
+              sendUserPasswordResetLink(record.id)
+                .then(() => message.success(`Reset link sent to ${record.email}`))
+                .catch(err => {
+                  let text = 'Send reset link failed';
+                  try {
+                    const parsed = JSON.parse(err.message);
+                    if (parsed && parsed.message) text = parsed.message;
+                  } catch (_) { }
+                  message.error(text);
+                })
+                .finally(() => setSendingResetId(null));
+            }}
+            loading={sendingResetId === record.id}
+          >
+            Send reset link
+          </Button>
+          <Button
+            type="link"
+            danger
+            onClick={() => {
+              deleteUser(record.id, true)
+                .then(() => {
+                  message.success('Deleted');
+                  load(0, pageSize);
+                })
+                .catch(() => message.error('Delete failed'));
+            }}
+          >
+            Delete
+          </Button>
+        </div>
       )
     }
   ];

@@ -103,6 +103,19 @@ spring:
         max.in.flight.requests.per.connection: 5
         spring.json.add.type.headers: false
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:testpersonality134@gmail.com}
+    password: ${MAIL_PASSWORD:qhjj mrhl yyba gfly}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        debug: false
+
 # Server Configuration
 server:
   port: 8081
@@ -178,3 +191,7 @@ app:
     url:
       base: ${FRONTEND_URL:http://localhost:3000/}
       mobile: ${FRONTEND_MOBILE_URL:http://localhost:3000/mobile/}
+  password-reset:
+    otp-expiration-minutes: ${PASSWORD_RESET_OTP_EXPIRATION_MINUTES:5}
+    link-expiration-minutes: ${PASSWORD_RESET_LINK_EXPIRATION_MINUTES:10}
+    revoke-cron: ${PASSWORD_RESET_REVOKE_CRON:0 */1 * * * *}

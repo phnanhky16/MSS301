@@ -73,9 +73,9 @@ export function getCurrentUser() {
 
 // Real Google OAuth login - sends Google ID token to backend
 export function loginWithGoogle(googleIdToken) {
-  return request('/auth/google', {
+  return request('/auth/google-login', {
     method: 'POST',
-    body: JSON.stringify({ token: googleIdToken, provider: 'google' }),
+    body: JSON.stringify({ idToken: googleIdToken }),
   }).then(res => {
     console.debug('Google login response', res);
     // store tokens
@@ -87,6 +87,27 @@ export function loginWithGoogle(googleIdToken) {
       localStorage.setItem('refreshToken', payload.refreshToken);
     }
     return payload;
+  });
+}
+
+export function requestPasswordResetOtp(email) {
+  return request('/auth/password-reset/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function verifyPasswordResetOtp(email, verificationCode) {
+  return request('/auth/password-reset/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, verificationCode }),
+  });
+}
+
+export function confirmPasswordReset(token, newPassword, confirmPassword) {
+  return request('/auth/password-reset/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword, confirmPassword }),
   });
 }
 

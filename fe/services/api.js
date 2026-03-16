@@ -198,6 +198,10 @@ export function deleteUser(id, deleteFlag) {
   return request(`/users/${id}${suffix}`, { method: 'DELETE' });
 }
 
+export function sendUserPasswordResetLink(id) {
+  return request(`/users/${id}/password-reset-link`, { method: 'POST' });
+}
+
 export function fetchOrderById(id) {
   return request(`/orders/${id}`);
 }

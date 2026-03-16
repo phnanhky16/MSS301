@@ -2,13 +2,18 @@ package com.kidfavor.userservice.service.impl;
 
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
+import com.kidfavor.userservice.dto.request.auth.PasswordResetOtpRequest;
+import com.kidfavor.userservice.dto.request.auth.ResetPasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
+import com.kidfavor.userservice.dto.request.auth.VerifyPasswordResetOtpRequest;
 import com.kidfavor.userservice.dto.response.AuthResponse;
 import com.kidfavor.userservice.dto.response.UserResponse;
+import com.kidfavor.userservice.entity.PasswordResetSession;
 import com.kidfavor.userservice.entity.User;
 import com.kidfavor.userservice.entity.enums.Role;
 import com.kidfavor.userservice.event.UserRegisteredDomainEvent;
+import com.kidfavor.userservice.repository.PasswordResetSessionRepository;
 import com.kidfavor.userservice.repository.UserRepository;
 import com.kidfavor.userservice.security.JwtTokenProvider;
 import com.kidfavor.userservice.service.AuthService;
@@ -24,6 +29,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -36,30 +43,54 @@ import org.springframework.context.annotation.Lazy;
 
 import java.util.Collections;
 import java.util.Map;
+import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.UUID;
 
 @Service
 @Slf4j
 public class AuthServiceImpl implements AuthService {
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
 
+    @Value("${spring.mail.username}")
+    private String mailSenderAddress;
+
+    @Value("${app.password-reset.otp-expiration-minutes:5}")
+    private long otpExpirationMinutes;
+
+    @Value("${app.password-reset.link-expiration-minutes:10}")
+    private long resetLinkExpirationMinutes;
+
+    @Value("${app.frontend.url.base:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     private final UserRepository userRepository;
+    private final PasswordResetSessionRepository passwordResetSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
     private final ApplicationEventPublisher eventPublisher;
+    private final JavaMailSender mailSender;
 
     public AuthServiceImpl(UserRepository userRepository,
+            PasswordResetSessionRepository passwordResetSessionRepository,
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider,
             @Lazy AuthenticationManager authenticationManager,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            JavaMailSender mailSender) {
         this.userRepository = userRepository;
+        this.passwordResetSessionRepository = passwordResetSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authenticationManager = authenticationManager;
         this.eventPublisher = eventPublisher;
+        this.mailSender = mailSender;
     }
 
     @Override
@@ -107,15 +138,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
+        String identifier = request.getUsername().trim();
+        User user = userRepository.findByUserName(identifier)
+            .or(() -> userRepository.findByEmail(identifier.toLowerCase()))
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if ("GOOGLE".equalsIgnoreCase(user.getProvider())
+            && (user.getPassword() == null || user.getPassword().isBlank())) {
+            throw new RuntimeException("This account uses Google sign-in. Please continue with Google login");
+        }
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
+                user.getUserName(),
                         request.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        User user = userRepository.findByUserName(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!user.getStatus()) {
             throw new RuntimeException("User account is disabled");
@@ -341,6 +379,197 @@ public class AuthServiceImpl implements AuthService {
                 .expiresIn(jwtTokenProvider.getAccessTokenExpiration())
                 .user(mapToUserResponse(user))
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void requestPasswordResetOtp(PasswordResetOtpRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email is not registered"));
+
+        String verificationCode = generateVerificationCode();
+        LocalDateTime now = LocalDateTime.now();
+
+        PasswordResetSession session = PasswordResetSession.builder()
+                .email(email)
+                .verificationCode(verificationCode)
+                .verificationCodeExpiresAt(now.plusMinutes(otpExpirationMinutes))
+                .verificationVerified(false)
+                .used(false)
+                .revoked(false)
+                .build();
+
+        passwordResetSessionRepository.save(session);
+        sendVerificationCodeEmail(email, verificationCode, otpExpirationMinutes);
+    }
+
+    @Override
+    @Transactional
+    public void verifyPasswordResetOtp(VerifyPasswordResetOtpRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        String verificationCode = request.getVerificationCode().trim();
+
+        PasswordResetSession session = passwordResetSessionRepository
+                .findTopByEmailAndVerificationCodeOrderByCreatedAtDesc(email, verificationCode)
+                .orElseThrow(() -> new RuntimeException("Invalid verification code"));
+
+        if (Boolean.TRUE.equals(session.getRevoked()) || Boolean.TRUE.equals(session.getUsed())) {
+            throw new RuntimeException("Verification code has been revoked");
+        }
+
+        if (Boolean.TRUE.equals(session.getVerificationVerified())) {
+            throw new RuntimeException("Verification code has already been used");
+        }
+
+        if (session.getVerificationCodeExpiresAt() == null
+                || LocalDateTime.now().isAfter(session.getVerificationCodeExpiresAt())) {
+            throw new RuntimeException("Verification code has expired");
+        }
+
+        String resetToken = UUID.randomUUID().toString().replace("-", "");
+        LocalDateTime now = LocalDateTime.now();
+
+        session.setVerificationVerified(true);
+        session.setVerificationVerifiedAt(now);
+        session.setResetToken(resetToken);
+        session.setResetTokenExpiresAt(now.plusMinutes(resetLinkExpirationMinutes));
+        session.setResetTokenSentAt(now);
+        passwordResetSessionRepository.save(session);
+
+        String resetUrl = buildResetUrl(resetToken);
+        sendResetPasswordLinkEmail(email, resetUrl, resetLinkExpirationMinutes);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Confirm password does not match");
+        }
+
+        PasswordResetSession session = passwordResetSessionRepository.findByResetToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid reset token"));
+
+        if (Boolean.TRUE.equals(session.getUsed()) || Boolean.TRUE.equals(session.getRevoked())) {
+            throw new RuntimeException("Reset token is no longer valid");
+        }
+
+        if (session.getResetTokenExpiresAt() == null || LocalDateTime.now().isAfter(session.getResetTokenExpiresAt())) {
+            session.setRevoked(true);
+            passwordResetSessionRepository.save(session);
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        User user = userRepository.findByEmail(session.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        session.setUsed(true);
+        session.setRevoked(true);
+        passwordResetSessionRepository.save(session);
+    }
+
+    @Override
+    @Transactional
+    public void sendResetPasswordLinkByAdmin(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String email = user.getEmail().trim().toLowerCase();
+        LocalDateTime now = LocalDateTime.now();
+        String resetToken = UUID.randomUUID().toString().replace("-", "");
+
+        PasswordResetSession session = PasswordResetSession.builder()
+                .email(email)
+                .verificationCode("000000")
+                .verificationCodeExpiresAt(now.plusMinutes(otpExpirationMinutes))
+                .verificationVerified(true)
+                .verificationVerifiedAt(now)
+                .resetToken(resetToken)
+                .resetTokenExpiresAt(now.plusMinutes(resetLinkExpirationMinutes))
+                .resetTokenSentAt(now)
+                .used(false)
+                .revoked(false)
+                .build();
+
+        passwordResetSessionRepository.save(session);
+        String resetUrl = buildResetUrl(resetToken);
+        sendResetPasswordLinkEmail(email, resetUrl, resetLinkExpirationMinutes);
+        log.info("Admin requested password reset link for userId={} email={}", userId, email);
+    }
+
+    private String generateVerificationCode() {
+        int value = 100000 + SECURE_RANDOM.nextInt(900000);
+        return String.valueOf(value);
+    }
+
+    private String buildResetUrl(String token) {
+        String base = frontendBaseUrl == null ? "http://localhost:3000" : frontendBaseUrl.trim();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + "/reset-password?token=" + java.net.URLEncoder.encode(token, StandardCharsets.UTF_8);
+    }
+
+    private void sendVerificationCodeEmail(String recipient, String verificationCode, long expiresInMinutes) {
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailSenderAddress);
+            helper.setTo(recipient);
+            helper.setSubject("KidFavor - Password Reset Verification Code");
+            helper.setText(buildVerificationCodeMailBody(verificationCode, expiresInMinutes), true);
+            mailSender.send(message);
+            log.info("Sent password reset OTP to {}", recipient);
+        } catch (Exception ex) {
+            log.error("Failed to send verification code email to {}", recipient, ex);
+            throw new RuntimeException("Unable to send verification code email at the moment");
+        }
+    }
+
+    private void sendResetPasswordLinkEmail(String recipient, String resetUrl, long expiresInMinutes) {
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailSenderAddress);
+            helper.setTo(recipient);
+            helper.setSubject("KidFavor - Password Reset Link");
+            helper.setText(buildResetLinkMailBody(resetUrl, expiresInMinutes), true);
+            mailSender.send(message);
+            log.info("Sent password reset link to {}", recipient);
+        } catch (Exception ex) {
+            log.error("Failed to send password reset link email to {}", recipient, ex);
+            throw new RuntimeException("Unable to send password reset link email at the moment");
+        }
+    }
+
+    private String buildVerificationCodeMailBody(String verificationCode, long expiresInMinutes) {
+        return "<html><body style='font-family:Arial,sans-serif;line-height:1.5;color:#222;'>"
+                + "<h2>Verify your email</h2>"
+                + "<p>Use the following code to verify your password reset request:</p>"
+                + "<p style='font-size:28px;font-weight:bold;letter-spacing:3px;color:#1a6e8a;'>" + verificationCode + "</p>"
+                + "<p>This code expires in " + expiresInMinutes + " minutes.</p>"
+                + "<p>If you did not request this, please ignore this email.</p>"
+                + "<p><strong>KidFavor Team</strong></p>"
+                + "</body></html>";
+    }
+
+    private String buildResetLinkMailBody(String resetUrl, long expiresInMinutes) {
+        return "<html><body style='font-family:Arial,sans-serif;line-height:1.5;color:#222;'>"
+                + "<h2>Password reset link</h2>"
+                + "<p>Your email has been verified. Click the button below to set a new password:</p>"
+                + "<p><a href='" + resetUrl + "' style='display:inline-block;padding:10px 20px;background:#1a6e8a;color:#fff;text-decoration:none;border-radius:6px;'>Reset Password</a></p>"
+                + "<p>Or copy this URL:</p>"
+                + "<p><a href='" + resetUrl + "'>" + resetUrl + "</a></p>"
+                + "<p>This link expires in " + expiresInMinutes + " minutes and can only be used once.</p>"
+                + "<p>If you did not request this, please ignore this email.</p>"
+                + "<p><strong>KidFavor Team</strong></p>"
+                + "</body></html>";
     }
 
     private UserResponse mapToUserResponse(User user) {
