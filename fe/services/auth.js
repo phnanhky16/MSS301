@@ -18,6 +18,22 @@ export function login(username, password) {
   });
 }
 
+export function register({ fullName, username, email, password, phone }) {
+  return request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ fullName, username, email, password, phone }),
+  }).then(res => {
+    const payload = res.data || res;
+    if (payload && payload.accessToken) {
+      localStorage.setItem('accessToken', payload.accessToken);
+    }
+    if (payload && payload.refreshToken) {
+      localStorage.setItem('refreshToken', payload.refreshToken);
+    }
+    return payload;
+  });
+}
+
 export function logout() {
   const token = localStorage.getItem('accessToken');
   // clear tokens immediately so UI state updates even if network stalls
@@ -108,6 +124,20 @@ export function confirmPasswordReset(token, newPassword, confirmPassword) {
   return request('/auth/password-reset/confirm', {
     method: 'POST',
     body: JSON.stringify({ token, newPassword, confirmPassword }),
+  });
+}
+
+export function verifyEmailToken(token) {
+  const params = new URLSearchParams({ token });
+  return request(`/auth/verify-email?${params.toString()}`, {
+    method: 'GET',
+  });
+}
+
+export function resendVerificationLink(email) {
+  return request('/auth/resend-verification-link', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
   });
 }
 

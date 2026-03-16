@@ -3,16 +3,19 @@ package com.kidfavor.userservice.service.impl;
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.PasswordResetOtpRequest;
+import com.kidfavor.userservice.dto.request.auth.ResendEmailVerificationRequest;
 import com.kidfavor.userservice.dto.request.auth.ResetPasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
 import com.kidfavor.userservice.dto.request.auth.VerifyPasswordResetOtpRequest;
 import com.kidfavor.userservice.dto.response.AuthResponse;
 import com.kidfavor.userservice.dto.response.UserResponse;
+import com.kidfavor.userservice.entity.EmailVerificationToken;
 import com.kidfavor.userservice.entity.PasswordResetSession;
 import com.kidfavor.userservice.entity.User;
 import com.kidfavor.userservice.entity.enums.Role;
 import com.kidfavor.userservice.event.UserRegisteredDomainEvent;
+import com.kidfavor.userservice.repository.EmailVerificationTokenRepository;
 import com.kidfavor.userservice.repository.PasswordResetSessionRepository;
 import com.kidfavor.userservice.repository.UserRepository;
 import com.kidfavor.userservice.security.JwtTokenProvider;
@@ -44,8 +47,10 @@ import org.springframework.context.annotation.Lazy;
 import java.util.Collections;
 import java.util.Map;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -69,7 +74,14 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.frontend.url.base:http://localhost:3000}")
     private String frontendBaseUrl;
 
+    @Value("${app.email-verification.link-expiration-minutes:15}")
+    private long emailVerificationExpirationMinutes;
+
+    @Value("${app.email-verification.resend-cooldown-seconds:60}")
+    private long emailVerificationResendCooldownSeconds;
+
     private final UserRepository userRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetSessionRepository passwordResetSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
@@ -78,6 +90,7 @@ public class AuthServiceImpl implements AuthService {
     private final JavaMailSender mailSender;
 
     public AuthServiceImpl(UserRepository userRepository,
+            EmailVerificationTokenRepository emailVerificationTokenRepository,
             PasswordResetSessionRepository passwordResetSessionRepository,
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider,
@@ -85,6 +98,7 @@ public class AuthServiceImpl implements AuthService {
             ApplicationEventPublisher eventPublisher,
             JavaMailSender mailSender) {
         this.userRepository = userRepository;
+        this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.passwordResetSessionRepository = passwordResetSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -102,7 +116,11 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Check if email already exists
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        User existingByEmail = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (existingByEmail != null) {
+            if (Boolean.FALSE.equals(existingByEmail.getStatus())) {
+                throw new RuntimeException("Email belongs to an archived account. Please ask admin to restore or permanently delete that account first");
+            }
             throw new RuntimeException("Email already exists");
         }
 
@@ -114,24 +132,20 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPhone(request.getPhone());
         user.setStatus(true);
+        user.setEmailVerified(false);
+        user.setEmailVerifiedAt(null);
         user.setRole(Role.CUSTOMER);
 
         User savedUser = userRepository.save(user);
         log.info("User registered successfully: {}", savedUser.getUserName());
 
-        // Fire domain event — UserEventPublisher will publish to Kafka AFTER
-        // transaction commits
-        eventPublisher.publishEvent(new UserRegisteredDomainEvent(this, savedUser));
-
-        // Generate tokens
-        String accessToken = jwtTokenProvider.generateAccessToken(savedUser);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(savedUser);
+        createAndSendEmailVerificationLink(savedUser, false);
 
         return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(jwtTokenProvider.getAccessTokenExpiration())
+            .accessToken(null)
+            .refreshToken(null)
+            .tokenType(null)
+            .expiresIn(null)
                 .user(mapToUserResponse(savedUser))
                 .build();
     }
@@ -146,6 +160,10 @@ public class AuthServiceImpl implements AuthService {
         if ("GOOGLE".equalsIgnoreCase(user.getProvider())
             && (user.getPassword() == null || user.getPassword().isBlank())) {
             throw new RuntimeException("This account uses Google sign-in. Please continue with Google login");
+        }
+
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new RuntimeException("Email is not verified. Please verify your email before login");
         }
 
         Authentication authentication = authenticationManager.authenticate(
@@ -229,6 +247,8 @@ public class AuthServiceImpl implements AuthService {
                             .providerId(googleUserId)
                             .password("") // No password for OAuth users
                             .status(true)
+                            .emailVerified(true)
+                            .emailVerifiedAt(LocalDateTime.now())
                             .role(Role.CUSTOMER)
                             .build();
                     return userRepository.save(newUser);
@@ -238,6 +258,8 @@ public class AuthServiceImpl implements AuthService {
         if (user.getProvider() == null || !user.getProvider().equals("GOOGLE")) {
             user.setProvider("GOOGLE");
             user.setProviderId(googleUserId);
+            user.setEmailVerified(true);
+            user.setEmailVerifiedAt(LocalDateTime.now());
             user = userRepository.save(user);
         }
 
@@ -350,6 +372,8 @@ public class AuthServiceImpl implements AuthService {
                             .providerId(googleUserId)
                             .password("") // No password for OAuth users
                             .status(true)
+                            .emailVerified(true)
+                            .emailVerifiedAt(LocalDateTime.now())
                             .role(Role.CUSTOMER)
                             .build();
                     return userRepository.save(newUser);
@@ -359,6 +383,8 @@ public class AuthServiceImpl implements AuthService {
         if (user.getProvider() == null || !user.getProvider().equals("GOOGLE")) {
             user.setProvider("GOOGLE");
             user.setProviderId(googleUserId);
+            user.setEmailVerified(true);
+            user.setEmailVerifiedAt(LocalDateTime.now());
             user = userRepository.save(user);
         }
         
@@ -501,6 +527,55 @@ public class AuthServiceImpl implements AuthService {
         log.info("Admin requested password reset link for userId={} email={}", userId, email);
     }
 
+    @Override
+    @Transactional
+    public void verifyEmail(String token) {
+        String normalizedToken = token == null ? "" : token.trim();
+        if (normalizedToken.isEmpty()) {
+            throw new RuntimeException("Invalid email verification link");
+        }
+
+        EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(normalizedToken)
+                .orElseThrow(() -> new RuntimeException("Invalid email verification link"));
+
+        if (Boolean.TRUE.equals(verificationToken.getUsed()) || Boolean.TRUE.equals(verificationToken.getRevoked())) {
+            throw new RuntimeException("Email verification link is no longer valid");
+        }
+
+        if (LocalDateTime.now().isAfter(verificationToken.getExpiresAt())) {
+            verificationToken.setRevoked(true);
+            emailVerificationTokenRepository.save(verificationToken);
+            throw new RuntimeException("Email verification link has expired");
+        }
+
+        User user = verificationToken.getUser();
+        user.setEmailVerified(true);
+        user.setEmailVerifiedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        verificationToken.setUsed(true);
+        verificationToken.setRevoked(true);
+        emailVerificationTokenRepository.save(verificationToken);
+
+        // Publish registration event only after email verification passes,
+        // so downstream services can send welcome notifications at the right time.
+        eventPublisher.publishEvent(new UserRegisteredDomainEvent(this, user));
+    }
+
+    @Override
+    @Transactional
+    public void resendEmailVerificationLink(ResendEmailVerificationRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email is not registered"));
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new RuntimeException("Email is already verified");
+        }
+
+        createAndSendEmailVerificationLink(user, true);
+    }
+
     private String generateVerificationCode() {
         int value = 100000 + SECURE_RANDOM.nextInt(900000);
         return String.valueOf(value);
@@ -512,6 +587,53 @@ public class AuthServiceImpl implements AuthService {
             base = base.substring(0, base.length() - 1);
         }
         return base + "/reset-password?token=" + java.net.URLEncoder.encode(token, StandardCharsets.UTF_8);
+    }
+
+    private String buildEmailVerificationUrl(String token) {
+        String base = frontendBaseUrl == null ? "http://localhost:3000" : frontendBaseUrl.trim();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + "/verify-email?token=" + java.net.URLEncoder.encode(token, StandardCharsets.UTF_8);
+    }
+
+    private void createAndSendEmailVerificationLink(User user, boolean enforceCooldown) {
+        LocalDateTime now = LocalDateTime.now();
+
+        EmailVerificationToken latestToken = emailVerificationTokenRepository
+                .findTopByUserIdOrderByCreatedAtDesc(user.getId())
+                .orElse(null);
+
+        if (enforceCooldown && latestToken != null) {
+            long elapsedSeconds = Duration.between(latestToken.getSentAt(), now).getSeconds();
+            if (elapsedSeconds < emailVerificationResendCooldownSeconds) {
+                long remaining = emailVerificationResendCooldownSeconds - elapsedSeconds;
+                throw new RuntimeException("Please wait " + remaining + " seconds before requesting a new verification link");
+            }
+        }
+
+        List<EmailVerificationToken> activeTokens = emailVerificationTokenRepository
+                .findByUserIdAndRevokedFalseAndUsedFalse(user.getId());
+        for (EmailVerificationToken token : activeTokens) {
+            token.setRevoked(true);
+        }
+        if (!activeTokens.isEmpty()) {
+            emailVerificationTokenRepository.saveAll(activeTokens);
+        }
+
+        String token = UUID.randomUUID().toString().replace("-", "");
+        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+                .user(user)
+                .token(token)
+                .expiresAt(now.plusMinutes(emailVerificationExpirationMinutes))
+                .sentAt(now)
+                .used(false)
+                .revoked(false)
+                .build();
+        emailVerificationTokenRepository.save(verificationToken);
+
+        String verifyUrl = buildEmailVerificationUrl(token);
+        sendEmailVerificationLinkEmail(user.getEmail(), verifyUrl, emailVerificationExpirationMinutes);
     }
 
     private void sendVerificationCodeEmail(String recipient, String verificationCode, long expiresInMinutes) {
@@ -572,6 +694,36 @@ public class AuthServiceImpl implements AuthService {
                 + "</body></html>";
     }
 
+    private void sendEmailVerificationLinkEmail(String recipient, String verifyUrl, long expiresInMinutes) {
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailSenderAddress);
+            helper.setTo(recipient);
+            helper.setSubject("KidFavor - Verify Your Email");
+            helper.setText(buildEmailVerificationLinkMailBody(verifyUrl, expiresInMinutes), true);
+            mailSender.send(message);
+            log.info("Sent email verification link to {}", recipient);
+        } catch (Exception ex) {
+            log.error("Failed to send email verification link to {}", recipient, ex);
+            throw new RuntimeException("Unable to send email verification link at the moment");
+        }
+    }
+
+    private String buildEmailVerificationLinkMailBody(String verifyUrl, long expiresInMinutes) {
+        return "<html><body style='font-family:Arial,sans-serif;line-height:1.5;color:#222;'>"
+                + "<h2>Verify your email address</h2>"
+                + "<p>Thank you for registering with KidFavor. Please verify your email before logging in.</p>"
+                + "<p><a href='" + verifyUrl + "' style='display:inline-block;padding:10px 20px;background:#1a6e8a;color:#fff;text-decoration:none;border-radius:6px;'>Verify Email</a></p>"
+                + "<p>Or copy this URL:</p>"
+                + "<p><a href='" + verifyUrl + "'>" + verifyUrl + "</a></p>"
+                + "<p>This verification link expires in " + expiresInMinutes + " minutes.</p>"
+                + "<p>If you did not create this account, please ignore this email.</p>"
+                + "<p><strong>KidFavor Team</strong></p>"
+                + "</body></html>";
+    }
+
     private UserResponse mapToUserResponse(User user) {
 
         return UserResponse.builder()
@@ -581,6 +733,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .status(user.getStatus())
+                .emailVerified(user.getEmailVerified())
                 .role(user.getRole())
                 .build();
     }

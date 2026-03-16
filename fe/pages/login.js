@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Button, Typography, message, Card, Divider } from 'antd';
+import { Form, Input, Button, Typography, message, Card, Divider, Alert } from 'antd';
 import { ArrowRightOutlined, GoogleOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
 
-import { login } from '../services/auth';
+import { login, resendVerificationLink } from '../services/auth';
 import { initiateGoogleLogin, handleOAuth2Callback, decodeJWT } from '../services/oauth';
 
 const { Title } = Typography;
@@ -12,6 +12,8 @@ const { Title } = Typography;
 export default function Login() {
   const router = useRouter();
   const [msgApi, msgHolder] = message.useMessage();
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
 
   // Add a class to <html> so we can scope full-viewport background CSS
   // to the login page only, then clean it up when navigating away.
@@ -68,57 +70,75 @@ export default function Login() {
   };
 
 
-  const onFinish = values => {
-    login(values.username, values.password)
-      .then(data => {
-        console.debug('login success payload', data);
-        if (data && data.accessToken) {
-          // decode once so we can route correctly and cache a little info
-          let info = null;
-          try {
-            info = decodeJWT(data.accessToken);
-            if (info) {
-              localStorage.setItem('userInfo', JSON.stringify({
-                userId: info.userId,
-                email: info.email,
-                role: info.role,
-                name: info.sub || info.email.split('@')[0]
-              }));
-            }
-          } catch (_) {
-            // ignore decode errors
-          }
+  const onFinish = async values => {
+    try {
+      const data = await login(values.username, values.password);
+      console.debug('login success payload', data);
+      setPendingVerificationEmail('');
 
-          // notify other components (e.g. Layout) that auth state changed
-          // `storage` event normally fires only in other windows, so dispatch
-          // manually so the Layout hook re-checks the token/userInfo.
-          window.dispatchEvent(new Event('storage'));
-
-          // route depending on user role
-          if (info && info.role && info.role.toUpperCase() === 'ADMIN') {
-            router.push('/admin');
-          } else {
-            router.push('/');
-          }
-        } else {
-          msgApi.error('Login succeeded but no token received');
-        }
-      })
-      .catch(err => {
-        let text = 'Login failed';
+      if (data && data.accessToken) {
+        // decode once so we can route correctly and cache a little info
+        let info = null;
         try {
-          const parsed = JSON.parse(err.message);
-          if (parsed && parsed.message) text = parsed.message;
-        } catch (_) { }
-        // avoid spamming when request is aborted or network fails; log only
-        if (text && text !== 'Login failed') {
-          msgApi.error(text);
-        } else {
-          // show generic error only once
-          msgApi.error('Login failed');
+          info = decodeJWT(data.accessToken);
+          if (info) {
+            localStorage.setItem('userInfo', JSON.stringify({
+              userId: info.userId,
+              email: info.email,
+              role: info.role,
+              name: info.sub || info.email.split('@')[0]
+            }));
+          }
+        } catch (_) {
+          // ignore decode errors
         }
-        console.error('login error', err);
-      });
+
+        // notify other components (e.g. Layout) that auth state changed
+        // `storage` event normally fires only in other windows, so dispatch
+        // manually so the Layout hook re-checks the token/userInfo.
+        window.dispatchEvent(new Event('storage'));
+
+        // route depending on user role
+        if (info && info.role && info.role.toUpperCase() === 'ADMIN') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
+      } else {
+        msgApi.error('Login succeeded but no token received');
+      }
+    } catch (err) {
+      const text = err?.message || 'Login failed';
+      const isNotVerified = text.toLowerCase().includes('email is not verified');
+
+      if (isNotVerified) {
+        const input = (values?.username || '').trim().toLowerCase();
+        const canResend = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+        setPendingVerificationEmail(canResend ? input : '');
+      } else {
+        setPendingVerificationEmail('');
+      }
+
+      msgApi.error(text || 'Login failed');
+      console.error('login error', err);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!pendingVerificationEmail) {
+      msgApi.warning('Please login with email to resend verification link');
+      return;
+    }
+
+    setIsResendingVerification(true);
+    try {
+      await resendVerificationLink(pendingVerificationEmail);
+      msgApi.success(`Verification link sent to ${pendingVerificationEmail}`);
+    } catch (err) {
+      msgApi.error(err?.message || 'Cannot resend verification link');
+    } finally {
+      setIsResendingVerification(false);
+    }
   };
 
   return (
@@ -153,6 +173,26 @@ export default function Login() {
                 Sign in
               </Button>
             </Form.Item>
+
+            {pendingVerificationEmail && (
+              <Form.Item>
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="Email chưa xác thực"
+                  description={
+                    <div>
+                      <div style={{ marginBottom: 8 }}>
+                        Vui lòng xác thực email trước khi đăng nhập: <strong>{pendingVerificationEmail}</strong>
+                      </div>
+                      <Button size="small" onClick={handleResendVerification} loading={isResendingVerification}>
+                        Resend verification link
+                      </Button>
+                    </div>
+                  }
+                />
+              </Form.Item>
+            )}
 
             <Divider plain>Or</Divider>
 

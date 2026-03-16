@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Table, Typography, message, Button, Input, Select, App as AntApp } from 'antd';
-import { fetchUsers, deleteUser, sendUserPasswordResetLink } from '../../services/api';
+import { Table, Typography, Button, Input, Select, App as AntApp } from 'antd';
+import { useRouter } from 'next/router';
+import { fetchUsers, archiveUser, sendUserPasswordResetLink } from '../../services/api';
 
 const { Title } = Typography;
 
 export default function UsersPage() {
+  const router = useRouter();
   const { message } = AntApp.useApp();
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -48,7 +50,12 @@ export default function UsersPage() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: val => (val ? 'Active' : 'Inactive'),
+      render: (val, record) => {
+        if (record.emailVerified === false) {
+          return 'Unverified';
+        }
+        return val ? 'Active' : 'Inactive';
+      },
     },
     { title: 'Role', dataIndex: 'role', key: 'role' },
     {
@@ -63,11 +70,7 @@ export default function UsersPage() {
               sendUserPasswordResetLink(record.id)
                 .then(() => message.success(`Reset link sent to ${record.email}`))
                 .catch(err => {
-                  let text = 'Send reset link failed';
-                  try {
-                    const parsed = JSON.parse(err.message);
-                    if (parsed && parsed.message) text = parsed.message;
-                  } catch (_) { }
+                  const text = err?.message || 'Send reset link failed';
                   message.error(text);
                 })
                 .finally(() => setSendingResetId(null));
@@ -80,15 +83,15 @@ export default function UsersPage() {
             type="link"
             danger
             onClick={() => {
-              deleteUser(record.id, true)
+              archiveUser(record.id)
                 .then(() => {
-                  message.success('Deleted');
+                  message.success('Archived');
                   load(0, pageSize);
                 })
-                .catch(() => message.error('Delete failed'));
+                .catch(() => message.error('Archive failed'));
             }}
           >
-            Delete
+            Archive
           </Button>
         </div>
       )
@@ -110,10 +113,28 @@ export default function UsersPage() {
           style={{ width: 120 }}
           allowClear
           value={filters.status}
-          onChange={val => setFilters(f => ({ ...f, status: val }))}
+          onChange={val => {
+            if (val === 'UNVERIFIED') {
+              setFilters(f => {
+                const next = { ...f };
+                delete next.status;
+                next.emailVerified = false;
+                next.status = 'UNVERIFIED';
+                return next;
+              });
+              return;
+            }
+
+            setFilters(f => {
+              const next = { ...f, status: val };
+              delete next.emailVerified;
+              return next;
+            });
+          }}
         >
           <Select.Option value={true}>Active</Select.Option>
           <Select.Option value={false}>Inactive</Select.Option>
+          <Select.Option value="UNVERIFIED">Unverified</Select.Option>
         </Select>
         <Select
           placeholder="Role"
@@ -128,6 +149,7 @@ export default function UsersPage() {
           <Select.Option value="ADMIN">Admin</Select.Option>
         </Select>
         <Button onClick={() => { setFilters({}); load(0, pageSize); }}>Clear</Button>
+        <Button onClick={() => router.push('/admin/users-archived')}>Manage archived users</Button>
       </div>
       {loadError && (
         <div style={{ marginBottom: 8 }}>

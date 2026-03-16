@@ -19,9 +19,6 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.RequestAttributes;
 
 import java.util.List;
 
@@ -50,9 +47,20 @@ public class UserController {
                                                 org.springframework.data.domain.Pageable pageable,
                                                 @RequestParam(name="keyword", required=false) String keyword,
                                                 @RequestParam(name="status", required=false) Boolean status,
+                                                @RequestParam(name="emailVerified", required=false) Boolean emailVerified,
                                                 @RequestParam(name="role", required=false) Role role) {
-                                var users = userService.getAllUsers(pageable, keyword, status, role);
+                                var users = userService.getAllUsers(pageable, keyword, status, emailVerified, role);
                                 return ResponseEntity.ok(ApiResponse.success("Retrieved users successfully", users));
+        }
+
+        @GetMapping("/archived")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserResponse>>> getArchivedUsers(
+                        org.springframework.data.domain.Pageable pageable,
+                        @RequestParam(name = "keyword", required = false) String keyword,
+                        @RequestParam(name = "role", required = false) Role role) {
+                var users = userService.getArchivedUsers(pageable, keyword, role);
+                return ResponseEntity.ok(ApiResponse.success("Retrieved archived users successfully", users));
         }
 
         // count endpoint must come before /{id} to avoid treating "count" as an id
@@ -142,13 +150,13 @@ public class UserController {
     }
 
     @Operation(
-            summary = "Delete user",
-            description = "Delete a user from the system"
+            summary = "Archive user",
+            description = "Soft-delete (archive) a user account"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
-                    description = "User deleted successfully"
+                    description = "User archived successfully"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
@@ -156,30 +164,31 @@ public class UserController {
             )
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> changeUserStatus(
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> archiveUser(
             @Parameter(description = "User ID", required = true)
             @PathVariable Integer id) {
-                // NOTE: this endpoint previously toggled status. Add delete support
-                // so admin can completely remove a user.  We keep the old behaviour
-                // for backwards compatibility by allowing a query param `delete`.
-                boolean delete = false;
-                // spring will bind query parameters automatically if we capture them
-                // but easier to inspect request parameter map - use ServletRequest
-                // for now, use default delete=false behavior only toggles status.
-                                if ("true".equalsIgnoreCase(((jakarta.servlet.http.HttpServletRequest)org.springframework.web.context.request.RequestContextHolder
-                                .currentRequestAttributes()
-                                .resolveReference(org.springframework.web.context.request.RequestAttributes.REFERENCE_REQUEST))
-                                .getParameter("delete"))) {
-                        delete = true;
-                }
-                if (delete) {
-                        userService.deleteUser(id);
-                        return ResponseEntity.ok(ApiResponse.success("User deleted successfully", null));
-                } else {
-                        userService.changeUserStatus(id);
-                        return ResponseEntity.ok(ApiResponse.success("User changed status successfully", null));
-                }
+                userService.archiveUser(id);
+                return ResponseEntity.ok(ApiResponse.success("User archived successfully", null));
     }
+
+        @PatchMapping("/{id}/restore")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> restoreUser(
+                        @Parameter(description = "User ID", required = true)
+                        @PathVariable Integer id) {
+                userService.restoreUser(id);
+                return ResponseEntity.ok(ApiResponse.success("User restored successfully", null));
+        }
+
+        @DeleteMapping("/{id}/permanent")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> permanentlyDeleteUser(
+                        @Parameter(description = "User ID", required = true)
+                        @PathVariable Integer id) {
+                userService.permanentlyDeleteUser(id);
+                return ResponseEntity.ok(ApiResponse.success("User permanently deleted successfully", null));
+        }
 
         @Operation(
                         summary = "Send password reset link by admin",

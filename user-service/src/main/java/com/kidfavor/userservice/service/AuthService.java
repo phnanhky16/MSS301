@@ -3,6 +3,7 @@ package com.kidfavor.userservice.service;
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.PasswordResetOtpRequest;
+import com.kidfavor.userservice.dto.request.auth.ResendEmailVerificationRequest;
 import com.kidfavor.userservice.dto.request.auth.ResetPasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
@@ -31,4 +32,8 @@ public interface AuthService {
     void resetPassword(ResetPasswordRequest request);
 
     void sendResetPasswordLinkByAdmin(Integer userId);
+
+    void verifyEmail(String token);
+
+    void resendEmailVerificationLink(ResendEmailVerificationRequest request);
 }

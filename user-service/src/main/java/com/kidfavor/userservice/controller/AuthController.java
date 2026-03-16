@@ -6,6 +6,7 @@ import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LogoutRequest;
 import com.kidfavor.userservice.dto.request.auth.PasswordResetOtpRequest;
 
+import com.kidfavor.userservice.dto.request.auth.ResendEmailVerificationRequest;
 import com.kidfavor.userservice.dto.request.auth.ResetPasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
@@ -119,6 +120,21 @@ public class AuthController {
                         @Valid @RequestBody ResetPasswordRequest request) {
                 authService.resetPassword(request);
                 return ResponseEntity.ok(ApiResponse.success("Password reset successful", null));
+        }
+
+        @Operation(summary = "Verify user email", description = "Verify email using one-time link token")
+        @GetMapping("/verify-email")
+        public ResponseEntity<ApiResponse<Void>> verifyEmail(@RequestParam("token") String token) {
+                authService.verifyEmail(token);
+                return ResponseEntity.ok(ApiResponse.success("Email verified successfully", null));
+        }
+
+        @Operation(summary = "Resend email verification link", description = "Resend verification link with cooldown. Previous link will be revoked")
+        @PostMapping("/resend-verification-link")
+        public ResponseEntity<ApiResponse<Void>> resendVerificationLink(
+                        @Valid @RequestBody ResendEmailVerificationRequest request) {
+                authService.resendEmailVerificationLink(request);
+                return ResponseEntity.ok(ApiResponse.success("Verification link has been sent", null));
         }
 
         @Operation(summary = "Initiate Google Login", description = "Redirect to Google for authentication. After authentication, you'll need to extract the ID token and use the POST /auth/google-login endpoint.")
