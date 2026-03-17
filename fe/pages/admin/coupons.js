@@ -4,6 +4,7 @@ import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Select, Swi
 // Coupon icon wasn't available in the current icon set, fall back to tag
 import { TagOutlined } from '@ant-design/icons';
 import { fetchCoupons, createCoupon, updateCoupon, deleteCoupon } from '../../services/api';
+import { formatVnd } from '../../utils/currency';
 
 const { Title } = Typography;
 
@@ -133,7 +134,7 @@ export default function CouponsPage() {
           return `${record.discountValue}%`;
         }
         if (record.discountType === 'FIXED') {
-          return `$${record.discountValue}`;
+          return formatVnd(record.discountValue);
         }
         return record.discountValue;
       }

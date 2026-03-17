@@ -36,6 +36,7 @@ import Link from 'next/link';
 import Layout from '../../components/Layout';
 import { fetchProductById, fetchProductReviews, fetchProductAverageRating, fetchNearestStores } from '../../services/api';
 import { useCart } from '../../hooks/useCart';
+import { formatVnd } from '../../utils/currency';
 import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
@@ -158,11 +159,13 @@ export default function ProductDetailPage() {
 
     const images = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : ['/placeholder-toy.png'];
 
-    const handleAddToCart = () => {
-        for (let i = 0; i < quantity; i++) {
-            addToCart(product);
+    const handleAddToCart = async () => {
+        const ok = await addToCart(product, quantity);
+        if (ok) {
+            message.success(`Added ${quantity} ${product.name} to cart!`);
+            return;
         }
-        message.success(`Added ${quantity} ${product.name} to cart!`);
+        message.error('Could not add to cart. Please try again.');
     };
 
     const handleFindNearestStore = () => {
@@ -436,7 +439,7 @@ export default function ProductDetailPage() {
                                 <Text type="secondary">({avgRatingData.averageRating?.toFixed(1) || '0.0'} / 5.0 - {avgRatingData.totalReviews || 0} reviews)</Text>
                             </div>
                             <Text style={{ fontSize: 32, fontWeight: 700, color: '#1ca8c8' }}>
-                                ${product.price?.toFixed(2)}
+                                {formatVnd(product.price)}
                             </Text>
                         </div>
 

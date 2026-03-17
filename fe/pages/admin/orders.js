@@ -3,6 +3,7 @@ import { Table, Typography, message, Input, DatePicker, Select, Button, Modal, T
 import { CopyOutlined } from '@ant-design/icons';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { fetchOrders, fetchOrderById } from '../../services/api';
+import { formatVnd } from '../../utils/currency';
 
 const { Title } = Typography;
 
@@ -96,7 +97,7 @@ export default function OrdersPage() {
         return <Tag color={color}>{status}</Tag>;
       }
     },
-    { title: 'Total', dataIndex: 'totalAmount', key: 'totalAmount', render: (val) => `$${val}` },
+    { title: 'Total', dataIndex: 'totalAmount', key: 'totalAmount', render: (val) => formatVnd(val) },
     {
       title: 'Action',
       key: 'action',
@@ -205,7 +206,7 @@ export default function OrdersPage() {
             </p>
             <p><strong>Created:</strong> {detail.createdAt}</p>
             <p><strong>Status:</strong> {detail.status}</p>
-            <p><strong>Total:</strong> ${detail.totalAmount}</p>
+            <p><strong>Total:</strong> {formatVnd(detail.totalAmount)}</p>
             {detail.couponCode && <p><strong>Coupon:</strong> {detail.couponCode}</p>}
             <p><strong>Shipping:</strong> {detail.shippingAddress}</p>
             <p><strong>Phone:</strong> {detail.phoneNumber}</p>
@@ -215,8 +216,8 @@ export default function OrdersPage() {
               columns={[
                 { title: 'Product', dataIndex: 'productName', key: 'productName' },
                 { title: 'Qty', dataIndex: 'quantity', key: 'quantity' },
-                { title: 'Unit', dataIndex: 'unitPrice', key: 'unitPrice', render: v => `$${v}` },
-                { title: 'Subtotal', dataIndex: 'subtotal', key: 'subtotal', render: v => `$${v}` },
+                { title: 'Unit', dataIndex: 'unitPrice', key: 'unitPrice', render: v => formatVnd(v) },
+                { title: 'Subtotal', dataIndex: 'subtotal', key: 'subtotal', render: v => formatVnd(v) },
               ]}
               pagination={false}
               rowKey="id"

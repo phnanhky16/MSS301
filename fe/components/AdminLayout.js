@@ -73,6 +73,7 @@ const pageTitles = {
   products: 'Products Management',
   coupons: 'Coupons Management',
   users: 'Users Management',
+  'users-archived': 'Archived Users',
   stores: 'Store Management',
   warehouses: 'Warehouse Management',
   'warehouse-inventory': 'Warehouse Inventory',
@@ -107,7 +108,9 @@ export default function AdminLayout({ children }) {
       ? 'orders'
       : router.pathname.startsWith('/admin/products')
         ? 'products'
-        : router.pathname.startsWith('/admin/users')
+        : router.pathname.startsWith('/admin/users-archived')
+          ? 'users-archived'
+          : router.pathname.startsWith('/admin/users')
           ? 'users'
           : router.pathname.startsWith('/admin/stores')
             ? 'stores'
@@ -168,6 +171,7 @@ export default function AdminLayout({ children }) {
                     { key: 'orders', icon: <ShoppingCartOutlined />, label: <Link href="/admin/orders">Orders</Link> },
                     { key: 'products', icon: <AppstoreOutlined />, label: <Link href="/admin/products">Products</Link> },
                     { key: 'users', icon: <UserOutlined />, label: <Link href="/admin/users">Customers</Link> },
+                    { key: 'users-archived', icon: <UserOutlined />, label: <Link href="/admin/users-archived">Archived Users</Link> },
                     { key: 'reports', icon: <BarChartOutlined />, label: <Link href="/admin/warehouses">Reports</Link> },
                     { key: 'coupons', icon: <PercentageOutlined />, label: <Link href="/admin/coupons">Discounts</Link> },
                   ],

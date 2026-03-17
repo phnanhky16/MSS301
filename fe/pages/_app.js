@@ -10,7 +10,7 @@ import { CartProvider } from '../hooks/useCart';
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const isAdmin = router.pathname.startsWith('/admin');
-  const isLogin = router.pathname === '/login';
+  const isLogin = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'].includes(router.pathname);
   const Wrapper = isAdmin ? AdminLayout : Layout;
 
   return (

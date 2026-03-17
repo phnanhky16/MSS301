@@ -5,9 +5,13 @@ import com.kidfavor.userservice.dto.request.auth.ChangePasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LogoutRequest;
+import com.kidfavor.userservice.dto.request.auth.PasswordResetOtpRequest;
 
+import com.kidfavor.userservice.dto.request.auth.ResendEmailVerificationRequest;
+import com.kidfavor.userservice.dto.request.auth.ResetPasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
+import com.kidfavor.userservice.dto.request.auth.VerifyPasswordResetOtpRequest;
 import com.kidfavor.userservice.dto.response.AuthResponse;
 import com.kidfavor.userservice.service.AuthService;
 import com.kidfavor.userservice.security.JwtTokenProvider;
@@ -98,6 +102,45 @@ public class AuthController {
                         @Valid @RequestBody GoogleLoginRequest request) {
                 AuthResponse response = authService.authenticateWithGoogle(request);
                 return ResponseEntity.ok(ApiResponse.success("Google login successful", response));
+        }
+
+        @Operation(summary = "Request OTP for password reset", description = "Send a 6-digit verification code to user email")
+        @PostMapping("/password-reset/request-otp")
+        public ResponseEntity<ApiResponse<Void>> requestPasswordResetOtp(
+                        @Valid @RequestBody PasswordResetOtpRequest request) {
+                authService.requestPasswordResetOtp(request);
+                return ResponseEntity.ok(ApiResponse.success("Verification code has been sent to your email", null));
+        }
+
+        @Operation(summary = "Verify OTP and send reset link", description = "Validate verification code then send password reset link to email")
+        @PostMapping("/password-reset/verify-otp")
+        public ResponseEntity<ApiResponse<Void>> verifyPasswordResetOtp(
+                        @Valid @RequestBody VerifyPasswordResetOtpRequest request) {
+                authService.verifyPasswordResetOtp(request);
+                return ResponseEntity.ok(ApiResponse.success("Email verified. Password reset link has been sent", null));
+        }
+
+        @Operation(summary = "Reset password", description = "Reset account password using reset token from email link")
+        @PostMapping("/password-reset/confirm")
+        public ResponseEntity<ApiResponse<Void>> resetPassword(
+                        @Valid @RequestBody ResetPasswordRequest request) {
+                authService.resetPassword(request);
+                return ResponseEntity.ok(ApiResponse.success("Password reset successful", null));
+        }
+
+        @Operation(summary = "Verify user email", description = "Verify email using one-time link token")
+        @GetMapping("/verify-email")
+        public ResponseEntity<ApiResponse<Void>> verifyEmail(@RequestParam("token") String token) {
+                authService.verifyEmail(token);
+                return ResponseEntity.ok(ApiResponse.success("Email verified successfully", null));
+        }
+
+        @Operation(summary = "Resend email verification link", description = "Resend verification link with cooldown. Previous link will be revoked")
+        @PostMapping("/resend-verification-link")
+        public ResponseEntity<ApiResponse<Void>> resendVerificationLink(
+                        @Valid @RequestBody ResendEmailVerificationRequest request) {
+                authService.resendEmailVerificationLink(request);
+                return ResponseEntity.ok(ApiResponse.success("Verification link has been sent", null));
         }
 
         @Operation(summary = "Initiate Google Login", description = "Redirect to Google for authentication. After authentication, you'll need to extract the ID token and use the POST /auth/google-login endpoint.")

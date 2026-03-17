@@ -1,5 +1,27 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
 
+function createApiError(status, statusText, rawText) {
+  let parsed = null;
+  let message = statusText || 'Request failed';
+
+  if (rawText) {
+    try {
+      parsed = JSON.parse(rawText);
+      if (parsed && parsed.message) {
+        message = parsed.message;
+      }
+    } catch (_) {
+      message = rawText;
+    }
+  }
+
+  const err = new Error(message);
+  err.status = status;
+  err.payload = parsed;
+  err.raw = rawText;
+  return err;
+}
+
 export async function request(path, options = {}) {
   // attach token if available
   const headers = {
@@ -40,7 +62,7 @@ export async function request(path, options = {}) {
         window.location.href = '/maintenance';
       }
     }
-    throw new Error(text || res.statusText);
+    throw createApiError(res.status, res.statusText, text);
   }
   let json;
   try {
@@ -179,8 +201,16 @@ export function fetchUsers(page = 0, size = 10, filters = {}) {
   const params = new URLSearchParams({ page, size });
   if (filters.keyword) params.append('keyword', filters.keyword);
   if (filters.status !== undefined) params.append('status', filters.status);
+  if (filters.emailVerified !== undefined) params.append('emailVerified', filters.emailVerified);
   if (filters.role) params.append('role', filters.role);
   return request(`/users?${params.toString()}`);
+}
+
+export function fetchArchivedUsers(page = 0, size = 10, filters = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (filters.keyword) params.append('keyword', filters.keyword);
+  if (filters.role) params.append('role', filters.role);
+  return request(`/users/archived?${params.toString()}`);
 }
 
 // dashboard helpers
@@ -192,10 +222,20 @@ export function fetchOrderStats() {
   return request('/orders/stats');
 }
 
-export function deleteUser(id, deleteFlag) {
-  // deleteFlag optional boolean to request full delete (otherwise toggles status)
-  const suffix = deleteFlag ? '?delete=true' : '';
-  return request(`/users/${id}${suffix}`, { method: 'DELETE' });
+export function archiveUser(id) {
+  return request(`/users/${id}`, { method: 'DELETE' });
+}
+
+export function restoreUser(id) {
+  return request(`/users/${id}/restore`, { method: 'PATCH' });
+}
+
+export function deleteUserPermanently(id) {
+  return request(`/users/${id}/permanent`, { method: 'DELETE' });
+}
+
+export function sendUserPasswordResetLink(id) {
+  return request(`/users/${id}/password-reset-link`, { method: 'POST' });
 }
 
 export function fetchOrderById(id) {
@@ -349,6 +389,38 @@ export function fetchWarehouseProductsByStatus(warehouseId, status) {
 
 export function fetchUserById(id) {
   return request(`/users/${id}`);
+}
+
+// --- Cart Service ---
+
+export function fetchMyCart() {
+  return request('/cart/carts');
+}
+
+export function addCartItem(productId, quantity = 1) {
+  return request('/cart/carts/items', {
+    method: 'POST',
+    body: JSON.stringify({ productId, quantity }),
+  });
+}
+
+export function updateCartItemQuantity(productId, quantity) {
+  return request(`/cart/carts/items/${productId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ quantity }),
+  });
+}
+
+export function removeCartItem(productId) {
+  return request(`/cart/carts/items/${productId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function clearMyCart() {
+  return request('/cart/carts', {
+    method: 'DELETE',
+  });
 }
 
 // --- Image Management ---

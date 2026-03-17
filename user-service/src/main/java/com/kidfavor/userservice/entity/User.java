@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -45,6 +46,12 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private Boolean status = true;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean emailVerified = true;
+
+    private LocalDateTime emailVerifiedAt;
 
     private Role role;
 

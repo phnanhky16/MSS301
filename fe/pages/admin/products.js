@@ -20,6 +20,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { DragOutlined, PlusOutlined, DeleteOutlined, StarFilled, EditOutlined, TagsOutlined } from '@ant-design/icons';
+import { formatVnd } from '../../utils/currency';
 
 const { Title } = Typography;
 
@@ -151,7 +152,7 @@ export default function ProductsPage() {
     },
     { title: 'ID', dataIndex: 'id', key: 'id' },
     { title: 'Name', dataIndex: 'name', key: 'name' },
-    { title: 'Price', dataIndex: 'price', key: 'price', render: v => `$${v}` },
+    { title: 'Price', dataIndex: 'price', key: 'price', render: v => formatVnd(v) },
     { title: 'Category', dataIndex: ['category', 'name'], key: 'category' },
     { title: 'Brand', dataIndex: ['brand', 'name'], key: 'brand' },
     {
@@ -164,7 +165,7 @@ export default function ProductsPage() {
           return (
             <div>
               <AntTag color="red" style={{ marginBottom: 2 }}>-{discount}%</AntTag>
-              <div style={{ fontSize: 12, color: '#ff4d4f', fontWeight: 600 }}>{Number(record.salePrice).toLocaleString()}₫</div>
+              <div style={{ fontSize: 12, color: '#ff4d4f', fontWeight: 600 }}>{formatVnd(record.salePrice)}</div>
             </div>
           );
         }
@@ -321,10 +322,10 @@ export default function ProductsPage() {
       >
         {saleTarget && (
           <div style={{ marginBottom: 16, padding: 12, background: '#f6f6f6', borderRadius: 8 }}>
-            <strong>Original price:</strong> {Number(saleTarget.price).toLocaleString()}₫
+            <strong>Original price:</strong> {formatVnd(saleTarget.price)}
             {saleTarget.onSale && saleTarget.salePrice && (
               <span style={{ marginLeft: 16, color: '#ff4d4f' }}>
-                <strong>Current sale:</strong> {Number(saleTarget.salePrice).toLocaleString()}₫
+                <strong>Current sale:</strong> {formatVnd(saleTarget.salePrice)}
                 ({Math.round(((saleTarget.price - saleTarget.salePrice) / saleTarget.price) * 100)}% off)
               </span>
             )}
@@ -339,7 +340,7 @@ export default function ProductsPage() {
               placeholder={`Must be less than ${saleTarget?.price || 0}`}
               formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={value => value.replace(/,/g, '')}
-              addonAfter="₫"
+              addonAfter="VND"
             />
           </Form.Item>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -406,7 +407,7 @@ const ProductForm = ({ open, onSubmit, onCancel, categories, brands, initialValu
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Form.Item name="price" label="Price" rules={[{ required: true, type: 'number', min: 0 }]}>
-              <InputNumber style={{ width: '100%' }} formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={value => value.replace(/\$\s?|(,*)/g, '')} />
+              <InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={value => value.replace(/,/g, '')} addonAfter="VND" />
             </Form.Item>
             <Form.Item name="status" label="Status">
               <Select>

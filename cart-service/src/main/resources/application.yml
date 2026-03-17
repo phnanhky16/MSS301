@@ -37,10 +37,11 @@ spring:
       port: ${CONSUL_PORT:8500}
       discovery:
         enabled: true
-        prefer-ip-address: true
+        prefer-ip-address: false
+        hostname: ${CONSUL_SERVICE_HOST:cart-service}
         health-check-path: /actuator/health
         health-check-interval: 10s
-        instance-id: ${spring.application.name}:${random.value}
+        instance-id: ${spring.application.name}:cart-service
         deregister-critical-service-after: 30s
 
 server:

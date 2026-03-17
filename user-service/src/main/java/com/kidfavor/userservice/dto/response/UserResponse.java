@@ -21,6 +21,7 @@ public class UserResponse {
     private String email;
     private String phone;
     private Boolean status;
+    private Boolean emailVerified;
     private Role role;
     private List<ShipmentResponse> shipments;
 
@@ -32,6 +33,7 @@ public class UserResponse {
                 user.getEmail(),
                 user.getPhone(),
                 user.getStatus(),
+                user.getEmailVerified(),
                 user.getRole(),
                 user.getShipments() != null ?
                         user.getShipments().stream()
