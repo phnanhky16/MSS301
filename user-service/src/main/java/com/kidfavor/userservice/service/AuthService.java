@@ -1,5 +1,6 @@
 package com.kidfavor.userservice.service;
 
+import com.kidfavor.userservice.dto.request.auth.ChangePasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
@@ -20,4 +21,6 @@ public interface AuthService {
     AuthResponse processOAuth2User(OAuth2User oAuth2User);
     
     AuthResponse authenticateWithGoogle(GoogleLoginRequest request);
+
+    void changePassword(int userId, ChangePasswordRequest request);
 }

@@ -1,5 +1,6 @@
 package com.kidfavor.userservice.service.impl;
 
+import com.kidfavor.userservice.dto.request.auth.ChangePasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
@@ -341,6 +342,33 @@ public class AuthServiceImpl implements AuthService {
                 .expiresIn(jwtTokenProvider.getAccessTokenExpiration())
                 .user(mapToUserResponse(user))
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(int userId, ChangePasswordRequest request) {
+        // Validate inputs
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("New password and confirm password do not match");
+        }
+
+        if (request.getNewPassword().equals(request.getOldPassword())) {
+            throw new RuntimeException("New password must be different from current password");
+        }
+
+        // Find user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Verify old password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Old password is incorrect");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("Password changed successfully for user: {}", user.getUserName());
     }
 
     private UserResponse mapToUserResponse(User user) {

@@ -1,6 +1,7 @@
 package com.kidfavor.userservice.controller;
 
 import com.kidfavor.userservice.dto.ApiResponse;
+import com.kidfavor.userservice.dto.request.auth.ChangePasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LogoutRequest;
@@ -9,6 +10,9 @@ import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
 import com.kidfavor.userservice.dto.response.AuthResponse;
 import com.kidfavor.userservice.service.AuthService;
+import com.kidfavor.userservice.security.JwtTokenProvider;
+import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,7 +20,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
         private final AuthService authService;
+        private final JwtTokenProvider jwtTokenProvider;
 
         @Operation(summary = "Register a new user", description = "Create a new user account and return JWT tokens")
         @ApiResponses(value = {
@@ -106,5 +112,38 @@ public class AuthController {
                         "http://localhost:3000/auth/google/callback"
                 );
                 return ResponseEntity.ok(ApiResponse.success("Please redirect to Google login", googleAuthUrl));
+        }
+
+        @Operation(summary = "Change user password", description = "Change password for a logged-in user. Requires authentication.")
+        @ApiResponses(value = {
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Password changed successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid password or password mismatch"),
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - invalid token"),
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+        })
+        @PutMapping("/users/{userId}/change-password")
+        @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
+        public ResponseEntity<ApiResponse<Void>> changePassword(
+                        @Parameter(description = "User ID", required = true)
+                        @PathVariable Integer userId,
+                        @Valid @RequestBody ChangePasswordRequest request,
+                        HttpServletRequest httpRequest) {
+                
+                // Extract token from request header
+                String authHeader = httpRequest.getHeader(HttpHeaders.AUTHORIZATION);
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                        throw new RuntimeException("Missing or invalid authorization header");
+                }
+                
+                String token = authHeader.substring(7);
+                Integer tokenUserId = jwtTokenProvider.getUserIdFromToken(token);
+                
+                // Validate that the user can only change their own password
+                if (!tokenUserId.equals(userId)) {
+                        throw new RuntimeException("Unauthorized: You can only change your own password");
+                }
+                
+                authService.changePassword(userId, request);
+                return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
         }
 }

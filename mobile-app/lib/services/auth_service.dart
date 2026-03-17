@@ -215,18 +215,35 @@ class AuthService extends ChangeNotifier {
     required String oldPassword,
     required String newPassword,
   }) async {
-    if (_currentUser == null) return false;
+    if (_currentUser == null) {
+      print('Change password error: User not logged in');
+      return false;
+    }
     try {
+      print('Attempting to change password for user: ${_currentUser!.id}');
       final response = await ApiService.put(
-        '/user-service/users/${_currentUser!.id}/change-password',
+        '/user-service/auth/users/${_currentUser!.id}/change-password',
         {
           'oldPassword': oldPassword,
           'newPassword': newPassword,
+          'confirmPassword': newPassword,
         },
       );
-      return response['status'] == 200 ||
+      print('Change password response: $response');
+
+      // Check for success based on status code or success flag
+      final success = response['status'] == 200 ||
           response['status'] == 204 ||
           response['success'] == true;
+
+      if (success) {
+        print('Password changed successfully');
+      } else {
+        print(
+            'Password change failed - status: ${response['status']}, message: ${response['message']}');
+      }
+
+      return success;
     } catch (e) {
       print('Change password error: $e');
       return false;

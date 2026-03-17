@@ -1,6 +1,6 @@
 package com.kidfavor.inventoryservice.controller;
 
-import com.kidfavor.inventoryservice.dto.ResponseWrapper;
+import com.kidfavor.inventoryservice.client.dto.ApiResponseDto;
 import com.kidfavor.inventoryservice.service.WarehouseProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +26,9 @@ public class InventoryWarehouseStockController {
 
     @GetMapping("/api/inventory/warehouses/total-stock")
     @Operation(summary = "Get total stock in all warehouses by product IDs")
-    public ResponseEntity<ResponseWrapper<Map<Long, Integer>>> getTotalStockForProducts(
+    public ResponseEntity<ApiResponseDto<Map<Long, Integer>>> getTotalStockForProducts(
             @RequestParam("productIds") List<Long> productIds) {
         Map<Long, Integer> stockMap = warehouseProductService.getTotalStockForProducts(productIds);
-        return ResponseEntity.ok(ResponseWrapper.success("Retrieved successfully", stockMap));
+        return ResponseEntity.ok(ApiResponseDto.success("Retrieved successfully", stockMap));
     }
 }

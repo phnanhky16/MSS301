@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/cart_service.dart';
 import '../services/wishlist_service.dart';
+import '../services/address_service.dart';
 import 'shipping_address_screen.dart';
 import 'order_history_screen.dart';
 import 'my_orders_screen.dart';
@@ -23,7 +24,7 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             children: [
               // Header with gradient background
-              _buildHeader(user?.fullName ?? 'Alex Johnson'),
+              _buildHeader(user?.fullName ?? 'Alex Johnson', user?.avatarUrl),
 
               // Main content
               Padding(
@@ -61,7 +62,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(String userName) {
+  Widget _buildHeader(String userName, String? avatarUrl) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -95,17 +96,35 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
                 child: ClipOval(
-                  child: Image.network(
-                    'https://placeholder.pics/svg/300',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.person,
-                            size: 50, color: Colors.white),
-                      );
-                    },
-                  ),
+                  child: avatarUrl != null && avatarUrl!.isNotEmpty
+                      ? Image.network(
+                          avatarUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'assets/images/avatar.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.person,
+                                      size: 50, color: Colors.white),
+                                );
+                              },
+                            );
+                          },
+                        )
+                      : Image.asset(
+                          'assets/images/avatar.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.person,
+                                  size: 50, color: Colors.white),
+                            );
+                          },
+                        ),
                 ),
               ),
               Positioned(
@@ -432,15 +451,23 @@ class ProfileScreen extends StatelessWidget {
           'Visa **42',
         ),
         const SizedBox(height: 16),
-        _buildSettingsItem(
-          Icons.location_on,
-          'Shipping Addresses',
-          '3 Saved Addresses',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const ShippingAddressScreen()),
+        Consumer<AddressService>(
+          builder: (_, addressService, __) {
+            final addressCount = addressService.shipments.length;
+            final addressText = addressCount == 0
+                ? 'No addresses added'
+                : '$addressCount Saved Address${addressCount > 1 ? 'es' : ''}';
+            return _buildSettingsItem(
+              Icons.location_on,
+              'Shipping Addresses',
+              addressText,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ShippingAddressScreen()),
+                );
+              },
             );
           },
         ),

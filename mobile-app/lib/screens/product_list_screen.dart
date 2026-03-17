@@ -509,9 +509,9 @@ class _ProductGrid extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        childAspectRatio: 0.56,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.65,
       ),
       itemCount: products.length,
       itemBuilder: (_, i) => _ProductCard(
@@ -567,131 +567,125 @@ class _ProductCardState extends State<_ProductCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image area
-            Expanded(
-              flex: 5,
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(24),
-                      topRight: Radius.circular(24),
-                      bottomLeft: Radius.circular(16),
-                      bottomRight: Radius.circular(16),
-                    ),
-                    child: SizedBox.expand(
-                      child: product.imageUrl != null
-                          ? Image.network(product.imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const _ImagePlaceholder())
-                          : const _ImagePlaceholder(),
-                    ),
-                  ),
-                  // Wishlist button
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: Consumer<WishlistService>(
-                      builder: (_, wishlist, __) => GestureDetector(
-                        onTap: () =>
-                            widget.onToggleWishlist(product, _wishlistBtnKey),
-                        child: Container(
-                          key: _wishlistBtnKey,
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 2))
-                            ],
-                          ),
-                          child: Icon(
-                            wishlist.isWishlisted(product.id)
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 16,
-                            color: wishlist.isWishlisted(product.id)
-                                ? Colors.redAccent
-                                : Colors.grey[400],
+            // Image area with square aspect ratio
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: AspectRatio(
+                aspectRatio: 1.0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(
+                    children: [
+                      SizedBox.expand(
+                        child: product.imageUrl != null
+                            ? Image.network(product.imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const _ImagePlaceholder())
+                            : const _ImagePlaceholder(),
+                      ),
+                      // Wishlist button
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Consumer<WishlistService>(
+                          builder: (_, wishlist, __) => GestureDetector(
+                            onTap: () => widget.onToggleWishlist(
+                                product, _wishlistBtnKey),
+                            child: Container(
+                              key: _wishlistBtnKey,
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2))
+                                ],
+                              ),
+                              child: Icon(
+                                wishlist.isWishlisted(product.id)
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                size: 16,
+                                color: wishlist.isWishlisted(product.id)
+                                    ? Colors.redAccent
+                                    : Colors.grey[400],
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
             // Info area
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: _kTextPrimary,
-                          height: 1.2),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      product.categoryName ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: _kTextSecondary,
-                          fontWeight: FontWeight.w500),
-                    ),
-                    const Spacer(),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${currencyFormat.format(product.price)} d',
-                            style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: _kTextPrimary),
-                          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: _kTextPrimary,
+                        height: 1.2),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    product.categoryName ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 11,
+                        color: _kTextSecondary,
+                        fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${currencyFormat.format(product.price)} d',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: _kTextPrimary),
                         ),
-                        GestureDetector(
-                          onTap: () =>
-                              widget.onAddToCart(product.id, _addBtnKey),
-                          child: Container(
-                            key: _addBtnKey,
-                            width: 36,
-                            height: 36,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF1EB5D9),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Color(0x441EB5D9),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 4))
-                              ],
-                            ),
-                            child: const Icon(Icons.add,
-                                color: Colors.white, size: 20),
+                      ),
+                      GestureDetector(
+                        onTap: () => widget.onAddToCart(product.id, _addBtnKey),
+                        child: Container(
+                          key: _addBtnKey,
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF1EB5D9),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Color(0x441EB5D9),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 4))
+                            ],
                           ),
+                          child: const Icon(Icons.add,
+                              color: Colors.white, size: 18),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

@@ -77,6 +77,16 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    public Integer getUserIdFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.get("userId", Integer.class);
+    }
+
     public boolean validateToken(String token) {
         try {
             // Check if token is blacklisted

@@ -28,8 +28,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final user =
-        Provider.of<AuthService>(context, listen: false).currentUser;
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
     _fullNameCtrl = TextEditingController(text: user?.fullName ?? '');
     _emailCtrl = TextEditingController(text: user?.email ?? '');
     _phoneCtrl = TextEditingController(text: user?.phone ?? '');
@@ -73,7 +72,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? 'Profile updated successfully!' : 'Update failed. Please try again.'),
+        content: Text(ok
+            ? 'Profile updated successfully!'
+            : 'Update failed. Please try again.'),
         backgroundColor: ok ? _kPrimary : Colors.redAccent,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -85,186 +86,42 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   // ── Change Password Dialog ────────────────────────────────────────────────
   Future<void> _showChangePasswordDialog() async {
-    final oldCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-    final dlgKey = GlobalKey<FormState>();
-    bool oldVisible = false;
-    bool newVisible = false;
-    bool isLoading = false;
-
-    await showDialog(
+    bool? result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => AlertDialog(
+      builder: (dialogContext) {
+        return _ChangePasswordDialogContent(
+          onPasswordChanged: () => _showChangePasswordDialog(),
+        );
+      },
+    );
+
+    // Show result message after dialog closes
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Password changed successfully!'),
+          backgroundColor: _kPrimary,
+          behavior: SnackBarBehavior.floating,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-          title: Row(
-            children: const [
-              Icon(Icons.lock_outline, color: _kPrimary),
-              SizedBox(width: 8),
-              Text('Change Password',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          content: Form(
-            key: dlgKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                _buildPasswordField(
-                  controller: oldCtrl,
-                  label: 'Current Password',
-                  visible: oldVisible,
-                  onToggle: () => setDlg(() => oldVisible = !oldVisible),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 16),
-                _buildPasswordField(
-                  controller: newCtrl,
-                  label: 'New Password',
-                  visible: newVisible,
-                  onToggle: () => setDlg(() => newVisible = !newVisible),
-                  validator: (v) => (v == null || v.length < 6)
-                      ? 'Min 6 characters'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                _buildPasswordField(
-                  controller: confirmCtrl,
-                  label: 'Confirm New Password',
-                  visible: newVisible,
-                  onToggle: () => setDlg(() => newVisible = !newVisible),
-                  validator: (v) => v != newCtrl.text
-                      ? 'Passwords do not match'
-                      : null,
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed:
-                  isLoading ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.grey)),
-            ),
-            isLoading
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child:
-                          CircularProgressIndicator(color: _kPrimary, strokeWidth: 2),
-                    ),
-                  )
-                : Container(
-                    margin: const EdgeInsets.only(bottom: 4, right: 4),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [_kPrimary, _kCyan]),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: TextButton(
-                      onPressed: () async {
-                        if (!(dlgKey.currentState?.validate() ?? false))
-                          return;
-                        setDlg(() => isLoading = true);
-                        final authService = Provider.of<AuthService>(
-                            context,
-                            listen: false);
-                        final ok = await authService.changePassword(
-                          oldPassword: oldCtrl.text,
-                          newPassword: newCtrl.text,
-                        );
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(ok
-                                  ? 'Password changed successfully!'
-                                  : 'Incorrect password or server error.'),
-                              backgroundColor:
-                                  ok ? _kPrimary : Colors.redAccent,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.all(16),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        child: Text('Update',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-          ],
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
         ),
-      ),
-    );
-
-    oldCtrl.dispose();
-    newCtrl.dispose();
-    confirmCtrl.dispose();
-  }
-
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required bool visible,
-    required VoidCallback onToggle,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: !visible,
-      validator: validator,
-      style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle:
-            const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-        suffixIcon: IconButton(
-          icon: Icon(
-              visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-              size: 18,
-              color: Colors.grey),
-          onPressed: onToggle,
+      );
+    } else if (result == false && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Incorrect password!'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 2),
         ),
-        filled: true,
-        fillColor: const Color(0xFFF8F9FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _kPrimary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-    );
+      );
+    }
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -548,8 +405,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
             _buildDivider(),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Container(
@@ -616,8 +472,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           ),
           child: _isSaving
               ? const SizedBox(
@@ -738,6 +594,205 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Change Password Dialog Content Widget ─────────────────────────────────
+class _ChangePasswordDialogContent extends StatefulWidget {
+  final VoidCallback? onPasswordChanged;
+
+  const _ChangePasswordDialogContent({
+    this.onPasswordChanged,
+  });
+
+  @override
+  State<_ChangePasswordDialogContent> createState() =>
+      _ChangePasswordDialogContentState();
+}
+
+class _ChangePasswordDialogContentState
+    extends State<_ChangePasswordDialogContent> {
+  late TextEditingController _oldPasswordCtrl;
+  late TextEditingController _newPasswordCtrl;
+  late TextEditingController _confirmPasswordCtrl;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _oldVisible = false;
+  bool _newVisible = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _oldPasswordCtrl = TextEditingController();
+    _newPasswordCtrl = TextEditingController();
+    _confirmPasswordCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _oldPasswordCtrl.dispose();
+    _newPasswordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      title: Row(
+        children: const [
+          Icon(Icons.lock_outline, color: Color(0xFF0DB9F2)),
+          SizedBox(width: 8),
+          Text('Change Password',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        ],
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            _buildPasswordField(
+              controller: _oldPasswordCtrl,
+              label: 'Current Password',
+              visible: _oldVisible,
+              onToggle: () => setState(() => _oldVisible = !_oldVisible),
+              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 16),
+            _buildPasswordField(
+              controller: _newPasswordCtrl,
+              label: 'New Password',
+              visible: _newVisible,
+              onToggle: () => setState(() => _newVisible = !_newVisible),
+              validator: (v) =>
+                  (v == null || v.length < 6) ? 'Min 6 characters' : null,
+            ),
+            const SizedBox(height: 16),
+            _buildPasswordField(
+              controller: _confirmPasswordCtrl,
+              label: 'Confirm New Password',
+              visible: _newVisible,
+              onToggle: () => setState(() => _newVisible = !_newVisible),
+              validator: (v) =>
+                  v != _newPasswordCtrl.text ? 'Passwords do not match' : null,
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+        ),
+        _isLoading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF0DB9F2),
+                    strokeWidth: 2,
+                  ),
+                ),
+              )
+            : Container(
+                margin: const EdgeInsets.only(bottom: 4, right: 4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF0DB9F2), Color(0xFF22D3EE)]),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextButton(
+                  onPressed: () async {
+                    if (!(_formKey.currentState?.validate() ?? false)) {
+                      return;
+                    }
+
+                    setState(() => _isLoading = true);
+
+                    try {
+                      final authService =
+                          Provider.of<AuthService>(context, listen: false);
+                      final ok = await authService.changePassword(
+                        oldPassword: _oldPasswordCtrl.text,
+                        newPassword: _newPasswordCtrl.text,
+                      );
+
+                      if (mounted) {
+                        Navigator.pop(context, ok);
+                      }
+                    } catch (e) {
+                      print('Error changing password: $e');
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                        Navigator.pop(context, false);
+                      }
+                    }
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    child: Text('Update',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool visible,
+    required VoidCallback onToggle,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: !visible,
+      validator: validator,
+      style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+        suffixIcon: IconButton(
+          icon: Icon(
+              visible
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 18,
+              color: Colors.grey),
+          onPressed: onToggle,
+        ),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF0DB9F2), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }

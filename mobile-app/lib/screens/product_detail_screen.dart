@@ -254,8 +254,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       _buildDescription(),
                       const SizedBox(height: 24),
 
-                      // Specs Row (Pieces, Minifigs, Build Time)
-                      _buildSpecsRow(),
+                      // Store Availability Section
+                      _buildStoreAvailability(),
                       const SizedBox(height: 24),
 
                       // Gallery Section
@@ -486,70 +486,238 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildSpecsRow() {
-    return Row(
-      children: [
-        _buildSpecCard(
-          icon: Icons.extension,
-          label: 'Pieces',
-          value: '1,254',
-          color: const Color(0xFF42A5F5),
-        ),
-        const SizedBox(width: 12),
-        _buildSpecCard(
-          icon: Icons.person,
-          label: 'Minifigs',
-          value: '4 Included',
-          color: const Color(0xFFEF5350),
-        ),
-        const SizedBox(width: 12),
-        _buildSpecCard(
-          icon: Icons.access_time,
-          label: 'Build Time',
-          value: '4-5 hrs',
-          color: const Color(0xFFFFA726),
-        ),
-      ],
-    );
+  Future<List<Map<String, dynamic>>> _fetchStoreAvailability() async {
+    try {
+      final response = await ApiService.get(
+        '/inventory-service/api/stores/availability?productId=${_displayProduct.id}',
+      );
+
+      if (response['status'] == 200 && response['data'] != null) {
+        final List<dynamic> data = response['data'] as List<dynamic>;
+        return data
+            .map((item) => {
+                  'storeId': item['storeId'] as int?,
+                  'storeName': item['storeName'] as String? ?? 'Unknown Store',
+                  'address': item['address'] as String? ?? 'No address',
+                  'availableQuantity': item['availableQuantity'] as int? ?? 0,
+                })
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Fetch store availability error: $e');
+      return [];
+    }
   }
 
-  Widget _buildSpecCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!, width: 1),
+  Widget _buildStoreAvailability() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Có sẵn tại cửa hàng',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2C3E50),
+          ),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        const SizedBox(height: 12),
+        FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchStoreAvailability(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.red.shade200,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.red.shade400,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Không thể tải thông tin cửa hàng',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final stores = snapshot.data ?? [];
+
+            if (stores.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.orange.shade200,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade600,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Hiện tại không có cửa hàng nào có sản phẩm này',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: stores
+                  .asMap()
+                  .entries
+                  .map(
+                    (entry) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: entry.key < stores.length - 1 ? 12 : 0,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // Left Icon
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F4F8),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.storefront,
+                                color: Color(0xFF1976D2),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // Middle - Store Info
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    entry.value['storeName'] as String,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    entry.value['address'] as String,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Right - Stock Status
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_outline,
+                                      color:
+                                          entry.value['availableQuantity'] >= 2
+                                              ? Colors.green
+                                              : Colors.orange,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Còn ${entry.value['availableQuantity']} đơn vị',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            entry.value['availableQuantity'] >=
+                                                    2
+                                                ? Colors.green
+                                                : Colors.orange,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 
