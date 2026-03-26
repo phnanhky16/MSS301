@@ -427,14 +427,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 color: Color(0xFF1976D2),
               ),
             ),
-            Text(
-              '\$109.99',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-                decoration: TextDecoration.lineThrough,
+            if (_displayProduct.originalPrice != null)
+              Text(
+                _currencyFormat.format(_displayProduct.originalPrice),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  decoration: TextDecoration.lineThrough,
+                ),
               ),
-            ),
           ],
         ),
       ],

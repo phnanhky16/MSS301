@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -640,47 +640,75 @@ class _ProductCardState extends State<_ProductCard> {
                         color: _kTextPrimary,
                         height: 1.2),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    product.categoryName ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: _kTextSecondary,
-                        fontWeight: FontWeight.w500),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.star,
+                        size: 12,
+                        color: Color(0xFFFFC107),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '4.8 (86 đánh giá)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _kTextSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
-                        child: Text(
-                          '${currencyFormat.format(product.price)} d',
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: _kTextPrimary),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (product.originalPrice != null)
+                              Text(
+                                '${currencyFormat.format(product.originalPrice)} d',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                  decoration: TextDecoration.lineThrough,
+                                  height: 1.0,
+                                ),
+                              ),
+                            Text(
+                              '${currencyFormat.format(product.price)} d',
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: _kTextPrimary),
+                            ),
+                          ],
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => widget.onAddToCart(product.id, _addBtnKey),
+                        onTap: product.stock > 0 
+                            ? () => widget.onAddToCart(product.id, _addBtnKey)
+                            : null,
                         child: Container(
                           key: _addBtnKey,
                           width: 32,
                           height: 32,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF1EB5D9),
+                          decoration: BoxDecoration(
+                            color: product.stock > 0 
+                                ? const Color(0xFF1EB5D9)
+                                : Colors.grey[300],
                             shape: BoxShape.circle,
-                            boxShadow: [
+                            boxShadow: product.stock > 0 ? const [
                               BoxShadow(
                                   color: Color(0x441EB5D9),
                                   blurRadius: 8,
                                   offset: Offset(0, 4))
-                            ],
+                            ] : null,
                           ),
-                          child: const Icon(Icons.add,
-                              color: Colors.white, size: 18),
+                          child: Icon(Icons.add,
+                              color: product.stock > 0 ? Colors.white : Colors.grey[500], size: 18),
                         ),
                       ),
                     ],

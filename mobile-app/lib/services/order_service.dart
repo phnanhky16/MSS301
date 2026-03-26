@@ -114,18 +114,18 @@ class OrderService extends ChangeNotifier {
   Future<bool> cancelOrder(int orderId) async {
     try {
       // Backend dùng PATCH /orders/{id}/cancel
-      final response = await ApiService.patch(
-          '/order-service/orders/$orderId/cancel', {});
+      final response =
+          await ApiService.patch('/order-service/orders/$orderId/cancel', {});
       final status = response['status'] as int?;
-      final success = response['success'] == true ||
-          status == 200 ||
-          status == 204;
+      final success =
+          response['success'] == true || status == 200 || status == 204;
       if (success) {
         final idx = _orders.indexWhere((o) => o.id == orderId);
         if (idx != -1) {
           final old = _orders[idx];
           _orders[idx] = Order(
             id: old.id,
+            orderNumber: old.orderNumber,
             status: 'CANCELLED',
             totalAmount: old.totalAmount,
             createdAt: old.createdAt,
@@ -157,7 +157,8 @@ class OrderService extends ChangeNotifier {
         'items': items,
         'shippingAddressId': shippingAddressId,
         'paymentMethod': paymentMethod,
-        if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
+        if (couponCode != null && couponCode.isNotEmpty)
+          'couponCode': couponCode,
       };
 
       final response = await ApiService.post('/order-service/orders', payload);

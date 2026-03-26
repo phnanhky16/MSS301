@@ -393,13 +393,28 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         color: Colors.black.withOpacity(0.75),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        _currencyFormat.format(product.price),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (product.originalPrice != null)
+                            Text(
+                              _currencyFormat.format(product.originalPrice),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                                decoration: TextDecoration.lineThrough,
+                                height: 1.0,
+                              ),
+                            ),
+                          Text(
+                            _currencyFormat.format(product.price),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

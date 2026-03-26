@@ -15,4 +15,7 @@ public class CreatePaymentResponse {
     private String checkoutUrl;
     private String qrCode;
     private String status;
+    private String accountName;
+    private String accountNumber;
+    private String bin;
 }

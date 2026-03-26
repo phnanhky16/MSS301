@@ -50,6 +50,7 @@ public class PaymentController {
             @Parameter(description = "Order number") @PathVariable String orderNumber) {
         PaymentStatusResponse response = paymentService.getPaymentStatus(orderNumber);
         return ResponseEntity.ok(response);
+
     }
 
     @PostMapping("/{orderNumber}/cancel")
