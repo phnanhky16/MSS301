@@ -41,7 +41,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // TEMPORARY: Allow all payments endpoints for testing
-                        .requestMatchers("/api/payments/**").permitAll()
+                        .requestMatchers("/api/payments/**", "/error").permitAll()
 
                         .anyRequest().authenticated()
                 )

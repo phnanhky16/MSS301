@@ -113,6 +113,9 @@ public class PaymentServiceImpl implements PaymentService {
                     .checkoutUrl(checkoutUrl)
                     .qrCode(qrCode)
                     .status("PENDING")
+                    .accountName(response.getAccountName())
+                    .accountNumber(response.getAccountNumber())
+                    .bin(response.getBin())
                     .build();
 
         } catch (Exception e) {
