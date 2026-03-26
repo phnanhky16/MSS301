@@ -2,10 +2,12 @@ package com.kidfavor.inventoryservice.service.impl;
 
 import com.kidfavor.inventoryservice.dto.WarehouseRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseResponse;
+import com.kidfavor.inventoryservice.dto.WarehouseStatsResponse;
 import com.kidfavor.inventoryservice.entity.Warehouse;
 import com.kidfavor.inventoryservice.exception.DuplicateResourceException;
 import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
+import com.kidfavor.inventoryservice.repository.WarehouseProductRepository;
 import com.kidfavor.inventoryservice.repository.WarehouseRepository;
 import com.kidfavor.inventoryservice.service.WarehouseService;
 import com.kidfavor.inventoryservice.service.GeocodingService;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class WarehouseServiceImpl implements WarehouseService {
 
     private final WarehouseRepository warehouseRepository;
+    private final WarehouseProductRepository warehouseProductRepository;
     private final InventoryMapper mapper;
     private final GeocodingService geocodingService;
 
@@ -157,5 +160,23 @@ public class WarehouseServiceImpl implements WarehouseService {
     public Warehouse getWarehouseEntityById(Long id) {
         return warehouseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + id));
+    }
+
+    @Override
+    public WarehouseStatsResponse getWarehouseStats() {
+        log.info("Fetching warehouse statistics for dashboard");
+        long totalWarehouses = warehouseRepository.count();
+        long activeWarehouses = warehouseRepository.findByIsActive(true).size();
+        long totalProducts = warehouseProductRepository.countDistinctProducts();
+        Long totalStock = warehouseProductRepository.sumTotalStockQuantity();
+        long lowStockCount = warehouseProductRepository.countLowStockItems();
+
+        return WarehouseStatsResponse.builder()
+                .totalWarehouses(totalWarehouses)
+                .activeWarehouses(activeWarehouses)
+                .totalProducts(totalProducts)
+                .totalStockQuantity(totalStock != null ? totalStock : 0)
+                .lowStockItemsCount(lowStockCount)
+                .build();
     }
 }

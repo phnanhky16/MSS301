@@ -42,7 +42,7 @@ function ShopProductCard({ product, onAdd }) {
 
     return (
         <div className="shop-prod-card" onClick={handleCardClick}>
-            {product.status === 'INACTIVE' && <span className="shop-badge sale">OUT OF STOCK</span>}
+            {(product.status === 'INACTIVE' || product.totalStock <= 0) && <span className="shop-badge sale">OUT OF STOCK</span>}
             <button
                 className="shop-wish-btn"
                 onClick={(e) => {
@@ -447,7 +447,23 @@ export default function ShopPage() {
                                             { shallow: true }
                                         );
                                     }} className="autocomplete-item">
-                                        {p.name}
+                                        {p.imageUrl && (
+                                            <div className="suggestion-img">
+                                                <img src={p.imageUrl} alt={p.name} />
+                                            </div>
+                                        )}
+                                        <div className="suggestion-info">
+                                            <span className="suggestion-name">{p.name}</span>
+                                            <div className="suggestion-meta">
+                                                {p.status === 'INACTIVE' || p.totalStock <= 0 ? (
+                                                    <span className="stock-tag out">Hết hàng</span>
+                                                ) : p.totalStock <= 5 ? (
+                                                    <span className="stock-tag low">Sắp hết hàng ({p.totalStock})</span>
+                                                ) : (
+                                                    <span className="stock-tag in">Còn hàng</span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>

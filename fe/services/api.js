@@ -387,6 +387,14 @@ export function fetchWarehouseProductsByStatus(warehouseId, status) {
   return request(`/warehouses/${warehouseId}/products/status/${status}`);
 }
 
+export function fetchWarehouseStats() {
+  return request('/warehouses/dashboard/stats');
+}
+
+export function transferWarehouseStock(data) {
+  return request('/warehouses/transfer', { method: 'POST', body: JSON.stringify(data) });
+}
+
 
 export function fetchUserById(id) {
   return request(`/users/${id}`);

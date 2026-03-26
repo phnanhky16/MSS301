@@ -86,6 +86,8 @@ public class InventoryMapper {
                 .productId(wp.getProductId())
                 .productName(wp.getProductName())
                 .quantity(wp.getQuantity())
+                .minStockLevel(wp.getMinStockLevel())
+                .maxStockLevel(wp.getMaxStockLevel())
                 .status(wp.getStockStatus())
                 .locationCode(wp.getLocationCode())
                 .updatedBy(wp.getUpdatedBy())

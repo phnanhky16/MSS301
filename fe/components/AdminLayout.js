@@ -116,9 +116,15 @@ export default function AdminLayout({ children }) {
             ? 'stores'
             : router.pathname.startsWith('/admin/warehouses')
               ? 'warehouses'
-              : router.pathname.startsWith('/admin/inventory')
-                ? 'stores'
-                : 'dashboard';
+              : router.pathname.startsWith('/warehouse/list')
+                ? 'warehouses'
+                : router.pathname.startsWith('/warehouse/dashboard')
+                  ? 'dashboard'
+                  : router.pathname.startsWith('/warehouse/')
+                    ? 'warehouses'
+                    : router.pathname.startsWith('/admin/inventory')
+                      ? 'stores'
+                      : 'dashboard';
 
   const displayName = profile?.fullName || profile?.name || 'Admin';
   const initials = displayName
@@ -165,24 +171,32 @@ export default function AdminLayout({ children }) {
               items={[
                 {
                   type: 'group',
-                  label: collapsed ? '' : 'MENU',
-                  children: [
-                    { key: 'dashboard', icon: <DashboardOutlined />, label: <Link href="/admin">Dashboard</Link> },
-                    { key: 'orders', icon: <ShoppingCartOutlined />, label: <Link href="/admin/orders">Orders</Link> },
-                    { key: 'products', icon: <AppstoreOutlined />, label: <Link href="/admin/products">Products</Link> },
-                    { key: 'users', icon: <UserOutlined />, label: <Link href="/admin/users">Customers</Link> },
-                    { key: 'users-archived', icon: <UserOutlined />, label: <Link href="/admin/users-archived">Archived Users</Link> },
-                    { key: 'reports', icon: <BarChartOutlined />, label: <Link href="/admin/warehouses">Reports</Link> },
-                    { key: 'coupons', icon: <PercentageOutlined />, label: <Link href="/admin/coupons">Discounts</Link> },
-                  ],
+                  label: collapsed ? '' : (profile?.role === 'STAFF_FOR_WAREHOUSE' ? 'WAREHOUSE' : 'MENU'),
+                  children: profile?.role === 'STAFF_FOR_WAREHOUSE' 
+                    ? [
+                        { key: 'dashboard', icon: <DashboardOutlined />, label: <Link href="/warehouse/dashboard">Dashboard</Link> },
+                        { key: 'warehouses', icon: <AppstoreOutlined />, label: <Link href="/warehouse/list">Warehouses</Link> },
+                      ]
+                    : [
+                        { key: 'dashboard', icon: <DashboardOutlined />, label: <Link href="/admin">Dashboard</Link> },
+                        { key: 'orders', icon: <ShoppingCartOutlined />, label: <Link href="/admin/orders">Orders</Link> },
+                        { key: 'products', icon: <AppstoreOutlined />, label: <Link href="/admin/products">Products</Link> },
+                        { key: 'users', icon: <UserOutlined />, label: <Link href="/admin/users">Customers</Link> },
+                        { key: 'users-archived', icon: <UserOutlined />, label: <Link href="/admin/users-archived">Archived Users</Link> },
+                        { key: 'reports', icon: <BarChartOutlined />, label: <Link href="/admin/warehouses">Reports</Link> },
+                        { key: 'coupons', icon: <PercentageOutlined />, label: <Link href="/admin/coupons">Discounts</Link> },
+                      ],
                 },
                 {
                   type: 'group',
-                  label: collapsed ? '' : 'SUPPORT',
+                  label: collapsed ? '' : 'DASHBOARD',
                   children: [
-                    { key: 'stores', icon: <ApiOutlined />, label: <Link href="/admin/stores">Integrations</Link> },
-                    { key: 'warehouses', icon: <QuestionCircleOutlined />, label: <Link href="/admin/warehouses">Help</Link> },
-                    { key: 'warehouse-inventory', icon: <SettingOutlined />, label: <Link href="/admin/warehouse-inventory">Settings</Link> },
+                    { key: 'home', icon: <ApiOutlined />, label: <Link href="/?skipRedirect=true">Back to Website</Link> },
+                    ...(profile?.role !== 'STAFF_FOR_WAREHOUSE' ? [
+                      { key: 'stores', icon: <ApiOutlined />, label: <Link href="/admin/stores">Integrations</Link> },
+                      { key: 'warehouses', icon: <QuestionCircleOutlined />, label: <Link href="/admin/warehouses">Help</Link> },
+                      { key: 'warehouse-inventory', icon: <SettingOutlined />, label: <Link href="/admin/warehouse-inventory">Settings</Link> },
+                    ] : [])
                   ],
                 },
               ]}

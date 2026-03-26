@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { logout } from '../services/auth';
 import { getUserFromToken } from '../services/oauth';
-import { ShoppingCartOutlined, SearchOutlined, MenuOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import { ShoppingCartOutlined, SearchOutlined, MenuOutlined, UserOutlined, LogoutOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
 
 export default function Layout({ children, isLogin = false }) {
@@ -155,6 +155,15 @@ export default function Layout({ children, isLogin = false }) {
                       <UserOutlined />
                       <span>My Profile</span>
                     </button>
+                    {(userInfo.role === 'ADMIN' || userInfo.role === 'STAFF_FOR_WAREHOUSE') && (
+                      <button
+                        className="dropdown-item"
+                        onClick={() => { setShowUserMenu(false); router.push('/warehouse/dashboard'); }}
+                      >
+                        <AppstoreOutlined />
+                        <span>Warehouse Mgmt</span>
+                      </button>
+                    )}
                     <div className="dropdown-divider"></div>
                     <button
                       className="dropdown-item logout-item"

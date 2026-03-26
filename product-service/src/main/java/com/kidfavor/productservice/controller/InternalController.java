@@ -57,4 +57,14 @@ public class InternalController {
         
         return ResponseEntity.ok(ResponseWrapper.success("Product is valid", "valid"));
     }
+
+    @GetMapping("/products/by-ids")
+    public ResponseEntity<ResponseWrapper<java.util.List<ProductResponse>>> getProductsByIdsInternal(
+            @RequestParam("ids") java.util.List<Long> ids) {
+        java.util.List<ProductResponse> products = ids.stream()
+                .map(id -> productService.getProductById(id).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved products successfully", products));
+    }
 }

@@ -3,6 +3,7 @@ package com.kidfavor.inventoryservice.controller;
 import com.kidfavor.inventoryservice.dto.ResponseWrapper;
 import com.kidfavor.inventoryservice.dto.WarehouseRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseResponse;
+import com.kidfavor.inventoryservice.dto.WarehouseStatsResponse;
 import com.kidfavor.inventoryservice.service.WarehouseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,7 +43,14 @@ public class WarehouseController {
         return ResponseEntity.ok(ResponseWrapper.success("Retrieved active warehouses successfully", warehouses));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/dashboard/stats")
+    @Operation(summary = "Get warehouse dashboard statistics")
+    public ResponseEntity<ResponseWrapper<WarehouseStatsResponse>> getWarehouseStats() {
+        WarehouseStatsResponse stats = warehouseService.getWarehouseStats();
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved warehouse stats successfully", stats));
+    }
+
+    @GetMapping("/{id:[0-9]+}")
     @Operation(summary = "Get warehouse by ID", description = "Retrieve a specific warehouse by its ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Warehouse found"),
@@ -74,7 +82,7 @@ public class WarehouseController {
                 .body(ResponseWrapper.created("Warehouse created successfully", warehouse));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:[0-9]+}")
     @Operation(summary = "Update warehouse", description = "Update an existing warehouse")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Warehouse updated successfully"),
@@ -88,7 +96,7 @@ public class WarehouseController {
         return ResponseEntity.ok(ResponseWrapper.success("Warehouse updated successfully", warehouse));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:[0-9]+}")
     @Operation(summary = "Delete warehouse", description = "Delete a warehouse by ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Warehouse deleted successfully"),

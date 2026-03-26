@@ -456,8 +456,8 @@ export default function ProductDetailPage() {
                             <Text type="secondary">Brand:</Text>
                             <Text strong>{product.brand?.name || 'KidFavor'}</Text>
                             <Text type="secondary">Availability:</Text>
-                            <Text strong style={{ color: product.status === 'ACTIVE' ? '#52c41a' : '#ff4d4f' }}>
-                                {product.status === 'ACTIVE' ? 'In Stock' : 'Out of Stock'}
+                            <Text strong style={{ color: (product.status === 'ACTIVE' && product.totalStock > 0) ? '#52c41a' : '#ff4d4f' }}>
+                                {(product.status === 'ACTIVE' && product.totalStock > 0) ? 'In Stock' : 'Out of Stock'}
                             </Text>
                             {product.totalStock != null && (
                                 <>

@@ -50,4 +50,13 @@ public interface WarehouseProductRepository extends JpaRepository<WarehouseProdu
     
     @Query("SELECT SUM(wp.quantity) FROM WarehouseProduct wp WHERE wp.productId = :productId")
     Integer findTotalStockByProductId(@Param("productId") Long productId);
+
+    @Query("SELECT COUNT(DISTINCT wp.productId) FROM WarehouseProduct wp")
+    long countDistinctProducts();
+
+    @Query("SELECT SUM(wp.quantity) FROM WarehouseProduct wp")
+    Long sumTotalStockQuantity();
+
+    @Query("SELECT COUNT(wp) FROM WarehouseProduct wp WHERE wp.quantity < wp.minStockLevel")
+    long countLowStockItems();
 }

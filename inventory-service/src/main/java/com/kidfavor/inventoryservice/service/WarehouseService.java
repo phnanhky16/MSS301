@@ -2,6 +2,7 @@ package com.kidfavor.inventoryservice.service;
 
 import com.kidfavor.inventoryservice.dto.WarehouseRequest;
 import com.kidfavor.inventoryservice.dto.WarehouseResponse;
+import com.kidfavor.inventoryservice.dto.WarehouseStatsResponse;
 import com.kidfavor.inventoryservice.entity.Warehouse;
 
 import java.util.List;
@@ -23,4 +24,6 @@ public interface WarehouseService {
     void deleteWarehouse(Long id);
     
     Warehouse getWarehouseEntityById(Long id);
+
+    WarehouseStatsResponse getWarehouseStats();
 }

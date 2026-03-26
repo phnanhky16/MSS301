@@ -62,4 +62,7 @@ public class ProductDocument {
 
     @Field(type = FieldType.Keyword, index = false)
     private String imageUrl;
+
+    @Field(type = FieldType.Integer, index = false)
+    private Integer totalStock;
 }

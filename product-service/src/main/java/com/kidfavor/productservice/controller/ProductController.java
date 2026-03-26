@@ -1,6 +1,7 @@
 package com.kidfavor.productservice.controller;
 
 import com.kidfavor.productservice.document.ProductDocument;
+import com.kidfavor.productservice.client.InventoryServiceClient;
 import com.kidfavor.productservice.dto.response.ResponseWrapper;
 import com.kidfavor.productservice.dto.request.ProductCreateRequest;
 import com.kidfavor.productservice.dto.request.ProductUpdateRequest;
@@ -39,6 +40,7 @@ public class ProductController {
         private final ProductService productService;
         private final ProductSearchService productSearchService;
         private final com.kidfavor.productservice.service.ProductImageService productImageService;
+        private final InventoryServiceClient inventoryServiceClient;
 
         @GetMapping
         @Operation(summary = "List products", description = "Retrieve products (paged) with optional filters")
@@ -153,6 +155,25 @@ public class ProductController {
                         return ResponseEntity.ok(ResponseWrapper.success("Suggestions", java.util.List.of()));
                 }
                 var suggestions = productSearchService.autocomplete(keyword);
+
+                // Fetch real-time stock for the suggestions
+                if (!suggestions.isEmpty()) {
+                        try {
+                                List<Long> ids = suggestions.stream()
+                                                .map(d -> Long.valueOf(d.getId()))
+                                                .collect(Collectors.toList());
+                                var stockRes = inventoryServiceClient.getTotalWarehouseStockForProducts(ids);
+                                if (stockRes != null && stockRes.getStatus() == 200 && stockRes.getData() != null) {
+                                        var stockMap = stockRes.getData();
+                                        suggestions.forEach(d -> d.setTotalStock(
+                                                        stockMap.getOrDefault(Long.valueOf(d.getId()), 0)));
+                                }
+                        } catch (Exception e) {
+                                // Log the error but return suggestions anyway without stock info
+                                System.err.println("Failed to fetch stock for suggestions: " + e.getMessage());
+                        }
+                }
+
                 return ResponseEntity.ok(
                                 ResponseWrapper.success("Suggestions retrieved successfully", suggestions));
         }

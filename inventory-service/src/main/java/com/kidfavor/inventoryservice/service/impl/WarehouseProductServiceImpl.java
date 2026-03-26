@@ -32,6 +32,7 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
     private final WarehouseProductRepository warehouseProductRepository;
     private final WarehouseService warehouseService;
     private final InventoryMapper mapper;
+    private final com.kidfavor.inventoryservice.client.ProductServiceClient productServiceClient;
 
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -44,7 +45,42 @@ public class WarehouseProductServiceImpl implements WarehouseProductService {
     @Override
     public List<WarehouseProductResponse> getProductsByWarehouse(Long warehouseId) {
         log.info("Fetching products for warehouse id: {}", warehouseId);
-        return warehouseProductRepository.findByWarehouseId(warehouseId).stream()
+        List<WarehouseProduct> products = warehouseProductRepository.findByWarehouseId(warehouseId);
+        
+        // Identify products with missing names
+        List<Long> productsWithMissingNames = products.stream()
+                .filter(p -> p.getProductName() == null || p.getProductName().isEmpty())
+                .map(WarehouseProduct::getProductId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (!productsWithMissingNames.isEmpty()) {
+            log.info("Fetching {} missing product names from Product Service", productsWithMissingNames.size());
+            try {
+                var response = productServiceClient.getProductsByIds(productsWithMissingNames);
+                if (response != null && response.isSuccess() && response.getData() != null) {
+                    java.util.Map<Long, String> nameMap = response.getData().stream()
+                            .collect(Collectors.toMap(
+                                    com.kidfavor.inventoryservice.client.dto.ProductResponseDto::getId,
+                                    com.kidfavor.inventoryservice.client.dto.ProductResponseDto::getName,
+                                    (existing, replacement) -> existing
+                            ));
+
+                    // Update local entities with fetched names (caching)
+                    for (WarehouseProduct wp : products) {
+                        if ((wp.getProductName() == null || wp.getProductName().isEmpty()) && 
+                            nameMap.containsKey(wp.getProductId())) {
+                            wp.setProductName(nameMap.get(wp.getProductId()));
+                            warehouseProductRepository.save(wp);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch product names from Product Service: {}", e.getMessage());
+            }
+        }
+
+        return products.stream()
                 .map(mapper::toWarehouseProductResponse)
                 .collect(Collectors.toList());
     }

@@ -17,7 +17,7 @@ import {
   FilterOutlined,
 } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
-import { extractOAuth2Params, handleOAuth2Callback } from '../services/oauth';
+import { extractOAuth2Params, handleOAuth2Callback, getUserFromToken } from '../services/oauth';
 import { fetchOnSaleProducts, fetchBestSellerIds, fetchProductsByIds, fetchActiveProducts, fetchBrands } from '../services/api';
 import { formatVnd } from '../utils/currency';
 
@@ -159,6 +159,17 @@ export default function Home() {
       }
     }
   }, [router.query]);
+
+  // Handle warehouse staff redirection
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.skipRedirect) return;
+
+    const user = getUserFromToken();
+    if (user && user.role === 'STAFF_FOR_WAREHOUSE') {
+      router.push('/warehouse/dashboard');
+    }
+  }, [router.isReady, router.query]);
 
   // Fetch brands for filter
   useEffect(() => {
