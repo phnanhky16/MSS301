@@ -38,11 +38,6 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // Need Help card
-                    _buildNeedHelpCard(),
-
-                    const SizedBox(height: 24),
-
                     // Settings list
                     _buildSettingsList(context),
                     const SizedBox(height: 32),
@@ -240,7 +235,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(width: 32),
               _buildStatItem('5', 'WISHLIST'),
               const SizedBox(width: 32),
-              _buildStatItem('2.4k', 'POINTS'),
+              _buildStatItem('0', 'REVIEWS'),
             ],
           ),
         ],
@@ -354,80 +349,6 @@ class ProfileScreen extends StatelessWidget {
       return GestureDetector(onTap: onTap, child: card);
     }
     return card;
-  }
-
-  Widget _buildNeedHelpCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0F2FE),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.smart_toy,
-              color: Color(0xFF1EB5D9),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Need Help?',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Our support bot is here 24/7',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1EB5D9),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text(
-              'Chat',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSettingsList(BuildContext context) {

@@ -3,6 +3,7 @@ class Product {
   final String name;
   final String description;
   final double price;
+  final double? originalPrice;
   final int stock;
   final String? imageUrl;
   final List<String> imageUrls;
@@ -14,6 +15,7 @@ class Product {
     required this.name,
     required this.description,
     required this.price,
+    this.originalPrice,
     required this.stock,
     this.imageUrl,
     this.imageUrls = const [],
@@ -57,11 +59,15 @@ class Product {
       stock = json['stock'];
     }
 
+    final rawPrice = (json['price'] as num?)?.toDouble() ?? 0.0;
+    final double computedEffectivePrice = (json['effectivePrice'] as num?)?.toDouble() ?? rawPrice;
+
     return Product(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      price: (json['price'] as num).toDouble(),
+      price: computedEffectivePrice,
+      originalPrice: rawPrice > computedEffectivePrice ? rawPrice : null,
       stock: stock,
       imageUrl: imageUrl,
       imageUrls: imageUrls,
@@ -76,6 +82,7 @@ class Product {
       'name': name,
       'description': description,
       'price': price,
+      'originalPrice': originalPrice,
       'stock': stock,
       'imageUrl': imageUrl,
       'categoryName': categoryName,

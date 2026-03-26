@@ -125,15 +125,13 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  double get _shipping => 30000.0;
-
   @override
   Widget build(BuildContext context) {
     return Consumer<CartService>(
       builder: (context, cartService, child) {
         final items = cartService.cart?.items ?? [];
         final subtotal = cartService.totalPrice;
-        final total = subtotal + _shipping;
+        final total = subtotal;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FA),
@@ -299,42 +297,49 @@ class _CartScreenState extends State<CartScreen> {
                             width: double.infinity,
                             height: 56,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [
-                                  Color(0xFF1EB5D9), // Cyan
-                                  Color(0xFF00CED1), // Light cyan
-                                ],
-                              ),
+                              gradient: items.isEmpty
+                                  ? null
+                                  : const LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [
+                                        Color(0xFF1EB5D9), // Cyan
+                                        Color(0xFF00CED1), // Light cyan
+                                      ],
+                                    ),
+                              color: items.isEmpty ? Colors.grey[400] : null,
                               borderRadius: BorderRadius.circular(28),
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      const Color(0xFF1EB5D9).withOpacity(0.3),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
+                              boxShadow: items.isEmpty
+                                  ? []
+                                  : [
+                                      BoxShadow(
+                                        color: const Color(0xFF1EB5D9)
+                                            .withOpacity(0.3),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
                             ),
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => CheckoutScreen(
-                                        cartItems: items,
-                                        cartTotal: subtotal,
-                                      ),
-                                    ),
-                                  );
-                                },
+                                onTap: items.isEmpty
+                                    ? null
+                                    : () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => CheckoutScreen(
+                                              cartItems: items,
+                                              cartTotal: subtotal,
+                                            ),
+                                          ),
+                                        );
+                                      },
                                 borderRadius: BorderRadius.circular(28),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
+                                  children: [
                                     Text(
                                       'Thanh toán',
                                       style: TextStyle(
@@ -344,7 +349,7 @@ class _CartScreenState extends State<CartScreen> {
                                         letterSpacing: 0.5,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Icon(
                                       Icons.arrow_forward,
                                       color: Colors.white,
@@ -477,13 +482,29 @@ class _CartScreenState extends State<CartScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        _currencyFormat.format(item.product?.price ?? 0),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E88E5),
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (item.product?.originalPrice != null)
+                            Text(
+                              _currencyFormat
+                                  .format(item.product!.originalPrice),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                                decoration: TextDecoration.lineThrough,
+                                height: 1.0,
+                              ),
+                            ),
+                          Text(
+                            _currencyFormat.format(item.product?.price ?? 0),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E88E5),
+                            ),
+                          ),
+                        ],
                       ),
 
                       // Quantity Controls

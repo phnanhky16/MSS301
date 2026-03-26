@@ -523,6 +523,16 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+                  if (product.originalPrice != null)
+                    Text(
+                      currencyFormat.format(product.originalPrice),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
+                        height: 1.0,
+                      ),
+                    ),
                   Text(
                     currencyFormat.format(product.price),
                     style: const TextStyle(

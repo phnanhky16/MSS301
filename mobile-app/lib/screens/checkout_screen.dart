@@ -8,6 +8,8 @@ import '../services/order_service.dart';
 import '../models/coupon.dart';
 import '../models/cart.dart';
 import '../models/shipment.dart';
+import 'map_picker_screen.dart';
+import 'bank_transfer_screen.dart';
 
 // --- MÀU SẮC CHỦ ĐẠO ---
 const Color kPrimaryColor = Color(0xFF0db9f2);
@@ -206,11 +208,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         );
 
-        // Navigate back or to order detail
+        // Navigate based on payment method
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
-            Navigator.pop(context);
-            Navigator.pop(context); // Back to cart screen
+            if (_selectedPaymentMethod == 0) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BankTransferScreen(
+                    amount: _total,
+                    orderNumber: order.orderNumber,
+                  ),
+                ),
+              );
+            } else {
+              Navigator.pop(context);
+              Navigator.pop(context); // Back to cart screen
+            }
           }
         });
       } else {
@@ -498,6 +512,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       color: kTextDark,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  // Map Picker Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          ctx,
+                          MaterialPageRoute(
+                              builder: (_) => const MapPickerScreen()),
+                        );
+                        if (result != null && result is Map<String, dynamic>) {
+                          streetCtrl.text = result['street'] ?? '';
+                          wardCtrl.text = result['ward'] ?? '';
+                          districtCtrl.text = result['district'] ?? '';
+                          cityCtrl.text = result['city'] ?? '';
+                        }
+                      },
+                      icon:
+                          const Icon(Icons.map_outlined, color: kPrimaryColor),
+                      label: const Text(
+                        'Chọn từ bản đồ',
+                        style: TextStyle(
+                          color: kPrimaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        backgroundColor: kPrimaryColor.withOpacity(0.1),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   // Input fields
@@ -954,7 +1005,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Text('$price ₫',
+              Text(price,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -1215,7 +1266,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: kTextDark)),
-                  Text('₫${_total.toStringAsFixed(0)}',
+                  Text(_currencyFormat.format(_total),
                       style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,

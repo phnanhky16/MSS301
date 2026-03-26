@@ -1799,32 +1799,9 @@ class _ModernProductCardState extends State<ModernProductCard> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Stock & Rating
+                  // Rating
                   Row(
                     children: [
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 12,
-                        color: product.stock > 0
-                            ? Colors.grey[600]
-                            : Colors.redAccent,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        product.stock > 0
-                            ? '${product.stock} left'
-                            : 'Hết hàng',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: product.stock > 0
-                              ? Colors.grey[600]
-                              : Colors.redAccent,
-                          fontWeight: product.stock <= 0
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       const Icon(
                         Icons.star,
                         size: 12,
@@ -1832,7 +1809,7 @@ class _ModernProductCardState extends State<ModernProductCard> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '4.8',
+                        '4.8 (86 đánh giá)',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[600],
@@ -1847,14 +1824,29 @@ class _ModernProductCardState extends State<ModernProductCard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Price - Using decimalPattern with string interpolation
-                      Text(
-                        '${decimalFormat.format(product.price)} đ',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A1A),
-                        ),
+                      // Price Section
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (product.originalPrice != null)
+                            Text(
+                              '${decimalFormat.format(product.originalPrice)} đ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                                decoration: TextDecoration.lineThrough,
+                                height: 1.0,
+                              ),
+                            ),
+                          Text(
+                            '${decimalFormat.format(product.price)} đ',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        ],
                       ),
 
                       // Add to Cart Button
@@ -2318,7 +2310,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   Widget build(BuildContext context) {
     final banners = [
       const MegaSaleBanner(),
-      const LegoOfferBanner(),
+      const SummerSaleBanner(),
     ];
 
     return Column(
@@ -2356,179 +2348,142 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
 // ─── Summer Sale Banner Widget ───────────────────────────────────────────────
 
-class LegoOfferBanner extends StatelessWidget {
-  const LegoOfferBanner({Key? key}) : super(key: key);
+class SummerSaleBanner extends StatelessWidget {
+  const SummerSaleBanner({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       width: double.infinity,
-      height: 120,
+      height: 130, // Tăng nhẹ chiều cao để tạo không gian thở
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF3B82F6), // Tailwind blue-500
-            Color(0xFF22D3EE), // Tailwind cyan-400
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+            Color(0xFF1A237E),
+            Color(0xFF3949AB)
+          ], // Xanh đậm sang Xanh ngọc
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF1A237E).withOpacity(0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            // Hiệu ứng đốm sáng mờ 1 (Góc trên phải)
-            Positioned(
-              top: -20,
-              right: 80,
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.1),
-                  boxShadow: [
-                    BoxShadow(
+      // Dùng Stack để đè các lớp lên nhau
+      child: Stack(
+        clipBehavior: Clip.none, // CHO PHÉP ROBOT TRÀN VIỀN ĐỂ TẠO CHIỀU SÂU
+        children: [
+          // --- 1. Lớp Ánh sáng hòa trộn (Glow/Blur Effects) ---
+          Positioned(
+            top: -20,
+            right: 80,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.15),
+                // Quầng sáng này làm cầu nối giữa nền và robot
+                boxShadow: [
+                  BoxShadow(
                       color: Colors.white.withOpacity(0.1),
-                      blurRadius: 24,
-                      spreadRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Hiệu ứng đốm sáng mờ 2 (Góc dưới trái)
-            Positioned(
-              bottom: -10,
-              left: 20,
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.1),
-                      blurRadius: 16,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Icon Lego (Mảnh ghép) xoay nghiêng
-            Positioned(
-              right: -20,
-              bottom: -20,
-              child: Transform.rotate(
-                angle: 12 * math.pi / 180,
-                child: SizedBox(
-                  width: 160,
-                  height: 160,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Bóng mờ (Icon lớp dưới)
-                      Icon(
-                        Icons.extension,
-                        size: 140,
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                      // Hình chính (Icon lớp trên)
-                      const Icon(
-                        Icons.extension,
-                        size: 100,
-                        color: Color(0xFFFDE047),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Nội dung văn bản và Nút bấm
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'LEGO Offer',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                      shadows: [
-                        Shadow(
-                            color: Colors.black26,
-                            blurRadius: 4,
-                            offset: Offset(0, 2)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'SALE 15% OFF',
-                    style: TextStyle(
-                      color: Color(0xFFFDE047),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      shadows: [
-                        Shadow(
-                            color: Colors.black12,
-                            blurRadius: 2,
-                            offset: Offset(0, 1)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: const Text(
-                        'Shop Now',
-                        style: TextStyle(
-                          color: Color(0xFF2563EB),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
+                      blurRadius: 40,
+                      spreadRadius: 20),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            bottom: -30,
+            left: 20,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.white.withOpacity(0.05),
+                      blurRadius: 20,
+                      spreadRadius: 10),
+                ],
+              ),
+            ),
+          ),
+
+          // --- 2. Lớp Hình ảnh Robot (Phải lớn và tràn viền) ---
+          Positioned(
+            right: -15, // Kéo lệch sang phải một chút
+            bottom: -15, // Cho robot hơi tràn xuống đáy
+            top: -15, // Cố tình cho robot cao hơn banner một chút
+            child: SizedBox(
+              width: 160,
+              // Tạm dùng một hình đồ chơi từ Unsplash để bạn test hiệu ứng
+              child: Image.network(
+                'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          // --- 3. Lớp Văn bản và Nút bấm ---
+          Positioned(
+            left: 24,
+            top: 20,
+            bottom: 20,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Summer Sale',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'SALE 20% OFF',
+                  style: TextStyle(
+                    color: Color(0xFFFFD700), // Vàng rực
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1A237E),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    minimumSize: const Size(80, 32), // Nút gọn gàng
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 3,
+                  ),
+                  onPressed: () {},
+                  child: const Text(
+                    'Shop Now',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

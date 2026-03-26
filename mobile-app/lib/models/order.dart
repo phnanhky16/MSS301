@@ -53,6 +53,7 @@ class OrderItem {
 
 class Order {
   final int id;
+  final String orderNumber;
   final String status; // PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
   final double totalAmount;
   final DateTime createdAt;
@@ -61,6 +62,7 @@ class Order {
 
   Order({
     required this.id,
+    required this.orderNumber,
     required this.status,
     required this.totalAmount,
     required this.createdAt,
@@ -90,6 +92,7 @@ class Order {
 
     return Order(
       id: id,
+      orderNumber: json['orderNumber']?.toString() ?? id.toString(),
       status: status,
       totalAmount: totalAmount,
       createdAt: json['createdAt'] != null

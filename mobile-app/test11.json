@@ -1,0 +1,106 @@
+{
+  "latitude": 10.9708,
+  "lookupSource": "coordinates",
+  "longitude": 106.6669,
+  "localityLanguageRequested": "vi",
+  "continent": "châu Á",
+  "continentCode": "AS",
+  "countryName": "Việt Nam",
+  "countryCode": "VN",
+  "principalSubdivision": "Bình Dương",
+  "principalSubdivisionCode": "VN-57",
+  "city": "Thành phố Hồ Chí Minh",
+  "locality": "Thủ Dầu Một",
+  "postcode": "",
+  "plusCode": "7P28XMC8+8Q",
+  "localityInfo": {
+    "administrative": [
+      {
+        "name": "Việt Nam",
+        "description": "quốc gia ở Đông Nam Á",
+        "isoName": "Viet Nam",
+        "order": 3,
+        "adminLevel": 2,
+        "isoCode": "VN",
+        "wikidataId": "Q881",
+        "geonameId": 1562822
+      },
+      {
+        "name": "Đông Nam Bộ",
+        "description": "vùng địa lý ở Đông Nam Việt Nam",
+        "order": 6,
+        "adminLevel": 3,
+        "wikidataId": "Q1068987"
+      },
+      {
+        "name": "Thành phố Hồ Chí Minh",
+        "description": "thành phố trực thuộc trung ương của Việt Nam",
+        "order": 7,
+        "adminLevel": 4,
+        "wikidataId": "Q1854",
+        "geonameId": 1566083
+      },
+      {
+        "name": "Bình Dương",
+        "description": "tỉnh cũ thuộc vùng Đông Nam Bộ của Việt Nam",
+        "isoName": "Tinh Binh Duong",
+        "order": 9,
+        "adminLevel": 4,
+        "isoCode": "VN-57",
+        "wikidataId": "Q36866",
+        "geonameId": 1905475
+      },
+      {
+        "name": "Thủ Dầu Một",
+        "description": "Thành phố tỉnh lỵ thuộc tỉnh Bình Dương",
+        "order": 11,
+        "adminLevel": 6,
+        "wikidataId": "Q524553",
+        "geonameId": 1565022
+      },
+      {
+        "name": "Thủ Dầu Một",
+        "description": "phường thuộc Thành phố Hồ Chí Minh",
+        "order": 12,
+        "adminLevel": 6,
+        "wikidataId": "Q2186928",
+        "geonameId": 8335980
+      }
+    ],
+    "informative": [
+      {
+        "name": "châu Á",
+        "description": "châu lục lớn nhất thế giới nằm ở Đông bán cầu",
+        "isoName": "Asia",
+        "order": 1,
+        "isoCode": "AS",
+        "wikidataId": "Q48",
+        "geonameId": 6255147
+      },
+      {
+        "name": "BÁN ĐẢO ĐÔNG DƯƠNG",
+        "description": "khu vực ở Đông Nam Á",
+        "order": 2,
+        "wikidataId": "Q27617163",
+        "geonameId": 1579995
+      },
+      {
+        "name": "Asia/Ho_Chi_Minh",
+        "description": "múi giờ",
+        "order": 4
+      },
+      {
+        "name": "Ecclesiastical Province of Ho Chi Minh City",
+        "order": 5
+      },
+      {
+        "name": "Diocese of Phu Cuong",
+        "order": 8
+      },
+      {
+        "name": "Thu Dau Mot",
+        "order": 10
+      }
+    ]
+  }
+}
