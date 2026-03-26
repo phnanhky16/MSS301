@@ -3,6 +3,9 @@ package com.kidfavor.orderservice.service.impl;
 import com.kidfavor.orderservice.client.InventoryServiceClient;
 import com.kidfavor.orderservice.client.UserServiceClient;
 import com.kidfavor.orderservice.client.dto.AllocationResultDTO;
+import com.kidfavor.orderservice.client.dto.BulkAllocationRequest;
+import com.kidfavor.orderservice.client.dto.BulkAllocationResult;
+import com.kidfavor.orderservice.client.dto.BulkAllocationResult.AllocationItem;
 import com.kidfavor.orderservice.client.dto.GeocodingResultDTO;
 import com.kidfavor.orderservice.dto.request.ShipmentCreateRequest;
 import com.kidfavor.orderservice.dto.response.LocationBasedOrderResult;
@@ -61,28 +64,59 @@ public class LocationBasedOrderServiceImpl implements LocationBasedOrderService 
             }
         }
 
-        List<AllocationResultDTO> allocations = new ArrayList<>();
         if (order.getShippingLatitude() != null) {
+            List<BulkAllocationRequest.ItemRequest> itemRequests = new ArrayList<>();
             for (OrderItem item : order.getItems()) {
-                AllocationResultDTO allocation = allocateInventory(
-                    order.getShippingLatitude(),
-                    order.getShippingLongitude(),
-                    item.getProductId(),
-                    item.getQuantity()
-                );
-                allocations.add(allocation);
+                itemRequests.add(BulkAllocationRequest.ItemRequest.builder()
+                        .productId(item.getProductId())
+                        .quantity(item.getQuantity())
+                        .build());
+            }
+
+            BulkAllocationRequest bulkRequest = BulkAllocationRequest.builder()
+                    .latitude(order.getShippingLatitude())
+                    .longitude(order.getShippingLongitude())
+                    .items(itemRequests)
+                    .maxDistanceKm(50.0) // default search radius
+                    .build();
+
+            BulkAllocationResult bulkResult = inventoryServiceClient.allocateBulkInventory(bulkRequest);
+
+            if (bulkResult != null && bulkResult.getAllocations() != null) {
+                List<OrderItem> splitItems = new ArrayList<>();
+                for (AllocationItem allocated : bulkResult.getAllocations()) {
+                    // Find original item specs (price, name, etc.)
+                    OrderItem originalItem = order.getItems().stream()
+                            .filter(i -> i.getProductId().equals(allocated.getProductId()))
+                            .findFirst().orElse(null);
+
+                    if (originalItem != null) {
+                        OrderItem splitItem = OrderItem.builder()
+                                .order(order)
+                                .productId(originalItem.getProductId())
+                                .productName(originalItem.getProductName())
+                                .productImageUrl(originalItem.getProductImageUrl())
+                                .unitPrice(originalItem.getUnitPrice())
+                                .quantity(allocated.getAllocatedQuantity())
+                                .storeId(allocated.getStoreId())
+                                .build();
+                        splitItem.calculateSubtotal();
+                        splitItems.add(splitItem);
+                    }
+                }
                 
-                if (allocation.getSuccess() && allocation.getStoreId() != null) {
-                    order.setStoreId(allocation.getStoreId());
-                    result.setAllocatedStoreId(allocation.getStoreId());
+                // Replace the original items with the split/allocated items
+                order.getItems().clear();
+                for (OrderItem splitItem : splitItems) {
+                    order.addItem(splitItem);
+                }
+
+                result.setAllAllocationsSuccessful(bulkResult.isFullyAllocated());
+                if (!bulkResult.isFullyAllocated()) {
+                    result.setErrorMessage(bulkResult.getMessage());
                 }
             }
         }
-
-        result.setAllocations(allocations);
-        result.setAllAllocationsSuccessful(
-            allocations.stream().allMatch(AllocationResultDTO::getSuccess)
-        );
 
         return result;
     }
@@ -121,18 +155,5 @@ public class LocationBasedOrderServiceImpl implements LocationBasedOrderService 
             }
         }
         return inventoryServiceClient.geocodeAddress(address, city, district);
-    }
-
-    private AllocationResultDTO allocateInventory(Double lat, Double lon, Long productId, Integer quantity) {
-        try {
-            // Call with default max distance 50km
-            return inventoryServiceClient.allocateFromNearestStore(lat, lon, productId, quantity, 50.0);
-        } catch (Exception e) {
-            log.error("Failed to allocate inventory for product {}", productId, e);
-            return AllocationResultDTO.builder()
-                    .success(false)
-                    .message("Allocation failed: " + e.getMessage())
-                    .build();
-        }
     }
 }

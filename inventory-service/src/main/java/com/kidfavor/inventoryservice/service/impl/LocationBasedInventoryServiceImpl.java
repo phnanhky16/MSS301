@@ -10,6 +10,9 @@ import com.kidfavor.inventoryservice.repository.WarehouseProductRepository;
 import com.kidfavor.inventoryservice.repository.WarehouseRepository;
 import com.kidfavor.inventoryservice.service.GeocodingService;
 import com.kidfavor.inventoryservice.service.LocationBasedInventoryService;
+import com.kidfavor.inventoryservice.dto.BulkAllocationRequest;
+import com.kidfavor.inventoryservice.dto.BulkAllocationResult;
+import com.kidfavor.inventoryservice.dto.BulkAllocationResult.AllocationItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -143,6 +146,76 @@ public class LocationBasedInventoryServiceImpl implements LocationBasedInventory
                 oldQuantity,
                 inventory.getQuantity()
         );
+    }
+
+    @Override
+    @Transactional
+    public BulkAllocationResult allocateBulkInventories(BulkAllocationRequest request) {
+        log.info("Bulk allocating inventories for user at ({}, {}), max dist: {}", 
+                request.getLatitude(), request.getLongitude(), request.getMaxDistanceKm());
+
+        List<AllocationItem> allocatedItems = new ArrayList<>();
+        boolean fullyAllocated = true;
+        
+        // Find all stores and calculate distance once
+        List<Store> allStores = storeRepository.findByIsActive(true);
+        List<StoreWithDistance> sortedStores = new ArrayList<>();
+        
+        for (Store store : allStores) {
+            if (store.getLatitude() != null && store.getLongitude() != null) {
+                double distance = geocodingService.calculateDistance(
+                    request.getLatitude(), request.getLongitude(),
+                    store.getLatitude(), store.getLongitude());
+                
+                if (request.getMaxDistanceKm() == null || distance <= request.getMaxDistanceKm()) {
+                    // Temporarily use null for inventory here, we just need sorted stores
+                    sortedStores.add(new StoreWithDistance(store, null, distance));
+                }
+            }
+        }
+        
+        sortedStores.sort(Comparator.comparingDouble(StoreWithDistance::getDistance));
+        
+        for (BulkAllocationRequest.ItemRequest item : request.getItems()) {
+            int remainingQuantity = item.getQuantity();
+            
+            for (StoreWithDistance swd : sortedStores) {
+                if (remainingQuantity <= 0) break;
+                
+                Store store = swd.getStore();
+                Optional<StoreInventory> inventoryOpt = storeInventoryRepository
+                        .findByStoreIdAndProductId(store.getStoreId(), item.getProductId());
+                
+                if (inventoryOpt.isPresent()) {
+                    StoreInventory inventory = inventoryOpt.get();
+                    int available = inventory.getQuantity();
+                    if (available > 0) {
+                        int take = Math.min(available, remainingQuantity);
+                        // deduct
+                        inventory.setQuantity(available - take);
+                        storeInventoryRepository.save(inventory);
+                        remainingQuantity -= take;
+                        
+                        allocatedItems.add(BulkAllocationResult.AllocationItem.builder()
+                                .productId(item.getProductId())
+                                .storeId(store.getStoreId())
+                                .allocatedQuantity(take)
+                                .success(true)
+                                .build());
+                    }
+                }
+            }
+            if (remainingQuantity > 0) {
+                fullyAllocated = false;
+                log.warn("Could not fully allocate product {}. Missing: {}", item.getProductId(), remainingQuantity);
+            }
+        }
+        
+        return BulkAllocationResult.builder()
+                .fullyAllocated(fullyAllocated)
+                .allocations(allocatedItems)
+                .message(fullyAllocated ? "All items fully allocated" : "Partial allocation")
+                .build();
     }
 
     /**

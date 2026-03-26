@@ -2,6 +2,8 @@ package com.kidfavor.inventoryservice.controller;
 
 import com.kidfavor.inventoryservice.service.LocationBasedInventoryService;
 import com.kidfavor.inventoryservice.service.impl.LocationBasedInventoryServiceImpl.AllocationResult;
+import com.kidfavor.inventoryservice.dto.BulkAllocationRequest;
+import com.kidfavor.inventoryservice.dto.BulkAllocationResult;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,26 @@ public class InternalInventoryController {
                      locationCode, result.getDistanceKm());
         } else {
             log.warn("❌ Internal API: Allocation failed: {}", result.getMessage());
+        }
+        
+        return result;
+    }
+
+    /**
+     * Allocate inventory for multiple items from nearest stores.
+     * Uses a greedy algorithm.
+     */
+    @PostMapping("/allocate-bulk")
+    public BulkAllocationResult allocateBulkInventory(@RequestBody BulkAllocationRequest request) {
+        log.info("📦 Internal API: Bulk allocating {} items from nearest locations to ({}, {})",
+                 request.getItems().size(), request.getLatitude(), request.getLongitude());
+                 
+        BulkAllocationResult result = locationBasedInventoryService.allocateBulkInventories(request);
+        
+        if (result.isFullyAllocated()) {
+            log.info("✅ Internal API: Bulk allocation completely successful");
+        } else {
+            log.warn("⚠️ Internal API: Bulk allocation partially failed: {}", result.getMessage());
         }
         
         return result;

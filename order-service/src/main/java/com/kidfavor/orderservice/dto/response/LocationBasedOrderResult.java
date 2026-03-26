@@ -22,8 +22,6 @@ public class LocationBasedOrderResult {
     private Boolean geocodingSuccess;
     private Double latitude;
     private Double longitude;
-    private Long allocatedStoreId;              // Store ID from allocation
-    private List<AllocationResultDTO> allocations;
     private Boolean allAllocationsSuccessful;
     private String errorMessage;
 }

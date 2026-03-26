@@ -79,13 +79,18 @@ public class OrderServiceImpl implements OrderService {
         for (OrderItemRequest itemRequest : request.getItems()) {
             ProductDto product = validatedProducts.get(itemRequest.getProductId());
 
+            BigDecimal effectivePrice = product.getPrice();
+            if (product.getOnSale() != null && product.getOnSale() && product.getSalePrice() != null) {
+                effectivePrice = product.getSalePrice();
+            }
+
             OrderItem orderItem = OrderItem.builder()
                     .productId(product.getId())
                     .productName(product.getName())
                     .productImageUrl(product.getImageUrl())
-                    .unitPrice(product.getPrice())
+                    .unitPrice(effectivePrice)
                     .quantity(itemRequest.getQuantity())
-                    .subtotal(product.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity())))
+                    .subtotal(effectivePrice.multiply(BigDecimal.valueOf(itemRequest.getQuantity())))
                     .build();
 
             order.addItem(orderItem);
@@ -123,12 +128,11 @@ public class OrderServiceImpl implements OrderService {
             try {
                 log.info("🌍 Processing location-based order for: {}", savedOrder.getOrderNumber());
                 LocationBasedOrderResult locationResult = locationBasedOrderService.processOrder(savedOrder);
-                
+
                 // Save updated order with GPS coordinates and storeId
                 savedOrder = orderRepository.save(savedOrder);
                 
-                log.info("✅ Location processing completed. StoreId: {}, GPS: ({}, {}), Shipment: {}", 
-                    savedOrder.getStoreId(), 
+                log.info("✅ Location processing completed. GPS: ({}, {}), Shipment: {}", 
                     savedOrder.getShippingLatitude(), 
                     savedOrder.getShippingLongitude(),
                     savedOrder.getShipmentId());
@@ -424,6 +428,7 @@ public class OrderServiceImpl implements OrderService {
                 .map(item -> OrderItemResponse.builder()
                         .id(item.getId())
                         .productId(item.getProductId())
+                        .storeId(item.getStoreId())
                         .productName(item.getProductName())
                         .productImageUrl(item.getProductImageUrl())
                         .unitPrice(item.getUnitPrice())
@@ -436,7 +441,6 @@ public class OrderServiceImpl implements OrderService {
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
                 .userId(order.getUserId())
-                .storeId(order.getStoreId())
                 .status(order.getStatus())
                 .totalAmount(order.getTotalAmount())
                 .shippingAddress(order.getShippingAddress())

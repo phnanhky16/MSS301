@@ -31,9 +31,6 @@ public class Order {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(name = "store_id")
-    private Long storeId;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;

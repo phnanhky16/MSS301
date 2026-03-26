@@ -22,7 +22,6 @@ public class OrderDto {
     private Long id;
     private String orderNumber;
     private Long userId;
-    private Long storeId;
     private String status;
     private BigDecimal totalAmount;
     private String couponCode;

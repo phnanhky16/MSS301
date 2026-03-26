@@ -24,6 +24,9 @@ public class OrderItem {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
+    @Column(name = "store_id")
+    private Long storeId;
+
     @Column(nullable = false)
     private Long productId;
 

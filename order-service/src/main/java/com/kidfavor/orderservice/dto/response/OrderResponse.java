@@ -19,7 +19,6 @@ public class OrderResponse {
     private Long id;
     private String orderNumber;
     private Long userId;
-    private Long storeId;
     private OrderStatus status;
     private BigDecimal totalAmount;
     private String shippingAddress;

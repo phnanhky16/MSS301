@@ -1,6 +1,8 @@
 package com.kidfavor.orderservice.client;
 
 import com.kidfavor.orderservice.client.dto.AllocationResultDTO;
+import com.kidfavor.orderservice.client.dto.BulkAllocationRequest;
+import com.kidfavor.orderservice.client.dto.BulkAllocationResult;
 import com.kidfavor.orderservice.client.dto.GeocodingResultDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
@@ -46,6 +48,14 @@ public interface InventoryServiceClient {
             @RequestParam("longitude") Double longitude,
             @RequestParam("productId") Long productId,
             @RequestParam("quantity") Integer quantity,
-            @RequestParam(value = "maxDistanceKm", defaultValue = "50.0") Double maxDistanceKm
-    );
+            @RequestParam(value = "maxDistanceKm", required = false, defaultValue = "50") Double maxDistanceKm);
+
+    /**
+     * Allocate inventory in bulk to multiple locations (Internal endpoint - no auth required)
+     * 
+     * @param request Bulk allocation request with multiple items and locations
+     * @return Bulk allocation result with status for each item
+     */
+    @PostMapping("/internal/inventory/allocate-bulk")
+    BulkAllocationResult allocateBulkInventory(@RequestBody BulkAllocationRequest request);
 }

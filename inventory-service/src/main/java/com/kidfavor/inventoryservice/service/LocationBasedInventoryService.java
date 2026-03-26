@@ -1,5 +1,7 @@
 package com.kidfavor.inventoryservice.service;
 
+import com.kidfavor.inventoryservice.dto.BulkAllocationRequest;
+import com.kidfavor.inventoryservice.dto.BulkAllocationResult;
 import com.kidfavor.inventoryservice.service.impl.LocationBasedInventoryServiceImpl.AllocationResult;
 import com.kidfavor.inventoryservice.service.impl.LocationBasedInventoryServiceImpl.OrderItem;
 import com.kidfavor.inventoryservice.service.impl.LocationBasedInventoryServiceImpl.StoreAvailability;
@@ -46,6 +48,13 @@ public interface LocationBasedInventoryService {
             Long productId,
             Integer requiredQuantity,
             Double maxDistanceKm);
+
+    /**
+     * Allocate inventory for a list of items using greedy algorithm across nearest locations.
+     * Starts from the nearest store and takes as much stock as available.
+     * Moves to the next nearest store if the current one has insufficient stock.
+     */
+    BulkAllocationResult allocateBulkInventories(BulkAllocationRequest request);
 
     /**
      * Allocate multiple products from nearest store

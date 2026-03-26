@@ -15,6 +15,7 @@ public class OrderItemResponse {
 
     private Long id;
     private Long productId;
+    private Long storeId;
     private String productName;
     private String productImageUrl;
     private BigDecimal unitPrice;

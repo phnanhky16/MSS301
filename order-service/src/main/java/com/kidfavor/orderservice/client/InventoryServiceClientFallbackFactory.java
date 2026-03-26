@@ -1,6 +1,8 @@
 package com.kidfavor.orderservice.client;
 
 import com.kidfavor.orderservice.client.dto.AllocationResultDTO;
+import com.kidfavor.orderservice.client.dto.BulkAllocationRequest;
+import com.kidfavor.orderservice.client.dto.BulkAllocationResult;
 import com.kidfavor.orderservice.client.dto.GeocodingResultDTO;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
@@ -29,15 +31,19 @@ public class InventoryServiceClientFallbackFactory implements FallbackFactory<In
 
             @Override
             public AllocationResultDTO allocateFromNearestStore(
-                    Double userLatitude, Double userLongitude,
-                    Long productId, Integer quantity, Double maxDistanceKm) {
-                
-                log.error("⚠️ Inventory allocation fallback triggered: {}", 
-                         cause instanceof FeignException ? ((FeignException) cause).status() : cause.getMessage());
-                
-                // Return failed result
+                    Double latitude, Double longitude, Long productId, Integer quantity, Double maxDistanceKm) {
+                log.error("Fallback: Cannot allocate inventory from nearest store. Cause: {}", cause.getMessage());
                 return AllocationResultDTO.builder()
                         .success(false)
+                        .message("Inventory service unavailable: " + cause.getMessage())
+                        .build();
+            }
+
+            @Override
+            public BulkAllocationResult allocateBulkInventory(BulkAllocationRequest request) {
+                log.error("Fallback: Cannot perform bulk allocation. Cause: {}", cause.getMessage());
+                return BulkAllocationResult.builder()
+                        .fullyAllocated(false)
                         .message("Inventory service unavailable: " + cause.getMessage())
                         .build();
             }
