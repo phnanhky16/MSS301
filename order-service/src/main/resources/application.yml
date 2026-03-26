@@ -116,6 +116,7 @@ app:
     topics:
       order-placed: order-placed-topic
       payment-completed: payment-completed-topic
+      payment-failed: payment-failed-topic
   
   # Service URLs
   product-service:

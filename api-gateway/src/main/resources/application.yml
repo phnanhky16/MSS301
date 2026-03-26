@@ -68,9 +68,33 @@ spring:
         - id: order-service
           uri: http://order-service:8082
           predicates:
-            - Path=/api/orders/**, /api/payments/**, /api/coupons/**
+            - Path=/api/orders/**, /api/coupons/**
           filters:
             - StripPrefix=1
+
+        # Payment Service Routes
+        - id: payment-service
+          uri: http://payment-service:8089
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - StripPrefix=1
+
+        # Payment Service Swagger API Docs
+        - id: payment-service-api-docs
+          uri: http://payment-service:8089
+          predicates:
+            - Path=/payment-service/v3/api-docs, /payment-service/v3/api-docs/**
+          filters:
+            - RewritePath=/payment-service/(?<segment>.*), /${segment}
+
+        # Payment Service Swagger UI resources
+        - id: payment-service-swagger-ui
+          uri: http://payment-service:8089
+          predicates:
+            - Path=/payment-service/swagger-ui/**, /payment-service/swagger-ui.html
+          filters:
+            - RewritePath=/payment-service/(?<segment>.*), /${segment}
 
         # Order Service Swagger API Docs
         - id: order-service-api-docs

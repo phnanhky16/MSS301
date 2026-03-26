@@ -26,7 +26,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // PayOS webhook — MUST be open (no JWT, verified by signature)
-                        .requestMatchers("/api/payments/webhook").permitAll()
+                        .requestMatchers("/payments/webhook").permitAll()
 
                         // Actuator health
                         .requestMatchers("/actuator/health").permitAll()
@@ -41,7 +41,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // TEMPORARY: Allow all payments endpoints for testing
-                        .requestMatchers("/api/payments/**", "/error").permitAll()
+                        .requestMatchers("/payments/**", "/error").permitAll()
 
                         .anyRequest().authenticated()
                 )

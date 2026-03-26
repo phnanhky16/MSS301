@@ -44,6 +44,9 @@ public class PaymentServiceImpl implements PaymentService {
     @Value("${app.kafka.topics.payment-completed}")
     private String paymentCompletedTopic;
 
+    @Value("${app.kafka.topics.payment-failed}")
+    private String paymentFailedTopic;
+
     @Override
     @Transactional
     public CreatePaymentResponse createPayment(String orderNumber) {
@@ -156,6 +159,25 @@ public class PaymentServiceImpl implements PaymentService {
         String code = webhookBody.get("code") != null ? webhookBody.get("code").toString() : "";
         if (!"00".equals(code)) {
             log.warn("Webhook indicates non-success. code={}", code);
+            
+            // Find payment
+            Payment payment = paymentRepository.findByOrderCode(orderCode).orElse(null);
+            if (payment != null && payment.getStatus() == PaymentStatus.PENDING) {
+                payment.setStatus(PaymentStatus.FAILED);
+                paymentRepository.save(payment);
+                
+                // Publish Kafka event for failure
+                com.kidfavor.paymentservice.event.PaymentFailedEvent failedEvent = com.kidfavor.paymentservice.event.PaymentFailedEvent.builder()
+                        .orderNumber(payment.getOrderNumber())
+                        .orderCode(orderCode)
+                        .userId(payment.getUserId())
+                        .errorCode(code)
+                        .errorMessage("PayOS webhook reported failure")
+                        .build();
+                        
+                kafkaTemplate.send(paymentFailedTopic, payment.getOrderNumber(), failedEvent);
+                log.info("PaymentFailedEvent published for order: {}", payment.getOrderNumber());
+            }
             return;
         }
 
@@ -241,5 +263,17 @@ public class PaymentServiceImpl implements PaymentService {
         paymentRepository.save(payment);
 
         log.info("Payment cancelled for order: {}", orderNumber);
+        
+        // Publish Kafka event for cancellation/failure so order-service can update order status to CANCELLED
+        com.kidfavor.paymentservice.event.PaymentFailedEvent failedEvent = com.kidfavor.paymentservice.event.PaymentFailedEvent.builder()
+                .orderNumber(payment.getOrderNumber())
+                .orderCode(payment.getOrderCode())
+                .userId(payment.getUserId())
+                .errorCode("user_cancelled")
+                .errorMessage("Payment was cancelled by user")
+                .build();
+                
+        kafkaTemplate.send(paymentFailedTopic, payment.getOrderNumber(), failedEvent);
+        log.info("PaymentFailedEvent published for cancelled order: {}", orderNumber);
     }
 }

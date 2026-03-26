@@ -111,6 +111,7 @@ app:
   kafka:
     topics:
       payment-completed: payment-completed-topic
+      payment-failed: payment-failed-topic
       order-placed: order-placed-topic
 
 # JWT Configuration
