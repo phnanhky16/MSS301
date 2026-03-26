@@ -22,9 +22,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long>, JpaSpecif
     
     Page<Review> findByProductId(Long productId, Pageable pageable);
 
-    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.productId = :productId")
+    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.productId = :productId AND (r.isHidden = false OR r.isHidden IS NULL)")
     Double getAverageRatingByProductId(@Param("productId") Long productId);
 
-    @Query("SELECT COUNT(r) FROM Review r WHERE r.productId = :productId")
+    @Query("SELECT COUNT(r) FROM Review r WHERE r.productId = :productId AND (r.isHidden = false OR r.isHidden IS NULL)")
     Long countByProductId(@Param("productId") Long productId);
+
+    @Query("SELECT r.rating, COUNT(r) FROM Review r GROUP BY r.rating")
+    List<Object[]> getRatingDistribution();
 }

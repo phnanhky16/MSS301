@@ -20,7 +20,7 @@ public interface ReviewService {
     ReviewResponse getReviewById(Long id);
 
     // Paginated methods
-    Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating);
+    Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating, Boolean isHidden);
 
     Page<ReviewResponse> getReviewsByProductIdPaged(Long productId, Integer rating, Pageable pageable);
 
@@ -29,7 +29,7 @@ public interface ReviewService {
     // Deprecated convenience methods retained for backward compatibility
     @Deprecated
     default List<ReviewResponse> getAllReviews() {
-        return listReviews(PageRequest.of(0, Integer.MAX_VALUE), null, null, null)
+        return listReviews(PageRequest.of(0, Integer.MAX_VALUE), null, null, null, null)
                 .getContent();
     }
 
@@ -53,4 +53,10 @@ public interface ReviewService {
      * Get current user ID from JWT token in SecurityContext
      */
     Long getCurrentUserId();
+
+    ReviewResponse replyToReview(Long id, String reply);
+
+    ReviewResponse toggleReviewVisibility(Long id, boolean hide, String reason);
+
+    java.util.Map<String, Object> getReviewStats();
 }

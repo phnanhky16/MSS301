@@ -656,6 +656,25 @@ export default function ProductDetailPage() {
                                         <Paragraph style={{ fontSize: 15, color: '#595959', margin: 0 }}>
                                             {rev.comment}
                                         </Paragraph>
+
+                                        {rev.adminReply && (
+                                            <div style={{ 
+                                                marginTop: 16, 
+                                                padding: '16px 20px', 
+                                                background: '#f0fafd', 
+                                                borderRadius: 12, 
+                                                borderLeft: '4px solid #1ca8c8',
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                    <Avatar size="small" icon={<SafetyCertificateOutlined />} style={{ backgroundColor: '#1ca8c8' }} />
+                                                    <Text strong style={{ color: '#1ca8c8', fontSize: 13 }}>Phản hồi từ KidFavor</Text>
+                                                    {rev.repliedAt && <Text type="secondary" style={{ fontSize: 11, marginLeft: 'auto' }}>{dayjs(rev.repliedAt).format('DD MMM, YYYY')}</Text>}
+                                                </div>
+                                                <Paragraph style={{ fontSize: 14, color: '#434343', margin: 0, fontStyle: 'italic' }}>
+                                                    "{rev.adminReply}"
+                                                </Paragraph>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
 

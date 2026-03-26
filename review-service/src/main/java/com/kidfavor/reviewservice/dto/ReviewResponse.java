@@ -21,4 +21,8 @@ public class ReviewResponse {
     private LocalDateTime updatedAt;
     private UserDTO user;
     private ProductDTO product;
+    private String adminReply;
+    private LocalDateTime repliedAt;
+    private Boolean isHidden;
+    private String hiddenReason;
 }

@@ -162,26 +162,38 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewRepository.countByProductId(productId);
     }
 
-    private ReviewResponse mapToResponse(Review review) {
+    private ReviewResponse mapToResponse(Review review, java.util.Map<Long, UserDTO> userCache, java.util.Map<Long, ProductDTO> productCache) {
         UserDTO user = null;
         ProductDTO product = null;
 
         // Fetch user details
-        try {
-            var userResponse = userClient.getUserById(review.getUserId());
-            user = userResponse.getData();
-            log.info("Fetched user details for userId: {}", review.getUserId());
-        } catch (Exception e) {
-            log.warn("Could not fetch user details for id: {}. Error: {}", review.getUserId(), e.getMessage());
+        Long uId = review.getUserId();
+        if (userCache != null && userCache.containsKey(uId)) {
+            user = userCache.get(uId);
+        } else {
+            try {
+                var userResponse = userClient.getUserById(uId);
+                user = userResponse.getData();
+                if (userCache != null) userCache.put(uId, user);
+                log.info("Fetched user details for userId: {}", uId);
+            } catch (Exception e) {
+                log.warn("Could not fetch user details for id: {}. Error: {}", uId, e.getMessage());
+            }
         }
 
         // Fetch product details
-        try {
-            var productResponse = productClient.getProductById(review.getProductId());
-            product = productResponse.getData();
-            log.info("Fetched product details for productId: {}", review.getProductId());
-        } catch (Exception e) {
-            log.warn("Could not fetch product details for id: {}. Error: {}", review.getProductId(), e.getMessage());
+        Long pId = review.getProductId();
+        if (productCache != null && productCache.containsKey(pId)) {
+            product = productCache.get(pId);
+        } else {
+            try {
+                var productResponse = productClient.getProductById(pId);
+                product = productResponse.getData();
+                if (productCache != null) productCache.put(pId, product);
+                log.info("Fetched product details for productId: {}", pId);
+            } catch (Exception e) {
+                log.warn("Could not fetch product details for id: {}. Error: {}", pId, e.getMessage());
+            }
         }
 
         return ReviewResponse.builder()
@@ -194,7 +206,15 @@ public class ReviewServiceImpl implements ReviewService {
                 .updatedAt(review.getUpdatedAt())
                 .user(user)
                 .product(product)
+                .adminReply(review.getAdminReply())
+                .repliedAt(review.getRepliedAt())
+                .isHidden(review.getIsHidden())
+                .hiddenReason(review.getHiddenReason())
                 .build();
+    }
+
+    private ReviewResponse mapToResponse(Review review) {
+        return mapToResponse(review, null, null);
     }
 
     @Override
@@ -208,8 +228,8 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating) {
-        log.info("Listing reviews with filters - userId: {}, productId: {}, rating: {}", userId, productId, rating);
+    public Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating, Boolean isHidden) {
+        log.info("Listing reviews with filters - userId: {}, productId: {}, rating: {}, isHidden: {}", userId, productId, rating, isHidden);
 
         Specification<Review> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -226,11 +246,17 @@ public class ReviewServiceImpl implements ReviewService {
                 predicates.add(cb.equal(root.get("rating"), rating));
             }
 
+            if (isHidden != null) {
+                predicates.add(cb.equal(root.get("isHidden"), isHidden));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
         Page<Review> reviews = reviewRepository.findAll(spec, pageable);
-        return reviews.map(this::mapToResponse);
+        java.util.Map<Long, UserDTO> userCache = new java.util.HashMap<>();
+        java.util.Map<Long, ProductDTO> productCache = new java.util.HashMap<>();
+        return reviews.map(r -> mapToResponse(r, userCache, productCache));
     }
 
     @Override
@@ -247,11 +273,16 @@ public class ReviewServiceImpl implements ReviewService {
                 predicates.add(cb.equal(root.get("rating"), rating));
             }
 
+            // Exclude hidden reviews for public product view
+            predicates.add(cb.or(cb.equal(root.get("isHidden"), false), cb.isNull(root.get("isHidden"))));
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
         Page<Review> reviews = reviewRepository.findAll(spec, pageable);
-        return reviews.map(this::mapToResponse);
+        java.util.Map<Long, UserDTO> userCache = new java.util.HashMap<>();
+        java.util.Map<Long, ProductDTO> productCache = new java.util.HashMap<>();
+        return reviews.map(r -> mapToResponse(r, userCache, productCache));
     }
 
     @Override
@@ -261,6 +292,60 @@ public class ReviewServiceImpl implements ReviewService {
                 userId, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<Review> reviews = reviewRepository.findByUserId(userId, pageable);
-        return reviews.map(this::mapToResponse);
+        java.util.Map<Long, UserDTO> userCache = new java.util.HashMap<>();
+        java.util.Map<Long, ProductDTO> productCache = new java.util.HashMap<>();
+        return reviews.map(r -> mapToResponse(r, userCache, productCache));
+    }
+
+    @Override
+    @Transactional
+    public ReviewResponse replyToReview(Long id, String reply) {
+        log.info("Admin replying to review id: {}", id);
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Review not found with id: " + id));
+
+        review.setAdminReply(reply);
+        review.setRepliedAt(java.time.LocalDateTime.now());
+
+        Review saved = reviewRepository.save(review);
+        return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public ReviewResponse toggleReviewVisibility(Long id, boolean hide, String reason) {
+        log.info("Toggling visibility for review id: {} to hidden={}", id, hide);
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Review not found with id: " + id));
+
+        review.setIsHidden(hide);
+        review.setHiddenReason(hide ? reason : null);
+
+        Review saved = reviewRepository.save(review);
+        return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> getReviewStats() {
+        log.info("Fetching review statistics for admin");
+        long totalReviews = reviewRepository.count();
+        
+        // Use a manual approach for stats if needed or use queries
+        long hiddenCount = listReviews(org.springframework.data.domain.Pageable.unpaged(), null, null, null, null)
+                .stream().filter(r -> Boolean.TRUE.equals(r.getIsHidden())).count();
+
+        java.util.List<Object[]> dist = reviewRepository.getRatingDistribution();
+        java.util.Map<Integer, Long> ratingDist = new java.util.HashMap<>();
+        for (Object[] row : dist) {
+            ratingDist.put((Integer) row[0], (Long) row[1]);
+        }
+
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        stats.put("totalReviews", totalReviews);
+        stats.put("hiddenReviews", hiddenCount);
+        stats.put("ratingDistribution", ratingDist);
+        
+        return stats;
     }
 }

@@ -507,6 +507,38 @@ export function fetchProductReviews(productId, page = 0, size = 5, rating = null
   return request(`/reviews/product/${productId}/paged?${params.toString()}`);
 }
 
+export function fetchAllReviews(page = 0, size = 10, filters = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (filters.userId) params.append('userId', filters.userId);
+  if (filters.productId) params.append('productId', filters.productId);
+  if (filters.rating) params.append('rating', filters.rating);
+  if (filters.isHidden !== undefined && filters.isHidden !== null) params.append('isHidden', filters.isHidden);
+  if (filters.sortBy) params.append('sortBy', filters.sortBy);
+  if (filters.sortDir) params.append('sortDir', filters.sortDir);
+  return request(`/reviews/paged?${params.toString()}`);
+}
+
+export function replyToReview(id, reply) {
+  return request(`/reviews/${id}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ reply })
+  });
+}
+
+export function toggleReviewVisibility(id, hide, reason) {
+  return request(`/reviews/${id}/visibility?hide=${hide}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`, {
+    method: 'PATCH'
+  });
+}
+
+export function fetchReviewStats() {
+  return request('/reviews/stats');
+}
+
+export function deleteReview(id) {
+  return request(`/reviews/${id}`, { method: 'DELETE' });
+}
+
 export function fetchProductAverageRating(productId) {
   return request(`/reviews/product/${productId}/average-rating`);
 }

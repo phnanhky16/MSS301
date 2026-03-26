@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { fetchProducts, fetchCategories, fetchBrands, createProduct, updateProduct, deleteProduct, updateProductStatus, fetchProductImages, uploadProductImage, deleteProductImage, setPrimaryImage, updateProductImageFile, uploadMultipleProductImages, reorderProductImages, setSalePrice, removeSalePrice } from '../../services/api';
 import { Table, Typography, message, Input, Select, Button, Modal, Form, InputNumber, Switch, Upload, Card, Space, Divider, Tag as AntTag, App as AntApp, DatePicker, Alert } from 'antd';
 import {
@@ -22,7 +23,7 @@ import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { DragOutlined, PlusOutlined, DeleteOutlined, StarFilled, EditOutlined, TagsOutlined } from '@ant-design/icons';
 import { formatVnd } from '../../utils/currency';
 
-const { Title } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 export default function ProductsPage() {
   const { message, modal } = AntApp.useApp();
@@ -155,7 +156,16 @@ export default function ProductsPage() {
       )
     },
     { title: 'ID', dataIndex: 'id', key: 'id' },
-    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { 
+      title: 'Name', 
+      dataIndex: 'name', 
+      key: 'name',
+      render: (name, record) => (
+        <Link href={`/product/${record.id}`} target="_blank">
+          <Text strong style={{ color: '#1890ff', cursor: 'pointer' }}>{name}</Text>
+        </Link>
+      )
+    },
     { title: 'Price', dataIndex: 'price', key: 'price', render: v => formatVnd(v) },
     { title: 'Category', dataIndex: ['category', 'name'], key: 'category' },
     { title: 'Brand', dataIndex: ['brand', 'name'], key: 'brand' },

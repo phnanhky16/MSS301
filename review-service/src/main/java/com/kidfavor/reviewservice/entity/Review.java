@@ -48,6 +48,19 @@ public class Review {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String adminReply;
+
+    @Column(name = "replied_at")
+    private LocalDateTime repliedAt;
+
+    @Builder.Default
+    @Column(name = "is_hidden")
+    private Boolean isHidden = false;
+
+    @Column(name = "hidden_reason")
+    private String hiddenReason;
+
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();

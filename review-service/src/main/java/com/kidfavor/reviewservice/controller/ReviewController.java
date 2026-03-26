@@ -52,53 +52,6 @@ public class ReviewController {
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
-        @PutMapping("/{id}")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
-        @Operation(summary = "Update a review", description = "Update an existing review. Customers can update their own reviews, admins can update any review.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Review updated successfully", content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
-                        @ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content),
-                        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
-                        @ApiResponse(responseCode = "403", description = "Forbidden - Not the review owner", content = @Content),
-                        @ApiResponse(responseCode = "404", description = "Review not found", content = @Content)
-        })
-        public ResponseEntity<ReviewResponse> updateReview(
-                        @PathVariable @Parameter(description = "Review ID") Long id,
-                        @Valid @RequestBody @Parameter(description = "Updated review details") UpdateReviewRequest request) {
-                ReviewResponse response = reviewService.updateReview(id, request);
-                return ResponseEntity.ok(response);
-        }
-
-        @DeleteMapping("/{id}")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
-        @Operation(summary = "Delete a review", description = "Delete a review. Customers can delete their own reviews, admins can delete any review.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Review deleted successfully", content = @Content),
-                        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
-                        @ApiResponse(responseCode = "403", description = "Forbidden - Not the review owner", content = @Content),
-                        @ApiResponse(responseCode = "404", description = "Review not found", content = @Content)
-        })
-        public ResponseEntity<Map<String, String>> deleteReview(
-                        @PathVariable @Parameter(description = "Review ID") Long id) {
-                reviewService.deleteReview(id);
-                Map<String, String> response = new HashMap<>();
-                response.put("message", "Review deleted successfully");
-                return ResponseEntity.ok(response);
-        }
-
-        @GetMapping("/{id}")
-        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
-        @Operation(summary = "Get review by ID", description = "Retrieve a specific review by its ID.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Review retrieved successfully", content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
-                        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
-                        @ApiResponse(responseCode = "404", description = "Review not found", content = @Content)
-        })
-        public ResponseEntity<ReviewResponse> getReviewById(
-                        @PathVariable @Parameter(description = "Review ID") Long id) {
-                ReviewResponse response = reviewService.getReviewById(id);
-                return ResponseEntity.ok(response);
-        }
 
         @GetMapping("/product/{productId}/average-rating")
         @Operation(summary = "Get product average rating (Public)", description = "Calculate and retrieve the average rating and total review count for a specific product. This is a public endpoint.")
@@ -135,12 +88,13 @@ public class ReviewController {
                         @RequestParam(defaultValue = "DESC") String sortDir,
                         @RequestParam(required = false) Long userId,
                         @RequestParam(required = false) Long productId,
-                        @RequestParam(required = false) Integer rating) {
+                        @RequestParam(required = false) Integer rating,
+                        @RequestParam(required = false) Boolean isHidden) {
 
                 Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
                 Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-                Page<ReviewResponse> reviews = reviewService.listReviews(pageable, userId, productId, rating);
+                Page<ReviewResponse> reviews = reviewService.listReviews(pageable, userId, productId, rating, isHidden);
                 return ResponseEntity.ok(reviews);
         }
 
@@ -204,5 +158,82 @@ public class ReviewController {
 
                 Page<ReviewResponse> reviews = reviewService.getReviewsByUserIdPaged(userId, pageable);
                 return ResponseEntity.ok(reviews);
+        }
+
+        @PostMapping("/{id}/reply")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Reply to a review (Admin)", description = "Add an administrator reply to a review.")
+        public ResponseEntity<ReviewResponse> replyToReview(
+                        @PathVariable Long id,
+                        @RequestBody Map<String, String> body) {
+                String reply = body.get("reply");
+                ReviewResponse response = reviewService.replyToReview(id, reply);
+                return ResponseEntity.ok(response);
+        }
+
+        @PatchMapping("/{id}/visibility")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Toggle review visibility (Admin)", description = "Hide or show a review. Requires a reason if hiding.")
+        public ResponseEntity<ReviewResponse> toggleVisibility(
+                        @PathVariable Long id,
+                        @RequestParam boolean hide,
+                        @RequestParam(required = false) String reason) {
+                ReviewResponse response = reviewService.toggleReviewVisibility(id, hide, reason);
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/stats")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Get review statistics (Admin)", description = "Retrieve overall review statistics for management dashboard.")
+        public ResponseEntity<Map<String, Object>> getReviewStats() {
+                return ResponseEntity.ok(reviewService.getReviewStats());
+        }
+
+        @PutMapping("/{id}")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+        @Operation(summary = "Update a review", description = "Update an existing review. Customers can update their own reviews, admins can update any review.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Review updated successfully", content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content),
+                        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+                        @ApiResponse(responseCode = "403", description = "Forbidden - Not the review owner", content = @Content),
+                        @ApiResponse(responseCode = "404", description = "Review not found", content = @Content)
+        })
+        public ResponseEntity<ReviewResponse> updateReview(
+                        @PathVariable @Parameter(description = "Review ID") Long id,
+                        @Valid @RequestBody @Parameter(description = "Updated review details") UpdateReviewRequest request) {
+                ReviewResponse response = reviewService.updateReview(id, request);
+                return ResponseEntity.ok(response);
+        }
+
+        @DeleteMapping("/{id}")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+        @Operation(summary = "Delete a review", description = "Delete a review. Customers can delete their own reviews, admins can delete any review.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Review deleted successfully", content = @Content),
+                        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+                        @ApiResponse(responseCode = "403", description = "Forbidden - Not the review owner", content = @Content),
+                        @ApiResponse(responseCode = "404", description = "Review not found", content = @Content)
+        })
+        public ResponseEntity<Map<String, String>> deleteReview(
+                        @PathVariable @Parameter(description = "Review ID") Long id) {
+                reviewService.deleteReview(id);
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "Review deleted successfully");
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/{id}")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+        @Operation(summary = "Get review by ID", description = "Retrieve a specific review by its ID.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Review retrieved successfully", content = @Content(schema = @Schema(implementation = ReviewResponse.class))),
+                        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+                        @ApiResponse(responseCode = "404", description = "Review not found", content = @Content)
+        })
+        public ResponseEntity<ReviewResponse> getReviewById(
+                        @PathVariable @Parameter(description = "Review ID") Long id) {
+                ReviewResponse response = reviewService.getReviewById(id);
+                return ResponseEntity.ok(response);
         }
 }

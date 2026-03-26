@@ -43,12 +43,6 @@ public class InternalController {
             @PathVariable Integer id) {
         UserResponse user = userService.getUserById(id);
         
-        // Check if user is active
-        if (user.getStatus() == null || !user.getStatus()) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(400, "User is inactive", null));
-        }
-        
         return ResponseEntity.ok(ApiResponse.success("Retrieved user successfully", user));
     }
     
@@ -58,15 +52,8 @@ public class InternalController {
     @GetMapping("/users/{id}/validate")
     public ResponseEntity<ApiResponse<String>> validateUser(@PathVariable Integer id) {
         try {
-            UserResponse user = userService.getUserById(id);
-            boolean isValid = user.getStatus() != null && user.getStatus();
-            
-            if (isValid) {
-                return ResponseEntity.ok(ApiResponse.success("User is valid", "valid"));
-            } else {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error(400, "User is inactive", "inactive"));
-            }
+            userService.getUserById(id);
+            return ResponseEntity.ok(ApiResponse.success("User exists", "exists"));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(404, "User not found", "not_found"));
