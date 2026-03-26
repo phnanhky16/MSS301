@@ -8,6 +8,8 @@ import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
 import com.kidfavor.inventoryservice.repository.WarehouseRepository;
 import com.kidfavor.inventoryservice.service.WarehouseService;
+import com.kidfavor.inventoryservice.service.GeocodingService;
+import com.kidfavor.inventoryservice.dto.LocationDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -25,6 +27,7 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     private final WarehouseRepository warehouseRepository;
     private final InventoryMapper mapper;
+    private final GeocodingService geocodingService;
 
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -76,6 +79,15 @@ public class WarehouseServiceImpl implements WarehouseService {
         }
 
         Warehouse warehouse = mapper.toWarehouse(request);
+        
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            LocationDTO location = geocodingService.geocodeAddress(request.getAddress(), request.getCity(), request.getDistrict());
+            if (location != null && location.getLatitude() != null && location.getLongitude() != null) {
+                warehouse.setLatitude(location.getLatitude());
+                warehouse.setLongitude(location.getLongitude());
+            }
+        }
+        
         Warehouse savedWarehouse = warehouseRepository.save(warehouse);
         log.info("Warehouse created successfully with id: {}", savedWarehouse.getWarehouseId());
         
@@ -107,6 +119,19 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setCapacity(request.getCapacity());
         warehouse.setWarehouseType(request.getWarehouseType());
         warehouse.setIsActive(request.getIsActive());
+        
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            warehouse.setLatitude(request.getLatitude());
+            warehouse.setLongitude(request.getLongitude());
+        } else if (!request.getAddress().equals(warehouse.getAddress()) || !request.getCity().equals(warehouse.getCity()) || !request.getDistrict().equals(warehouse.getDistrict())) {
+            // Address changed, update coordinates
+            LocationDTO location = geocodingService.geocodeAddress(request.getAddress(), request.getCity(), request.getDistrict());
+            if (location != null && location.getLatitude() != null && location.getLongitude() != null) {
+                warehouse.setLatitude(location.getLatitude());
+                warehouse.setLongitude(location.getLongitude());
+            }
+        }
+
         warehouse.setUpdatedBy(getCurrentUsername());
 
         Warehouse updatedWarehouse = warehouseRepository.save(warehouse);

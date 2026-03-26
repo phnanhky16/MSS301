@@ -34,4 +34,7 @@ public class StoreRequest {
     private String managerName;
 
     private Boolean isActive = true;
+
+    private Double latitude;
+    private Double longitude;
 }

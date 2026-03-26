@@ -45,4 +45,7 @@ public class WarehouseRequest {
     private String warehouseType;
 
     private Boolean isActive = true;
+
+    private Double latitude;
+    private Double longitude;
 }

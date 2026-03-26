@@ -8,6 +8,8 @@ import com.kidfavor.inventoryservice.exception.ResourceNotFoundException;
 import com.kidfavor.inventoryservice.mapper.InventoryMapper;
 import com.kidfavor.inventoryservice.repository.StoreRepository;
 import com.kidfavor.inventoryservice.service.StoreService;
+import com.kidfavor.inventoryservice.service.GeocodingService;
+import com.kidfavor.inventoryservice.dto.LocationDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -25,6 +27,7 @@ public class StoreServiceImpl implements StoreService {
 
     private final StoreRepository storeRepository;
     private final InventoryMapper mapper;
+    private final GeocodingService geocodingService;
 
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -76,6 +79,15 @@ public class StoreServiceImpl implements StoreService {
         }
 
         Store store = mapper.toStore(request);
+        
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            LocationDTO location = geocodingService.geocodeAddress(request.getAddress(), request.getCity(), request.getDistrict());
+            if (location != null && location.getLatitude() != null && location.getLongitude() != null) {
+                store.setLatitude(location.getLatitude());
+                store.setLongitude(location.getLongitude());
+            }
+        }
+        
         Store savedStore = storeRepository.save(store);
         log.info("Store created successfully with id: {}", savedStore.getStoreId());
         
@@ -104,6 +116,19 @@ public class StoreServiceImpl implements StoreService {
         store.setPhone(request.getPhone());
         store.setManagerName(request.getManagerName());
         store.setIsActive(request.getIsActive());
+        
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            store.setLatitude(request.getLatitude());
+            store.setLongitude(request.getLongitude());
+        } else if (!request.getAddress().equals(store.getAddress()) || !request.getCity().equals(store.getCity()) || !request.getDistrict().equals(store.getDistrict())) {
+            // Address changed, update coordinates
+            LocationDTO location = geocodingService.geocodeAddress(request.getAddress(), request.getCity(), request.getDistrict());
+            if (location != null && location.getLatitude() != null && location.getLongitude() != null) {
+                store.setLatitude(location.getLatitude());
+                store.setLongitude(location.getLongitude());
+            }
+        }
+
         store.setUpdatedBy(getCurrentUsername());
 
         Store updatedStore = storeRepository.save(store);

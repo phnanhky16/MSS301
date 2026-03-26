@@ -21,6 +21,8 @@ public class InventoryMapper {
                 .capacity(warehouse.getCapacity())
                 .warehouseType(warehouse.getWarehouseType())
                 .isActive(warehouse.getIsActive())
+                .latitude(warehouse.getLatitude())
+                .longitude(warehouse.getLongitude())
                 .updatedBy(warehouse.getUpdatedBy())
                 .createdAt(warehouse.getCreatedAt())
                 .updatedAt(warehouse.getUpdatedAt())
@@ -40,6 +42,8 @@ public class InventoryMapper {
                 .capacity(request.getCapacity())
                 .warehouseType(request.getWarehouseType())
                 .isActive(request.getIsActive())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .build();
     }
 
@@ -54,6 +58,8 @@ public class InventoryMapper {
                 .phone(store.getPhone())
                 .managerName(store.getManagerName())
                 .isActive(store.getIsActive())
+                .latitude(store.getLatitude())
+                .longitude(store.getLongitude())
                 .updatedBy(store.getUpdatedBy())
                 .createdAt(store.getCreatedAt())
                 .updatedAt(store.getUpdatedAt())
@@ -70,6 +76,8 @@ public class InventoryMapper {
                 .phone(request.getPhone())
                 .managerName(request.getManagerName())
                 .isActive(request.getIsActive())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .build();
     }
 

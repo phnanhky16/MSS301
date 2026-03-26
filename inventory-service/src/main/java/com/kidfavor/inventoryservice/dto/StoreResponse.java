@@ -19,6 +19,8 @@ public class StoreResponse {
     private String phone;
     private String managerName;
     private Boolean isActive;
+    private Double latitude;
+    private Double longitude;
     private String updatedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

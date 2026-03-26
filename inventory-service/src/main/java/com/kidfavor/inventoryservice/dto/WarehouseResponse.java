@@ -23,6 +23,8 @@ public class WarehouseResponse {
     private BigDecimal capacity;
     private String warehouseType;
     private Boolean isActive;
+    private Double latitude;
+    private Double longitude;
     private String updatedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
