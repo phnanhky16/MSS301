@@ -9,22 +9,24 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 20000
       idle-timeout: 300000
       max-lifetime: 1200000
+      leak-detection-threshold: 60000
+      connection-test-query: SELECT 1
 
   # JPA/Hibernate Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
-        use_sql_comments: true
+        format_sql: false
+        use_sql_comments: false
         jdbc:
           batch_size: 20
         order_inserts: true
@@ -67,6 +69,7 @@ spring:
         health-check-interval: 10s
         health-check-path: /actuator/health
         health-check-timeout: 3s
+        deregister-critical-service-after: 30s
 
   # OAuth2 Configuration for Google Login
   security:
@@ -100,6 +103,19 @@ spring:
         max.in.flight.requests.per.connection: 5
         spring.json.add.type.headers: false
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:testpersonality134@gmail.com}
+    password: ${MAIL_PASSWORD:qhjj mrhl yyba gfly}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        debug: false
+
 # Server Configuration
 server:
   port: 8081
@@ -116,6 +132,11 @@ management:
     caches:
       enabled: true
 
+# External service URLs
+services:
+  product-service:
+    url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+
 # Swagger/OpenAPI Configuration
 springdoc:
   api-docs:
@@ -129,12 +150,18 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     doc-expansion: none
+  # Performance optimizations
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  cache:
+    disabled: false
+  model-and-view-allowed: false
 
 # JWT Configuration
 jwt:
-  secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
-  access-token-expiration: 3600000    # 1 hour in milliseconds
-  refresh-token-expiration: 604800000 # 7 days in milliseconds
+  secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000} # 1 hour in milliseconds
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000} # 7 days in milliseconds
 
 # Keycloak Configuration (for future integration)
 keycloak:
@@ -147,11 +174,11 @@ keycloak:
 # Logging Configuration
 logging:
   level:
-    com.kidfavor.userservice: DEBUG
-    org.springframework.cache: DEBUG
-    org.springframework.data.redis: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.kidfavor.userservice: INFO
+    org.springframework.cache: INFO
+    org.springframework.data.redis: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
@@ -164,3 +191,10 @@ app:
     url:
       base: ${FRONTEND_URL:http://localhost:3000/}
       mobile: ${FRONTEND_MOBILE_URL:http://localhost:3000/mobile/}
+  password-reset:
+    otp-expiration-minutes: ${PASSWORD_RESET_OTP_EXPIRATION_MINUTES:5}
+    link-expiration-minutes: ${PASSWORD_RESET_LINK_EXPIRATION_MINUTES:10}
+    revoke-cron: ${PASSWORD_RESET_REVOKE_CRON:0 */1 * * * *}
+  email-verification:
+    link-expiration-minutes: ${EMAIL_VERIFICATION_LINK_EXPIRATION_MINUTES:15}
+    resend-cooldown-seconds: ${EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS:60}

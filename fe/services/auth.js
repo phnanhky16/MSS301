@@ -1,5 +1,12 @@
 import { request } from './api';
 
+function emitAuthChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('auth-changed'));
+  }
+}
+
 export function login(username, password) {
   return request('/auth/login', {
     method: 'POST',
@@ -7,6 +14,23 @@ export function login(username, password) {
   }).then(res => {
     console.debug('login response', res);
     // store tokens
+    const payload = res.data || res;
+    if (payload && payload.accessToken) {
+      localStorage.setItem('accessToken', payload.accessToken);
+    }
+    if (payload && payload.refreshToken) {
+      localStorage.setItem('refreshToken', payload.refreshToken);
+    }
+    emitAuthChanged();
+    return payload;
+  });
+}
+
+export function register({ fullName, username, email, password, phone }) {
+  return request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ fullName, username, email, password, phone }),
+  }).then(res => {
     const payload = res.data || res;
     if (payload && payload.accessToken) {
       localStorage.setItem('accessToken', payload.accessToken);
@@ -23,6 +47,7 @@ export function logout() {
   // clear tokens immediately so UI state updates even if network stalls
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
+  emitAuthChanged();
   if (token) {
     // return promise so callers can await
     return request('/auth/logout', {
@@ -73,9 +98,9 @@ export function getCurrentUser() {
 
 // Real Google OAuth login - sends Google ID token to backend
 export function loginWithGoogle(googleIdToken) {
-  return request('/auth/google', {
+  return request('/auth/google-login', {
     method: 'POST',
-    body: JSON.stringify({ token: googleIdToken, provider: 'google' }),
+    body: JSON.stringify({ idToken: googleIdToken }),
   }).then(res => {
     console.debug('Google login response', res);
     // store tokens
@@ -86,7 +111,43 @@ export function loginWithGoogle(googleIdToken) {
     if (payload && payload.refreshToken) {
       localStorage.setItem('refreshToken', payload.refreshToken);
     }
+    emitAuthChanged();
     return payload;
+  });
+}
+
+export function requestPasswordResetOtp(email) {
+  return request('/auth/password-reset/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function verifyPasswordResetOtp(email, verificationCode) {
+  return request('/auth/password-reset/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, verificationCode }),
+  });
+}
+
+export function confirmPasswordReset(token, newPassword, confirmPassword) {
+  return request('/auth/password-reset/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword, confirmPassword }),
+  });
+}
+
+export function verifyEmailToken(token) {
+  const params = new URLSearchParams({ token });
+  return request(`/auth/verify-email?${params.toString()}`, {
+    method: 'GET',
+  });
+}
+
+export function resendVerificationLink(email) {
+  return request('/auth/resend-verification-link', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
   });
 }
 

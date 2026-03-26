@@ -37,9 +37,16 @@ services:
       SPRING_CLOUD_CONSUL_HOST: consul
       SPRING_CLOUD_CONSUL_PORT: 8500
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # JWT Configuration (must match order-service)
+      JWT_SECRET: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+      JWT_ACCESS_TOKEN_EXPIRATION: 3600000 # 1 hour
+      JWT_REFRESH_TOKEN_EXPIRATION: 604800000 # 7 days
+      PRODUCT_SERVICE_URL: http://product-service:8083
       # Google OAuth2 Configuration
       GOOGLE_CLIENT_ID: 1085016969658-o80o0smreofoe1f0q598t88un2mkckru.apps.googleusercontent.com
       GOOGLE_CLIENT_SECRET: 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
+      MAIL_USERNAME: ${MAIL_USERNAME:-testpersonality134@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-qhjj mrhl yyba gfly}
 
     depends_on:
       postgres-user:
@@ -70,6 +77,9 @@ services:
       SPRING_CLOUD_CONSUL_PORT: 8500
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PRODUCT_SERVICE_URL: http://product-service:8083
+      # JWT Configuration
+      JWT_SECRET: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+      JWT_EXPIRATION: 86400000 # 24 hours
     depends_on:
       # wait until the database container reports healthy before starting the
       # Spring Boot process. the "run all services" button in VS Code invokes
@@ -107,6 +117,9 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_NAME: product-images
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      SPRING_ELASTICSEARCH_USERNAME: elastic
+      SPRING_ELASTICSEARCH_PASSWORD: changeme
     depends_on:
       postgres-product:
         condition: service_started
@@ -114,6 +127,8 @@ services:
         condition: service_started
       minio:
         condition: service_started
+      elasticsearch:
+        condition: service_healthy # wait for ES before booting
     networks:
       - microservices-network
     restart: on-failure
@@ -127,6 +142,7 @@ services:
     ports:
       - "8086:8086"
     environment:
+      # log file path
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-review:5432/reviewdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
@@ -140,6 +156,30 @@ services:
     networks:
       - microservices-network
     restart: on-failure
+
+  # --- Address Service ---
+  address-service:
+    build:
+      context: ../address-service
+      dockerfile: Dockerfile
+    container_name: address-service
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-address:5432/addressdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+    depends_on:
+      postgres-address:
+        condition: service_started
+      consul:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
   # --- Inventory Service ---
   inventory-service:
     build:
@@ -147,7 +187,7 @@ services:
       dockerfile: Dockerfile
     container_name: inventory-service
     ports:
-      - "8084:8084"
+      - "8084:80"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-inventory:5432/inventorydb
       SPRING_DATASOURCE_USERNAME: postgres
@@ -195,6 +235,7 @@ services:
     ports:
       - "8085:8085"
     environment:
+      # log file for Filebeat removed
       DB_HOST: postgres-cart
       DB_PORT: 5432
       DB_USERNAME: postgres
@@ -208,6 +249,36 @@ services:
       postgres-cart:
         condition: service_started
       redis:
+        condition: service_started
+      consul:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: on-failure
+
+  # --- Payment Service ---
+  payment-service:
+    build:
+      context: ../payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/paymentdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      JWT_SECRET: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==
+      PAYOS_CLIENT_ID: 534b89f5-5828-40da-9832-094a4671bb47
+      PAYOS_API_KEY: 4c51a134-1524-4467-9043-63fc406c5ddd
+      PAYOS_CHECKSUM_KEY: e27abe734b10fd56acde4dcc393c35ab4d57795c696cb408dadc62fa8ae2b6e2
+    depends_on:
+      postgres-payment:
         condition: service_started
       consul:
         condition: service_started
@@ -284,6 +355,7 @@ services:
     networks:
       - microservices-network
 
+  # filebeat only needs read access to the logs volume
   postgres-inventory:
     image: postgres:16-alpine
     container_name: postgres-inventory
@@ -323,6 +395,34 @@ services:
       - "5437:5432"
     volumes:
       - postgres-review-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+  postgres-address:
+    image: postgres:16-alpine
+    container_name: postgres-address
+    environment:
+      POSTGRES_DB: addressdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres-address-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+  postgres-payment:
+    image: postgres:16-alpine
+    container_name: postgres-payment
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5440:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
     networks:
       - microservices-network
 
@@ -416,44 +516,72 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - microservices-network
+      # # --- Frontend ---
+      # fe:
+      #   build:
+      #     context: ../fe
+      #     dockerfile: Dockerfile
+      #   container_name: fe
+      #   ports:
+      #     - "3000:3000"
+      #   environment:
+      #     # the front end talks through the gateway; this variable can be
+      #     # overridden if the gateway lives on a different host/port.
+      #     NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
+      #   depends_on:
+      #     api-gateway:
+      #       condition: service_started
+      #   networks:
+      #     - microservices-network
+      #   restart: on-failure
 
-  # --- Frontend ---
-  fe:
-    build:
-      context: ../fe
-      dockerfile: Dockerfile
-    container_name: fe
-    ports:
-      - "3000:3000"
-    environment:
-      # the front end talks through the gateway; this variable can be
-      # overridden if the gateway lives on a different host/port.
-      NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080/api
-    depends_on:
-      api-gateway:
-        condition: service_started
-    networks:
-      - microservices-network
-    restart: on-failure
-
-  # --- Ensure Maven base image is available ---
-  # This dummy service doesn't run anything, it just pulls whatever
-  # Maven image our Dockerfiles reference when you `docker compose up` or
-  # `docker compose pull`.  Having the image cached locally avoids the
-  # frequent TLS handshake/timeout errors that were occurring during
-  # the build phase.
-  #
-  # Historically the codebase used 3.9.0 in one Dockerfile while the
-  # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
-  # didn't help when a service still tried to pull 3.9.6.  The simplest
-  # fix is to standardize on the newer 3.9.6 tag and pull it here.
+      # --- Ensure Maven base image is available ---
+      # This dummy service doesn't run anything, it just pulls whatever
+      # Maven image our Dockerfiles reference when you `docker compose up` or
+      # `docker compose pull`.  Having the image cached locally avoids the
+      # frequent TLS handshake/timeout errors that were occurring during
+      # the build phase.
+      #
+      # Historically the codebase used 3.9.0 in one Dockerfile while the
+      # others used 3.9.6.  The workaround was to pre-pull 3.9.0, which
+      # log file path removed
+      # LOGGING_FILE_NAME: /logs/review-service.log
   maven-base:
     image: maven:3.9.6-eclipse-temurin-17
     entrypoint: [ "true" ] # immediately exit successfully
     networks:
       - microservices-network
 
-# --- Volumes Definition ---
+  # --- Search Engine ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      # enable built-in security so that we can use Fleet/APM later
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - xpack.security.enrollment.enabled=false
+      # for local development we can set a fixed password on start; this is
+      # equivalent to running the initial wizard that prints the password.
+      - ELASTIC_PASSWORD=changeme
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+  # kibana and filebeat services removed at user request
+
+  # --- Volumes Definition ---
 volumes:
   postgres-user-data:
   postgres-order-data:
@@ -462,7 +590,10 @@ volumes:
   postgres-cart-data:
   postgres-review-data:
   postgres-keycloak-data:
+  postgres-address-data:
+  postgres-payment-data:
   minio-data:
+  elasticsearch-data:
 
     # --- Networks Definition ---
 networks:

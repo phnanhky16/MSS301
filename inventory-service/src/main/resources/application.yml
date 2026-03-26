@@ -2,6 +2,10 @@ spring:
   application:
     name: inventory-service
 
+  # Spring Security debug (set to true when diagnosing auth issues)
+  security:
+    debug: true
+
   # PostgreSQL Database Configuration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5435/inventorydb}
@@ -50,6 +54,7 @@ spring:
         health-check-interval: 10s
         health-check-path: /actuator/health
         health-check-timeout: 3s
+        deregister-critical-service-after: 30s
 
   # Kafka Configuration
   kafka:
@@ -73,14 +78,14 @@ spring:
 
 # Server Configuration
 server:
-  port: 8084
+  port: 80
 
 # Management/Actuator Configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,mappings
   endpoint:
     health:
       show-details: always
@@ -131,3 +136,19 @@ app:
       stock-low-alert: stock-low-alert
       order-created: order-created
       order-placed: order-placed-topic
+  
+  # Geocoding Configuration for OpenStreetMap
+  geocoding:
+    user-agent: KidFavor-Inventory/1.0
+    email: contact@kidfavor.com
+    rate-limit-ms: 1000  # OSM requires max 1 req/sec
+    timeout-ms: 5000
+    
+  # Store location configuration
+  location:
+    # Default Vietnam bounding box for validation
+    vietnam:
+      min-latitude: 8.0
+      max-latitude: 24.0
+      min-longitude: 102.0
+      max-longitude: 110.0

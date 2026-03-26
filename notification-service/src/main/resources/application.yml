@@ -39,6 +39,7 @@ spring:
         health-check-interval: 10s
         health-check-path: /actuator/health
         health-check-timeout: 10s
+        deregister-critical-service-after: 30s
 
 # Management/Actuator
 management:
@@ -59,6 +60,7 @@ app:
     topics:
       order-placed: order-placed-topic
       user-registered: user-registered-topic
+      payment-completed: payment-completed-topic
 
 # Logging
 logging:

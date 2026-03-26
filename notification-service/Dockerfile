@@ -12,7 +12,7 @@ COPY notification-service/src ./notification-service/src
 RUN mvn install -N -f ./pom.xml -DskipTests && \
     mvn clean package -f ./notification-service/pom.xml -DskipTests
 
-FROM eclipse-temurin:17-jre-alpine
+FROM amazoncorretto:17-alpine
 WORKDIR /app
 COPY --from=build /app/notification-service/target/*.jar app.jar
 EXPOSE 8086

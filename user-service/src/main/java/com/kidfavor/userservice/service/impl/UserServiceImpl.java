@@ -36,24 +36,17 @@ public class UserServiceImpl implements UserService {
         public org.springframework.data.domain.Page<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable,
                                                                                                                                                    String keyword,
                                                                                                                                                    Boolean status,
+                                                                                                                                                   Boolean emailVerified,
                                                                                                                                                    Role role) {
-                org.springframework.data.jpa.domain.Specification<User> spec = (root, query, cb) -> {
-                        java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
-                        if (keyword != null && !keyword.isEmpty()) {
-                                String pattern = "%" + keyword.toLowerCase() + "%";
-                                preds.add(cb.or(
-                                                cb.like(cb.lower(root.get("fullName")), pattern),
-                                                cb.like(cb.lower(root.get("email")), pattern)
-                                ));
-                        }
-                        if (status != null) {
-                                preds.add(cb.equal(root.get("status"), status));
-                        }
-                        if (role != null) {
-                                preds.add(cb.equal(root.get("role"), role));
-                        }
-                        return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
-                };
+                org.springframework.data.jpa.domain.Specification<User> spec = buildUserSpecification(keyword, status, emailVerified, role);
+                return userRepository.findAll(spec, pageable).map(UserResponse::from);
+        }
+
+        @Override
+        public org.springframework.data.domain.Page<UserResponse> getArchivedUsers(org.springframework.data.domain.Pageable pageable,
+                                                                                   String keyword,
+                                                                                   Role role) {
+                org.springframework.data.jpa.domain.Specification<User> spec = buildUserSpecification(keyword, false, null, role);
                 return userRepository.findAll(spec, pageable).map(UserResponse::from);
         }
 
@@ -115,6 +108,36 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     @Caching(
+            evict = {
+                    @CacheEvict(value = "users", allEntries = true),
+                    @CacheEvict(value = "user", key = "#id")
+            }
+    )
+    public void archiveUser(int id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("user not found with id:" + id));
+        user.setStatus(false);
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "users", allEntries = true),
+                    @CacheEvict(value = "user", key = "#id")
+            }
+    )
+    public void restoreUser(int id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("user not found with id:" + id));
+        user.setStatus(true);
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    @Caching(
             put = @CachePut(value = "user", key = "#result.id"),
             evict = {
                     @CacheEvict(value = "users", allEntries = true)
@@ -135,7 +158,7 @@ public class UserServiceImpl implements UserService {
                     @CacheEvict(value = "user", key = "#id")
             }
     )
-    public void deleteUser(int id) {
+    public void permanentlyDeleteUser(int id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("user not found with id:" + id));
         userRepository.delete(user);
@@ -144,5 +167,33 @@ public class UserServiceImpl implements UserService {
         @Override
         public long countUsers() {
                 return userRepository.count();
+        }
+
+        private org.springframework.data.jpa.domain.Specification<User> buildUserSpecification(String keyword,
+                                                                                               Boolean status,
+                                                                                               Boolean emailVerified,
+                                                                                               Role role) {
+                return (root, query, cb) -> {
+                        java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
+                        if (keyword != null && !keyword.trim().isEmpty()) {
+                                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                                preds.add(cb.or(
+                                                cb.like(cb.lower(root.get("fullName")), pattern),
+                                                cb.like(cb.lower(root.get("email")), pattern),
+                                                cb.like(cb.lower(root.get("userName")), pattern),
+                                                cb.like(cb.lower(root.get("phone")), pattern)
+                                ));
+                        }
+                        if (status != null) {
+                                preds.add(cb.equal(root.get("status"), status));
+                        }
+                        if (emailVerified != null) {
+                                preds.add(cb.equal(root.get("emailVerified"), emailVerified));
+                        }
+                        if (role != null) {
+                                preds.add(cb.equal(root.get("role"), role));
+                        }
+                        return preds.isEmpty() ? null : cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
+                };
         }
 }

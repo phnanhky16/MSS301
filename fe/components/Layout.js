@@ -56,28 +56,55 @@ export default function Layout({ children, isLogin = false }) {
 
           {/* Nav */}
           <nav className="header-nav">
+            {/* we specially handle the shop link so that clicking it always causes a
+                navigation even if the user is already on /shop.  Next.js will ignore
+                clicks on the current path, meaning our ShopPage state-clearing effect
+                would never fire.  appending a dummy timestamp query forces a path
+                change and in turn resets search/page/category. */}
             {[
               { href: '/', label: 'Home' },
               { href: '/shop', label: 'Shop' },
               { href: '/about', label: 'Blogs' },
               { href: '/toy', label: 'Toy' },
               { href: '/contact', label: 'Contact' },
-            ].map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-link${router.pathname === item.href ? ' active' : ''}`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            ].map(item => {
+              const isShop = item.href === '/shop';
+              // NOTE: we no longer inject a timestamp into the `href` itself
+              // during render. doing so caused a hydration mismatch between the
+              // server and client (the `href` values differed by a few
+              // milliseconds), which triggered the "Prop `href` did not
+              // match" warning. the timestamp is only applied on-click.
+              const hrefObj = isShop ? '/shop' : item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={hrefObj}
+                  className={`nav-link${router.pathname === item.href ? ' active' : ''}`}
+                  onClick={async e => {
+                    if (isShop) {
+                      e.preventDefault();
+                      // force a fresh navigation by pushing a timestamp, then
+                      // strip it immediately to avoid polluting history
+                      await router.push({ pathname: '/shop', query: { r: Date.now() } });
+                      router.replace('/shop', undefined, { shallow: true });
+                    }
+                  }}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right actions */}
           <div className="header-actions">
-            <button className="hdr-icon-btn" aria-label="Search">
-              <SearchOutlined />
-            </button>
+            {/* we already have a dedicated search sidebar on the shop page, so
+                hide the header search icon when user is browsing /shop */}
+            {router.pathname !== '/shop' && (
+              <button className="hdr-icon-btn" aria-label="Search">
+                <SearchOutlined />
+              </button>
+            )}
             <Link href="/cart">
               <button className="hdr-icon-btn cart-btn" aria-label="Cart">
                 <ShoppingCartOutlined />
@@ -85,17 +112,17 @@ export default function Layout({ children, isLogin = false }) {
               </button>
             </Link>
             {loggedIn && userInfo ? (
-              <div 
-                  className="user-menu-wrapper"
-                  onMouseEnter={() => {
-                    clearTimeout(hideTimer.current);
-                    setShowUserMenu(true);
-                  }}
-                  onMouseLeave={() => {
-                    // delay hiding a bit to allow mouse to move into dropdown
-                    hideTimer.current = setTimeout(() => setShowUserMenu(false), 150);
-                  }}
-                >
+              <div
+                className="user-menu-wrapper"
+                onMouseEnter={() => {
+                  clearTimeout(hideTimer.current);
+                  setShowUserMenu(true);
+                }}
+                onMouseLeave={() => {
+                  // delay hiding a bit to allow mouse to move into dropdown
+                  hideTimer.current = setTimeout(() => setShowUserMenu(false), 150);
+                }}
+              >
                 <div className="user-avatar">
                   <div className="avatar-circle">
                     {userInfo.email ? userInfo.email.charAt(0).toUpperCase() : 'U'}
@@ -120,6 +147,14 @@ export default function Layout({ children, isLogin = false }) {
                         <div className="dropdown-role">{userInfo.role}</div>
                       </div>
                     </div>
+                    <div className="dropdown-divider"></div>
+                    <button
+                      className="dropdown-item"
+                      onClick={() => { setShowUserMenu(false); router.push('/profile'); }}
+                    >
+                      <UserOutlined />
+                      <span>My Profile</span>
+                    </button>
                     <div className="dropdown-divider"></div>
                     <button
                       className="dropdown-item logout-item"

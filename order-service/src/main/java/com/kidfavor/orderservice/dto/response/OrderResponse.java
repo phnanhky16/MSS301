@@ -19,10 +19,12 @@ public class OrderResponse {
     private Long id;
     private String orderNumber;
     private Long userId;
-    private Long storeId;
     private OrderStatus status;
     private BigDecimal totalAmount;
     private String shippingAddress;
+    private Double shippingLatitude;   // GPS latitude
+    private Double shippingLongitude;  // GPS longitude
+    private Long shipmentId;           // Shipment reference
     private String phoneNumber;
     private String notes;
     private List<OrderItemResponse> items;

@@ -150,4 +150,36 @@ public class WarehouseProductController {
         WarehouseTransferResponse response = warehouseProductService.transferBetweenWarehouses(request);
         return ResponseEntity.ok(ResponseWrapper.success("Transfer completed successfully", response));
     }
+
+    @GetMapping("/api/warehouse-stock/total")
+    @Operation(summary = "Get total stock in all warehouses by product IDs (dedicated path)")
+    public ResponseEntity<ResponseWrapper<java.util.Map<Long, Integer>>> getTotalStockForProductsDedicated(
+            @RequestParam("productIds") List<Long> productIds) {
+        java.util.Map<Long, Integer> stockMap = warehouseProductService.getTotalStockForProducts(productIds);
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved successfully", stockMap));
+    }
+
+    @GetMapping("/api/warehouses/total-stock")
+    @Operation(summary = "Get total stock in all warehouses by product IDs (absolute path)")
+    public ResponseEntity<ResponseWrapper<java.util.Map<Long, Integer>>> getTotalStockForProductsAbsolute(
+            @RequestParam("productIds") List<Long> productIds) {
+        java.util.Map<Long, Integer> stockMap = warehouseProductService.getTotalStockForProducts(productIds);
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved successfully", stockMap));
+    }
+
+    @GetMapping("/products/total-stock")
+    @Operation(summary = "Get total stock in all warehouses by product IDs")
+    public ResponseEntity<ResponseWrapper<java.util.Map<Long, Integer>>> getTotalStockForProducts(
+            @RequestParam List<Long> productIds) {
+        java.util.Map<Long, Integer> stockMap = warehouseProductService.getTotalStockForProducts(productIds);
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved successfully", stockMap));
+    }
+
+    @GetMapping("/products/{productId}/total-stock")
+    @Operation(summary = "Get total stock in all warehouses for a product")
+    public ResponseEntity<ResponseWrapper<Integer>> getTotalStockForProduct(
+            @PathVariable Long productId) {
+        Integer stock = warehouseProductService.getTotalStockForProduct(productId);
+        return ResponseEntity.ok(ResponseWrapper.success("Retrieved successfully", stock));
+    }
 }

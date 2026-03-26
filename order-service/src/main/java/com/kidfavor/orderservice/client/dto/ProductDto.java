@@ -21,5 +21,8 @@ public class ProductDto {
     private Long id;
     private String name;
     private BigDecimal price;
+    private BigDecimal salePrice;
+    private Boolean onSale;
+    private String imageUrl;
     private EntityStatus status;
 }

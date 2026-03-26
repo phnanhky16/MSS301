@@ -15,7 +15,5 @@ public class StoreAvailabilityResponse {
     private Long productId;
     private String productName;
     private Integer availableQuantity;
-    private Integer requestedQuantity;
-    private Boolean hasEnoughStock;
     private String shelfLocation;
 }

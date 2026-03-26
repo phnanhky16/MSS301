@@ -16,6 +16,7 @@ public class ShipmentResponse {
     private String city;
     private Integer userId;
     private Boolean status;
+    private String note;
     public static ShipmentResponse from(Shipment shipment) {
         return new ShipmentResponse(
                 shipment.getShipId(),
@@ -24,6 +25,7 @@ public class ShipmentResponse {
                 shipment.getDistrict(),
                 shipment.getCity(),
                 shipment.getUser().getId(),
-                shipment.getStatus());
+                shipment.getStatus(),
+                shipment.getNote());
     }
 }

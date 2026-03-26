@@ -72,6 +72,26 @@ public class OrderPlacedEvent {
     private BigDecimal discountAmount;
 
     /**
+     * Shipping address for delivery.
+     */
+    private String shippingAddress;
+
+    /**
+     * GPS latitude of shipping address for location-based inventory allocation.
+     */
+    private Double shippingLatitude;
+
+    /**
+     * GPS longitude of shipping address for location-based inventory allocation.
+     */
+    private Double shippingLongitude;
+
+    /**
+     * Shipment ID created in user-service.
+     */
+    private Long shipmentId;
+
+    /**
      * Version of the event schema for forward compatibility.
      */
     @Builder.Default

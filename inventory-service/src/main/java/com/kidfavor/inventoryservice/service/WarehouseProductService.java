@@ -8,6 +8,7 @@ import com.kidfavor.inventoryservice.dto.WarehouseTransferResponse;
 import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 
 import java.util.List;
+import java.util.Map;
 
 public interface WarehouseProductService {
     
@@ -40,4 +41,8 @@ public interface WarehouseProductService {
     Integer getAvailableStock(Long warehouseId, Long productId);
     
     WarehouseTransferResponse transferBetweenWarehouses(WarehouseTransferRequest request);
+    
+    Map<Long, Integer> getTotalStockForProducts(List<Long> productIds);
+    
+    Integer getTotalStockForProduct(Long productId);
 }

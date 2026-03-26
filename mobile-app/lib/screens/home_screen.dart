@@ -1,10 +1,19 @@
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/cart_service.dart';
+import '../services/wishlist_service.dart';
+import '../services/address_service.dart';
 import '../services/api_service.dart';
+import 'shipping_address_screen.dart';
 import '../models/product.dart';
+import '../models/category.dart';
+import '../models/brand.dart';
 import 'product_detail_screen.dart';
+import 'product_list_screen.dart';
 import 'category_screen.dart';
 import 'profile_screen.dart';
 import 'wishlist_screen.dart';
@@ -22,28 +31,76 @@ class _HomeScreenState extends State<HomeScreen>
   List<Product> _products = [];
   bool _isLoading = true;
   String _selectedCategory = 'Popular';
-  final _currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  final _decimalFormat = NumberFormat.decimalPattern('vi_VN');
+
+  // Banner carousel state
+  late PageController _bannerPageController;
+  int _currentBannerIndex = 0;
 
   // Cart animation state
   int _cartCount = 0;
   final GlobalKey _cartKey = GlobalKey();
+  final GlobalKey _wishlistNavKey = GlobalKey();
   AnimationController? _shakeController;
   OverlayEntry? _flyingWidget;
+
+  // Search state - Using ValueNotifier to prevent rebuild
+  late TextEditingController _searchController;
+  late FocusNode _searchFocusNode;
+  late ValueNotifier<String> _searchQueryNotifier;
+  late ValueNotifier<List<Product>> _productsNotifier;
+  late ValueNotifier<bool> _isLoadingNotifier;
+  Timer? _debounceTimer;
+  String _searchKeyword = '';
+
+  // Filter state
+  List<Category> _categories = [];
+  List<Brand> _brands = [];
+  int? _selectedCategoryId;
+  int? _selectedBrandId;
+  double? _minPrice;
+  double? _maxPrice;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize banner carousel controller
+    _bannerPageController = PageController(initialPage: 0);
+
+    // Initialize controllers and ValueNotifiers in initState (Best Practice)
+    _searchController = TextEditingController();
+    _searchFocusNode = FocusNode();
+
+    // ValueNotifiers to prevent unnecessary rebuilds
+    _searchQueryNotifier = ValueNotifier<String>('');
+    _productsNotifier = ValueNotifier<List<Product>>([]);
+    _isLoadingNotifier = ValueNotifier<bool>(true);
+
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = context.read<AuthService>().currentUser?.id;
+      if (userId != null) {
+        context.read<AddressService>().fetchByUser(userId);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _searchQueryNotifier.dispose();
+    _productsNotifier.dispose();
+    _isLoadingNotifier.dispose();
+    _debounceTimer?.cancel();
     _shakeController?.dispose();
     _flyingWidget?.remove();
+    _bannerPageController.dispose();
     super.dispose();
   }
 
@@ -122,42 +179,517 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _loadData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final cartService = Provider.of<CartService>(context, listen: false);
+    final wishlistService =
+        Provider.of<WishlistService>(context, listen: false);
 
     if (authService.currentUser != null) {
       await cartService.fetchCart(authService.currentUser!.id);
     }
+    await wishlistService.fetchWishlist();
 
+    // Load categories and brands for filter
+    await _loadFilters();
     await _fetchProducts();
   }
 
-  Future<void> _fetchProducts() async {
-    setState(() => _isLoading = true);
-
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // Use mock data instead of API call
-    setState(() {
-      _products = _createMockProducts();
-      _isLoading = false;
-    });
-
-    /* 
-    // Original API call - commented out for testing
+  Future<void> _loadFilters() async {
     try {
-      final response = await ApiService.get('/product-service/products');
-      if (response['success'] == true) {
-        final List<dynamic> data = response['data'];
+      // Load categories
+      final catResponse = await ApiService.get('/product-service/categories');
+      if (catResponse['success'] == true && catResponse['data'] != null) {
+        final List<dynamic> catData = catResponse['data'];
         setState(() {
-          _products = data.map((json) => Product.fromJson(json)).toList();
+          _categories = catData.map((json) => Category.fromJson(json)).toList();
+        });
+        print('✅ Loaded ${_categories.length} categories');
+      }
+
+      // Load brands
+      final brandResponse = await ApiService.get('/product-service/brands');
+      if (brandResponse['success'] == true && brandResponse['data'] != null) {
+        final List<dynamic> brandData = brandResponse['data'];
+        setState(() {
+          _brands = brandData.map((json) => Brand.fromJson(json)).toList();
+        });
+        print('✅ Loaded ${_brands.length} brands');
+      }
+    } catch (e) {
+      print('❌ Error loading filters: $e');
+    }
+  }
+
+  Future<void> _fetchProducts(
+      {String? keyword, int? categoryId, int? brandId}) async {
+    // Only use setState for initial loading (when showing full screen spinner)
+    // For subsequent updates, use ValueNotifier to avoid rebuilding search bar
+    if (_isLoading) {
+      // Initial load - can use setState safely
+      setState(() {});
+    }
+    _isLoadingNotifier.value = true;
+
+    try {
+      // Build API URL with all filters
+      String apiUrl = '/product-service/products?page=0&size=50&status=ACTIVE';
+
+      if (keyword != null && keyword.isNotEmpty) {
+        apiUrl += '&keyword=$keyword';
+        print('🔍 Searching for: $keyword');
+      }
+
+      if (categoryId != null) {
+        apiUrl += '&categoryId=$categoryId';
+        print('🏷️ Filter by category: $categoryId');
+      }
+
+      if (brandId != null) {
+        apiUrl += '&brandId=$brandId';
+        print('🏷️ Filter by brand: $brandId');
+      }
+
+      // Call real API with pagination and search
+      final response = await ApiService.get(apiUrl);
+
+      print('📦 Products API Response: $response');
+
+      if (response['success'] == true && response['data'] != null) {
+        final Map<String, dynamic> pageData = response['data'];
+        final List<dynamic> content = pageData['content'] ?? [];
+
+        print('✅ Found ${content.length} products');
+
+        // Update products via ValueNotifier (NO setState)
+        final products = content.map((json) => Product.fromJson(json)).toList();
+        _productsNotifier.value = products;
+        _products = products;
+
+        if (_isLoading) {
+          // Initial load complete - use setState to hide loading spinner
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        _isLoadingNotifier.value = false;
+      } else {
+        print('⚠️ API returned no data, using mock products');
+        // Fallback to mock data if API fails
+        final mockProducts = _createMockProducts();
+        _productsNotifier.value = mockProducts;
+        _products = mockProducts;
+
+        if (_isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        _isLoadingNotifier.value = false;
+      }
+    } catch (e) {
+      print('❌ Error fetching products: $e');
+      // Use mock data as fallback
+      final mockProducts = _createMockProducts();
+      _productsNotifier.value = mockProducts;
+      _products = mockProducts;
+
+      if (_isLoading) {
+        setState(() {
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      print('Error fetching products: $e');
+      _isLoadingNotifier.value = false;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đang dùng dữ liệu mẫu (Lỗi kết nối backend)'),
+            backgroundColor: Colors.orange.shade600,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
-    */
+  }
+
+  void _onSearchChanged(String value) {
+    // Update search query via ValueNotifier (NO setState - prevents rebuild)
+    _searchQueryNotifier.value = value;
+    _searchKeyword = value;
+
+    // Cancel previous timer
+    _debounceTimer?.cancel();
+
+    // Create new timer for debouncing API call (wait 400ms after user stops typing)
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
+      // Only call API after user stops typing
+      _fetchProducts(
+        keyword: value.isNotEmpty ? value : null,
+        categoryId: _selectedCategoryId,
+        brandId: _selectedBrandId,
+      );
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    // Update via ValueNotifier (NO setState)
+    _searchQueryNotifier.value = '';
+    _searchKeyword = '';
+    _fetchProducts(
+      categoryId: _selectedCategoryId,
+      brandId: _selectedBrandId,
+    );
+  }
+
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildFilterSheet(),
+    );
+  }
+
+  void _showAddressSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Consumer<AddressService>(
+          builder: (ctx, svc, _) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // drag handle
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Chọn địa chỉ giao hàng',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  if (svc.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF1EB5D9)),
+                    )
+                  else if (svc.shipments.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'Chưa có địa chỉ nào. Hãy thêm địa chỉ mới!',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: svc.shipments.length,
+                        itemBuilder: (_, i) {
+                          final s = svc.shipments[i];
+                          final isSelected = svc.selectedId == s.shipId;
+                          return ListTile(
+                            leading: Icon(
+                              Icons.location_on,
+                              color: isSelected
+                                  ? const Color(0xFF1EB5D9)
+                                  : Colors.grey[500],
+                            ),
+                            title: Text(
+                              s.note?.isNotEmpty == true ? s.note! : s.city,
+                              style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? const Color(0xFF1EB5D9)
+                                    : Colors.black87,
+                              ),
+                            ),
+                            subtitle: Text(
+                              s.fullAddress,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.black54),
+                            ),
+                            trailing: isSelected
+                                ? const Icon(Icons.check_circle,
+                                    color: Color(0xFF1EB5D9))
+                                : null,
+                            onTap: () {
+                              svc.select(s.shipId);
+                              Navigator.pop(ctx);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    icon: const Icon(Icons.add,
+                        color: Color(0xFF1EB5D9), size: 18),
+                    label: const Text(
+                      'Quản lý địa chỉ',
+                      style: TextStyle(color: Color(0xFF1EB5D9)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ShippingAddressScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterSheet() {
+    int? tempCategoryId = _selectedCategoryId;
+    int? tempBrandId = _selectedBrandId;
+
+    return StatefulBuilder(
+      builder: (context, setModalState) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Bộ lọc sản phẩm',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setModalState(() {
+                          tempCategoryId = null;
+                          tempBrandId = null;
+                        });
+                      },
+                      child: const Text('Xóa tất cả'),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Filter Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Categories
+                      const Text(
+                        'Danh mục',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _categories.map((category) {
+                          final isSelected = tempCategoryId == category.id;
+                          return GestureDetector(
+                            onTap: () {
+                              setModalState(() {
+                                tempCategoryId =
+                                    isSelected ? null : category.id;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF1EB5D9)
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF1EB5D9)
+                                      : Colors.transparent,
+                                ),
+                              ),
+                              child: Text(
+                                category.name,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black87,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Brands
+                      const Text(
+                        'Thương hiệu',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _brands.map((brand) {
+                          final isSelected = tempBrandId == brand.id;
+                          return GestureDetector(
+                            onTap: () {
+                              setModalState(() {
+                                tempBrandId = isSelected ? null : brand.id;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF1EB5D9)
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF1EB5D9)
+                                      : Colors.transparent,
+                                ),
+                              ),
+                              child: Text(
+                                brand.name,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black87,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Apply Button
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedCategoryId = tempCategoryId;
+                        _selectedBrandId = tempBrandId;
+                      });
+                      Navigator.pop(context);
+                      _fetchProducts(
+                        keyword: _searchKeyword.isEmpty ? null : _searchKeyword,
+                        categoryId: _selectedCategoryId,
+                        brandId: _selectedBrandId,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1EB5D9),
+                      minimumSize: const Size(double.infinity, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Áp dụng bộ lọc',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -198,7 +730,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 // Center: Location Selector (Prominent)
                                 GestureDetector(
                                   onTap: () {
-                                    // Show location picker
+                                    _showAddressSelector(context);
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -213,30 +745,46 @@ class _HomeScreenState extends State<HomeScreen>
                                         width: 1,
                                       ),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.location_on,
-                                          size: 18,
-                                          color: Color(0xFF1EB5D9),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text(
-                                          'Ho Chi Minh City',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF2D2D2D),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.keyboard_arrow_down,
-                                          size: 18,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ],
+                                    child: Consumer<AddressService>(
+                                      builder: (_, addrSvc, __) {
+                                        final sel = addrSvc.selectedShipment;
+                                        final label = sel != null
+                                            ? (sel.note?.isNotEmpty == true
+                                                ? sel.note!
+                                                : sel.city)
+                                            : 'Chọn địa chỉ';
+                                        return Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.location_on,
+                                              size: 18,
+                                              color: Color(0xFF1EB5D9),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                  maxWidth: 140),
+                                              child: Text(
+                                                label,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF2D2D2D),
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 1,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.keyboard_arrow_down,
+                                              size: 18,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ),
                                 ),
@@ -270,78 +818,72 @@ class _HomeScreenState extends State<HomeScreen>
                                     ),
                                     const SizedBox(width: 12),
                                     // Cart Icon with Badge
-                                    Container(
-                                      key:
-                                          _cartKey, // Add key for animation target
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.06),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.pushNamed(context, '/cart');
+                                      },
+                                      child: Consumer<CartService>(
+                                        builder: (_, cartSvc, __) => Container(
+                                          key: _cartKey,
+                                          width: 44,
+                                          height: 44,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.08),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          AnimatedBuilder(
-                                            animation: _shakeController!,
-                                            builder: (context, child) {
-                                              final shake =
-                                                  _shakeController!.value;
-                                              return Transform.translate(
-                                                offset: Offset(
-                                                  shake < 0.5
-                                                      ? (shake * 20 - 5)
-                                                      : ((1 - shake) * 20 - 5),
-                                                  0,
-                                                ),
-                                                child: IconButton(
-                                                  icon: const Icon(Icons
-                                                      .shopping_bag_outlined),
-                                                  onPressed: () {
-                                                    Navigator.pushNamed(
-                                                        context, '/cart');
-                                                  },
-                                                  iconSize: 22,
-                                                  color: Colors.grey[700],
-                                                  padding:
-                                                      const EdgeInsets.all(8),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                          if (_cartCount > 0)
-                                            Positioned(
-                                              right: 6,
-                                              top: 6,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.all(4),
-                                                decoration: const BoxDecoration(
-                                                  color: Color(0xFFFF5252),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                constraints:
-                                                    const BoxConstraints(
-                                                  minWidth: 16,
-                                                  minHeight: 16,
-                                                ),
-                                                child: Text(
-                                                  '$_cartCount',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  textAlign: TextAlign.center,
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Center(
+                                                child: Icon(
+                                                  Icons.shopping_bag_outlined,
+                                                  size: 22,
+                                                  color:
+                                                      const Color(0xFF1EB5D9),
                                                 ),
                                               ),
-                                            ),
-                                        ],
+                                              if (cartSvc.itemCount > 0)
+                                                Positioned(
+                                                  top: -2,
+                                                  right: -2,
+                                                  child: Container(
+                                                    width: 17,
+                                                    height: 17,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFBEF264),
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                          color: Colors.white,
+                                                          width: 1.5),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      '${cartSvc.itemCount}',
+                                                      style: const TextStyle(
+                                                        color:
+                                                            Color(0xFF0F172A),
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -381,18 +923,67 @@ class _HomeScreenState extends State<HomeScreen>
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: TextField(
+                                      controller: _searchController,
+                                      focusNode: _searchFocusNode,
+                                      onChanged: _onSearchChanged,
                                       decoration: InputDecoration(
-                                        hintText: 'Search for toys...',
+                                        hintText: 'Tìm kiếm sản phẩm...',
                                         hintStyle:
                                             TextStyle(color: Colors.grey[500]),
                                         border: InputBorder.none,
                                       ),
                                     ),
                                   ),
-                                  const Icon(
-                                    Icons.tune,
-                                    color: Color(0xFF1EB5D9),
-                                    size: 24,
+                                  // Use ValueListenableBuilder to update button without rebuilding TextField
+                                  ValueListenableBuilder<String>(
+                                    valueListenable: _searchQueryNotifier,
+                                    builder: (context, searchQuery, child) {
+                                      return searchQuery.isNotEmpty
+                                          ? GestureDetector(
+                                              onTap: _clearSearch,
+                                              child: const Icon(
+                                                Icons.clear,
+                                                color: Color(0xFF1EB5D9),
+                                                size: 20,
+                                              ),
+                                            )
+                                          : GestureDetector(
+                                              onTap: _showFilterBottomSheet,
+                                              child: Stack(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.tune,
+                                                    color: Color(0xFF1EB5D9),
+                                                    size: 24,
+                                                  ),
+                                                  if (_selectedCategoryId !=
+                                                          null ||
+                                                      _selectedBrandId != null)
+                                                    Positioned(
+                                                      right: 0,
+                                                      top: 0,
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(4),
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                          color:
+                                                              Color(0xFFFF5252),
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                        constraints:
+                                                            const BoxConstraints(
+                                                          minWidth: 8,
+                                                          minHeight: 8,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            );
+                                    },
                                   ),
                                 ],
                               ),
@@ -402,61 +993,64 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
 
-                    // Promotion Banner - Mega Sale
-                    const SliverToBoxAdapter(
-                      child: MegaSaleBanner(),
-                    ),
-
-                    // Category Chips Section
-                    SliverToBoxAdapter(
-                      child: Container(
-                        color: Colors.white,
-                        padding:
-                            const EdgeInsets.only(left: 20, top: 24, bottom: 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Category Chips - Horizontal Scroll
-                            SizedBox(
-                              height: 50,
-                              child: ListView(
-                                scrollDirection: Axis.horizontal,
-                                children: [
-                                  _buildCategoryChip('Popular',
-                                      _selectedCategory == 'Popular'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip('STEM Toys',
-                                      _selectedCategory == 'STEM Toys'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip(
-                                      'LEGO', _selectedCategory == 'LEGO'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip(
-                                      'Dolls', _selectedCategory == 'Dolls'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip('Action Figures',
-                                      _selectedCategory == 'Action Figures'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip('Board Games',
-                                      _selectedCategory == 'Board Games'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip('Puzzles',
-                                      _selectedCategory == 'Puzzles'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip('Vehicles',
-                                      _selectedCategory == 'Vehicles'),
-                                  const SizedBox(width: 12),
-                                  _buildCategoryChip('Arts & Crafts',
-                                      _selectedCategory == 'Arts & Crafts'),
-                                ],
-                              ),
-                            ),
-                          ],
+                    // Promotion Banner Carousel (hide when searching)
+                    if (_searchKeyword.isEmpty)
+                      SliverToBoxAdapter(
+                        child: BannerCarousel(
+                          pageController: _bannerPageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentBannerIndex = index;
+                            });
+                          },
                         ),
                       ),
-                    ),
 
-                    // Trending Now Header - Premium Design
+                    // Category Chips Section (hide when searching)
+                    if (_searchKeyword.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.only(
+                              left: 20, top: 24, bottom: 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Category Chips - Horizontal Scroll (Dynamic from API)
+                              SizedBox(
+                                height: 50,
+                                child: _categories.isEmpty
+                                    ? const Center(
+                                        child: CircularProgressIndicator(),
+                                      )
+                                    : ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: _categories.length + 1,
+                                        separatorBuilder: (context, index) =>
+                                            const SizedBox(width: 12),
+                                        itemBuilder: (context, index) {
+                                          if (index == 0) {
+                                            // "Tất cả" option to clear filter
+                                            return _buildCategoryChip(
+                                              null,
+                                              _selectedCategoryId == null,
+                                            );
+                                          }
+                                          final category =
+                                              _categories[index - 1];
+                                          return _buildCategoryChip(
+                                            category,
+                                            _selectedCategoryId == category.id,
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    // Trending Now Header - Premium Design (or Search Results)
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 32, 20, 20),
@@ -465,23 +1059,41 @@ class _HomeScreenState extends State<HomeScreen>
                           children: [
                             Row(
                               children: [
-                                const Text(
-                                  '🔥',
-                                  style: TextStyle(fontSize: 24),
+                                Text(
+                                  _searchKeyword.isEmpty ? '🔥' : '🔍',
+                                  style: const TextStyle(fontSize: 24),
                                 ),
                                 const SizedBox(width: 8),
-                                const Text(
-                                  'Trending Now',
-                                  style: TextStyle(
+                                Text(
+                                  _searchKeyword.isEmpty
+                                      ? 'Trending Now'
+                                      : 'Kết quả tìm kiếm',
+                                  style: const TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF2D2D2D),
                                   ),
                                 ),
+                                if (_searchKeyword.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '(${_products.length})',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ProductListScreen(),
+                                ),
+                              ),
                               style: TextButton.styleFrom(
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 8),
@@ -513,46 +1125,80 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
 
-                    // Products Grid
-                    _products.isEmpty
-                        ? const SliverFillRemaining(
-                            child: Center(child: Text('Không có sản phẩm nào')),
-                          )
-                        : SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.60,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                                  return ModernProductCard(
-                                    product: _products[index],
-                                    currencyFormat: _currencyFormat,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              ProductDetailScreen(
-                                            product: _products[index],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    onAddToCart: () {
-                                      _addToCartWithAnimation(_products[index]);
-                                    },
-                                  );
-                                },
-                                childCount: _products.length,
-                              ),
-                            ),
+                    // Active Filters chips
+                    if (_selectedCategoryId != null || _selectedBrandId != null)
+                      SliverToBoxAdapter(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (_selectedCategoryId != null)
+                                _buildActiveFilterChip(
+                                  _categories
+                                      .firstWhere(
+                                          (c) => c.id == _selectedCategoryId)
+                                      .name,
+                                  () {
+                                    setState(() {
+                                      _selectedCategoryId = null;
+                                    });
+                                    _fetchProducts(
+                                      keyword: _searchKeyword.isEmpty
+                                          ? null
+                                          : _searchKeyword,
+                                      categoryId: null,
+                                      brandId: _selectedBrandId,
+                                    );
+                                  },
+                                ),
+                              if (_selectedBrandId != null)
+                                _buildActiveFilterChip(
+                                  _brands
+                                      .firstWhere(
+                                          (b) => b.id == _selectedBrandId)
+                                      .name,
+                                  () {
+                                    setState(() {
+                                      _selectedBrandId = null;
+                                    });
+                                    _fetchProducts(
+                                      keyword: _searchKeyword.isEmpty
+                                          ? null
+                                          : _searchKeyword,
+                                      categoryId: _selectedCategoryId,
+                                      brandId: null,
+                                    );
+                                  },
+                                ),
+                            ],
                           ),
+                        ),
+                      ),
+
+                    // Products Grid - Isolated rebuild with ValueNotifier
+                    ProductsGridSliver(
+                      productsNotifier: _productsNotifier,
+                      searchQueryNotifier: _searchQueryNotifier,
+                      decimalFormat: _decimalFormat,
+                      onProductTap: (product) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ProductDetailScreen(product: product),
+                          ),
+                        );
+                      },
+                      onAddToCart: (product, sourceKey) {
+                        _addToCartWithAnimation(product, sourceKey);
+                      },
+                      onWishlistToggle: (product, sourceKey) {
+                        _flyToWishlist(sourceKey);
+                      },
+                    ),
 
                     const SliverToBoxAdapter(
                       child: SizedBox(height: 20),
@@ -590,10 +1236,25 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(
                       builder: (context) => const WishlistScreen()),
                 );
-              }),
+              },
+                  badge: Consumer<WishlistService>(
+                    builder: (_, wishlist, __) => wishlist.count > 0
+                        ? _buildNavBadge(
+                            '${wishlist.count}',
+                            badgeColor: Colors.redAccent,
+                            textColor: Colors.white,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  iconKey: _wishlistNavKey),
               _buildNavItem(Icons.shopping_cart_outlined, 'Cart', false, () {
                 Navigator.pushNamed(context, '/cart');
-              }),
+              },
+                  badge: Consumer<CartService>(
+                    builder: (_, cart, __) => cart.itemCount > 0
+                        ? _buildNavBadge('${cart.itemCount}')
+                        : const SizedBox.shrink(),
+                  )),
               _buildNavItem(Icons.person_outline, 'Profile', false, () {
                 Navigator.push(
                   context,
@@ -608,17 +1269,52 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildNavBadge(String text,
+      {Color badgeColor = const Color(0xFFBEF264),
+      Color textColor = const Color(0xFF0F172A)}) {
+    return Positioned(
+      top: -4,
+      right: -4,
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: badgeColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem(
-      IconData icon, String label, bool isActive, VoidCallback onTap) {
+      IconData icon, String label, bool isActive, VoidCallback onTap,
+      {Widget? badge, Key? iconKey}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF27A6D1) : Colors.grey[600],
-            size: 26,
+          Stack(
+            key: iconKey,
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? const Color(0xFF27A6D1) : Colors.grey[600],
+                size: 26,
+              ),
+              if (badge != null) badge,
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -634,18 +1330,21 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildCategoryChip(String label, bool isActive) {
+  Widget _buildCategoryChip(Category? category, bool isActive) {
+    final String label = category?.name ?? 'Tất cả';
+
     return GestureDetector(
       onTap: () {
         setState(() {
+          _selectedCategoryId = category?.id;
           _selectedCategory = label;
         });
-        // Navigate to CategoryScreen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CategoryScreen(categoryName: label),
-          ),
+
+        // Fetch products with selected category filter
+        _fetchProducts(
+          keyword: _searchKeyword.isNotEmpty ? _searchKeyword : null,
+          categoryId: _selectedCategoryId,
+          brandId: _selectedBrandId,
         );
       },
       child: Container(
@@ -680,147 +1379,99 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildActiveFilterChip(String label, VoidCallback onRemove) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1EB5D9).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF1EB5D9),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF1EB5D9),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(
+              Icons.close,
+              size: 16,
+              color: Color(0xFF1EB5D9),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Add to cart with fly animation
-  void _addToCartWithAnimation(Product product) async {
-    print('🎯 Add to cart with animation triggered for: ${product.name}');
-
-    // Use post frame callback to avoid setState during build
+  void _addToCartWithAnimation(Product product, GlobalKey sourceKey) {
+    // Launch bezier fly animation immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startFlyAnimation(product);
+      _flyToCart(sourceKey, _cartKey);
     });
-
-    // Then try to add to cart via API in the background
+    // Call API in background
     _addToCart(product);
   }
 
-  void _startFlyAnimation(Product product) async {
-    print('🚀 Starting fly animation...');
+  void _flyToCart(GlobalKey sourceKey, GlobalKey targetKey) {
+    final sourceBox =
+        sourceKey.currentContext?.findRenderObject() as RenderBox?;
+    final targetBox =
+        targetKey.currentContext?.findRenderObject() as RenderBox?;
+    if (sourceBox == null || targetBox == null) return;
+    final startPos =
+        sourceBox.localToGlobal(sourceBox.size.center(Offset.zero));
+    final endPos = targetBox.localToGlobal(targetBox.size.center(Offset.zero));
 
-    // Get cart icon position
-    final cartBox = _cartKey.currentContext?.findRenderObject() as RenderBox?;
-    if (cartBox == null) {
-      print('❌ Cart icon not found, cannot animate');
-      // Still update count even if animation fails
-      setState(() {
-        _cartCount++;
-      });
-      _shakeController?.forward().then((_) => _shakeController?.reset());
-      return;
-    }
-
-    print('✅ Cart icon found, creating animation...');
-
-    print('✅ Cart icon found, creating animation...');
-
-    final cartPosition = cartBox.localToGlobal(Offset.zero);
-    final cartSize = cartBox.size;
-    final targetX = cartPosition.dx + cartSize.width / 2;
-    final targetY = cartPosition.dy + cartSize.height / 2;
-
-    print('📍 Target position: ($targetX, $targetY)');
-
-    // Create overlay entry with product image
-    final overlay = Overlay.of(context);
-    if (overlay == null) {
-      print('❌ Overlay not found');
-      setState(() {
-        _cartCount++;
-      });
-      _shakeController?.forward().then((_) => _shakeController?.reset());
-      return;
-    }
-
-    late OverlayEntry overlayEntry;
-
-    // Animation values
-    final animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    // Start position (will be set when we know the product card position)
-    // For simplicity, we'll use screen center as starting point
-    final screenSize = MediaQuery.of(context).size;
-    final startX = screenSize.width / 2;
-    final startY = screenSize.height * 0.6; // Approximate product card position
-
-    final animation = CurvedAnimation(
-      parent: animationController,
-      curve: Curves.easeInOut,
-    );
-
-    overlayEntry = OverlayEntry(
-      builder: (context) => AnimatedBuilder(
-        animation: animation,
-        builder: (context, child) {
-          // Calculate current position with parabolic curve
-          final progress = animation.value;
-          final currentX = startX + (targetX - startX) * progress;
-          final currentY = startY +
-              (targetY - startY) * progress -
-              100 * (1 - progress) * progress; // Parabolic arc
-
-          // Scale down as it flies
-          final scale = 1.0 - progress * 0.7;
-
-          return Positioned(
-            left: currentX - 25,
-            top: currentY - 25,
-            child: IgnorePointer(
-              child: Transform.scale(
-                scale: scale,
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1EB5D9).withOpacity(0.3),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1EB5D9).withOpacity(0.5),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.toys,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _HomeFlyingDot(
+        startPos: startPos,
+        endPos: endPos,
+        onComplete: () => entry.remove(),
       ),
     );
-
-    overlay.insert(overlayEntry);
-    _flyingWidget = overlayEntry;
-
-    print('🎬 Animation started!');
-
-    // Start animation
-    await animationController.forward();
-
-    print('✨ Animation completed!');
-
-    // Update cart count and shake cart icon
-    if (mounted) {
-      setState(() {
-        _cartCount++;
-      });
-      _shakeController?.forward().then((_) => _shakeController?.reset());
-    }
-
-    // Clean up
-    await Future.delayed(const Duration(milliseconds: 100));
-    overlayEntry.remove();
-    animationController.dispose();
-
-    print('🧹 Animation cleaned up');
+    Overlay.of(context).insert(entry);
+    _flyingWidget = entry;
   }
+
+  void _flyToWishlist(GlobalKey sourceKey) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sourceBox =
+          sourceKey.currentContext?.findRenderObject() as RenderBox?;
+      final targetBox =
+          _wishlistNavKey.currentContext?.findRenderObject() as RenderBox?;
+      if (sourceBox == null || targetBox == null) return;
+      final startPos =
+          sourceBox.localToGlobal(sourceBox.size.center(Offset.zero));
+      final endPos =
+          targetBox.localToGlobal(targetBox.size.center(Offset.zero));
+
+      late OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (_) => _HomeFlyingHeart(
+          startPos: startPos,
+          endPos: endPos,
+          onComplete: () => entry.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
+    });
+  }
+
+  void _startFlyAnimation(Product product) async {}
 
   Future<void> _addToCart(Product product) async {
     final authService = Provider.of<AuthService>(context, listen: false);
@@ -834,39 +1485,58 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    try {
-      final success = await cartService.addToCart(
-        authService.currentUser!.id,
-        product.id,
-        1,
-      );
-      if (mounted && success) {
+    // Check stock before adding
+    if (product.stock <= 0) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã thêm ${product.name} vào giỏ hàng'),
-            backgroundColor: const Color(0xFF1EB5D9),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      } else if (mounted && !success) {
-        // Show detailed error but don't block the UI
-        print('Failed to add to cart - Backend might be unavailable');
-        // Optional: Show a less prominent error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-                'Đã thêm vào giỏ tạm thời (Chưa đồng bộ với server)'),
+            content: const Text('⚠️ Sản phẩm này hiện đã hết hàng'),
             backgroundColor: Colors.orange.shade600,
             duration: const Duration(seconds: 2),
           ),
         );
       }
-    } catch (e) {
+      return;
+    }
+
+    try {
+      print('🛒 Adding product ${product.id} to cart...');
+      final success = await cartService.addToCart(
+        authService.currentUser!.id,
+        product.id,
+        1,
+      );
+
       if (mounted) {
-        print('Cart error: $e');
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('✅ Đã thêm vào giỏ hàng'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        } else {
+          // Get detailed error message from CartService
+          final errorMsg =
+              cartService.lastErrorMessage ?? 'Không thể thêm vào giỏ hàng';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ $errorMsg'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('🔥 Exception adding to cart: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Đã thêm vào giỏ tạm thời (Lỗi kết nối)'),
+            content:
+                Text('⚠️ Lỗi: ${e.toString().replaceFirst('Exception: ', '')}'),
             backgroundColor: Colors.orange.shade600,
             duration: const Duration(seconds: 2),
           ),
@@ -876,25 +1546,136 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-// Modern Product Card Widget with Flush Layout
-class ModernProductCard extends StatelessWidget {
-  final Product product;
-  final NumberFormat currencyFormat;
-  final VoidCallback onTap;
-  final VoidCallback onAddToCart;
+// Products Grid Sliver - Isolated rebuild using ValueNotifier
+class ProductsGridSliver extends StatelessWidget {
+  final ValueNotifier<List<Product>> productsNotifier;
+  final ValueNotifier<String> searchQueryNotifier;
+  final NumberFormat decimalFormat;
+  final Function(Product) onProductTap;
+  final Function(Product, GlobalKey) onAddToCart;
+  final Function(Product, GlobalKey) onWishlistToggle;
 
-  const ModernProductCard({
+  const ProductsGridSliver({
     super.key,
-    required this.product,
-    required this.currencyFormat,
-    required this.onTap,
+    required this.productsNotifier,
+    required this.searchQueryNotifier,
+    required this.decimalFormat,
+    required this.onProductTap,
     required this.onAddToCart,
+    required this.onWishlistToggle,
   });
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<Product>>(
+      valueListenable: productsNotifier,
+      builder: (context, products, child) {
+        return ValueListenableBuilder<String>(
+          valueListenable: searchQueryNotifier,
+          builder: (context, searchQuery, child) {
+            if (products.isEmpty) {
+              return SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        searchQuery.isEmpty
+                            ? Icons.shopping_bag_outlined
+                            : Icons.search_off,
+                        size: 80,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        searchQuery.isEmpty
+                            ? 'Không có sản phẩm nào'
+                            : 'Không tìm thấy "$searchQuery"',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (searchQuery.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Thử tìm kiếm với từ khóa khác',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.60,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return ModernProductCard(
+                      product: products[index],
+                      decimalFormat: decimalFormat,
+                      onTap: () => onProductTap(products[index]),
+                      onAddToCart: (key) => onAddToCart(products[index], key),
+                      onWishlistToggle: (key) =>
+                          onWishlistToggle(products[index], key),
+                    );
+                  },
+                  childCount: products.length,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// Modern Product Card Widget with Flush Layout
+class ModernProductCard extends StatefulWidget {
+  final Product product;
+  final NumberFormat decimalFormat;
+  final VoidCallback onTap;
+  final Function(GlobalKey) onAddToCart;
+  final Function(GlobalKey)? onWishlistToggle;
+
+  const ModernProductCard({
+    super.key,
+    required this.product,
+    required this.decimalFormat,
+    required this.onTap,
+    required this.onAddToCart,
+    this.onWishlistToggle,
+  });
+
+  @override
+  State<ModernProductCard> createState() => _ModernProductCardState();
+}
+
+class _ModernProductCardState extends State<ModernProductCard> {
+  final _addBtnKey = GlobalKey();
+  final _heartBtnKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    final product = widget.product;
+    final decimalFormat = widget.decimalFormat;
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -948,23 +1729,46 @@ class ModernProductCard extends StatelessWidget {
                                 ),
                               ),
                       ),
-                      // Discount Badge
+                      // Wishlist heart button
                       Positioned(
                         top: 8,
                         left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFC107),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            '-20%',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                        child: Consumer<WishlistService>(
+                          builder: (_, wishlist, __) => GestureDetector(
+                            onTap: () {
+                              final ws = Provider.of<WishlistService>(context,
+                                  listen: false);
+                              final wasWishlisted =
+                                  ws.isWishlisted(widget.product.id);
+                              ws.toggleWishlist(widget.product);
+                              if (!wasWishlisted) {
+                                widget.onWishlistToggle?.call(_heartBtnKey);
+                              }
+                            },
+                            child: Container(
+                              key: _heartBtnKey,
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                wishlist.isWishlisted(widget.product.id)
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                size: 16,
+                                color: wishlist.isWishlisted(widget.product.id)
+                                    ? Colors.redAccent
+                                    : Colors.grey[400],
+                              ),
                             ),
                           ),
                         ),
@@ -995,23 +1799,9 @@ class ModernProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // Stock & Rating
+                  // Rating
                   Row(
                     children: [
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 12,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${product.stock} left',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       const Icon(
                         Icons.star,
                         size: 12,
@@ -1019,7 +1809,7 @@ class ModernProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '4.8',
+                        '4.8 (86 đánh giá)',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[600],
@@ -1032,37 +1822,63 @@ class ModernProductCard extends StatelessWidget {
                   // Price and Add Button Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Price
-                      Text(
-                        currencyFormat.format(product.price),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A1A),
-                        ),
+                      // Price Section
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (product.originalPrice != null)
+                            Text(
+                              '${decimalFormat.format(product.originalPrice)} đ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                                decoration: TextDecoration.lineThrough,
+                                height: 1.0,
+                              ),
+                            ),
+                          Text(
+                            '${decimalFormat.format(product.price)} đ',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        ],
                       ),
 
                       // Add to Cart Button
                       GestureDetector(
-                        onTap: onAddToCart,
+                        onTap: product.stock > 0
+                            ? () => widget.onAddToCart(_addBtnKey)
+                            : null,
                         child: Container(
+                          key: _addBtnKey,
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1EB5D9),
+                            color: product.stock > 0
+                                ? const Color(0xFF1EB5D9)
+                                : Colors.grey[300],
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF1EB5D9).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            boxShadow: product.stock > 0
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF1EB5D9)
+                                          .withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.add,
-                            color: Colors.white,
+                            color: product.stock > 0
+                                ? Colors.white
+                                : Colors.grey[500],
                             size: 18,
                           ),
                         ),
@@ -1079,6 +1895,199 @@ class ModernProductCard extends StatelessWidget {
   }
 }
 
+// ─── Home Fly-to-Cart Overlay Animation ────────────────────────────────────
+
+class _HomeFlyingDot extends StatefulWidget {
+  const _HomeFlyingDot({
+    required this.startPos,
+    required this.endPos,
+    required this.onComplete,
+  });
+  final Offset startPos;
+  final Offset endPos;
+  final VoidCallback onComplete;
+
+  @override
+  State<_HomeFlyingDot> createState() => _HomeFlyingDotState();
+}
+
+class _HomeFlyingDotState extends State<_HomeFlyingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+    _ctrl.forward().whenComplete(widget.onComplete);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  /// Quadratic Bézier parabol: P(t) = (1-t)²P0 + 2(1-t)t·P1 + t²P2
+  Offset _bezier(double t) {
+    final p0 = widget.startPos;
+    final p2 = widget.endPos;
+    final ctrl = Offset(
+      (p0.dx + p2.dx) / 2,
+      math.min(p0.dy, p2.dy) - 130,
+    );
+    final mt = 1 - t;
+    return Offset(
+      mt * mt * p0.dx + 2 * mt * t * ctrl.dx + t * t * p2.dx,
+      mt * mt * p0.dy + 2 * mt * t * ctrl.dy + t * t * p2.dy,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) {
+        final t = _anim.value;
+        final pos = _bezier(t);
+        final scale = lerpDouble(1.0, 0.2, t)!;
+        final opacity = t > 0.75 ? (1.0 - t) / 0.25 : 1.0;
+        return Positioned(
+          left: pos.dx - 18,
+          top: pos.dy - 18,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: opacity.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1EB5D9).withOpacity(0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Color(0xFF1EB5D9),
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Home Fly-to-Wishlist Overlay Animation ─────────────────────────────────
+
+class _HomeFlyingHeart extends StatefulWidget {
+  const _HomeFlyingHeart({
+    required this.startPos,
+    required this.endPos,
+    required this.onComplete,
+  });
+  final Offset startPos;
+  final Offset endPos;
+  final VoidCallback onComplete;
+
+  @override
+  State<_HomeFlyingHeart> createState() => _HomeFlyingHeartState();
+}
+
+class _HomeFlyingHeartState extends State<_HomeFlyingHeart>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650));
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+    _ctrl.forward().whenComplete(widget.onComplete);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Offset _bezier(double t) {
+    final p0 = widget.startPos;
+    final p2 = widget.endPos;
+    final ctrl = Offset(
+      (p0.dx + p2.dx) / 2,
+      math.min(p0.dy, p2.dy) - 60,
+    );
+    final mt = 1 - t;
+    return Offset(
+      mt * mt * p0.dx + 2 * mt * t * ctrl.dx + t * t * p2.dx,
+      mt * mt * p0.dy + 2 * mt * t * ctrl.dy + t * t * p2.dy,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) {
+        final t = _anim.value;
+        final pos = _bezier(t);
+        final scale = lerpDouble(1.2, 0.3, t)!;
+        final opacity = t > 0.75 ? (1.0 - t) / 0.25 : 1.0;
+        return Positioned(
+          left: pos.dx - 18,
+          top: pos.dy - 18,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: opacity.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.redAccent.withOpacity(0.45),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.favorite,
+                    color: Colors.redAccent,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 // Optimized Banner Widget
 class MegaSaleBanner extends StatelessWidget {
   const MegaSaleBanner({super.key});
@@ -1087,96 +2096,391 @@ class MegaSaleBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-      constraints: const BoxConstraints(minHeight: 140),
-      clipBehavior: Clip.antiAlias,
+      width: double.infinity,
+      height: 120,
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF2E7FD8),
-            Color(0xFF1EB5D9),
-          ],
+          colors: [Color(0xFF3B82F6), Color(0xFF22D3EE)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Stack(
-        children: [
-          // Content with Padding
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Mega Sale',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            // Hiệu ứng đốm sáng mờ 1 (Góc trên phải)
+            Positioned(
+              top: -20,
+              right: 80,
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 24,
+                      spreadRadius: 10,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'UP TO 50% OFF',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFFFB800),
-                    letterSpacing: 1,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // Hiệu ứng đốm sáng mờ 2 (Góc dưới trái)
+            Positioned(
+              bottom: -10,
+              left: 20,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 16,
+                      spreadRadius: 5,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: SizedBox(
-                    height: 28,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF2E7FD8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 0,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+
+            // Icon Tên lửa (Xoay và đổ bóng)
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Transform.rotate(
+                angle: -10 * math.pi / 180,
+                child: SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Lớp tên lửa mờ phía sau
+                      Icon(
+                        Icons.rocket_launch_rounded,
+                        size: 140,
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                      // Lớp tên lửa vàng rực phía trước
+                      const Icon(
+                        Icons.rocket_launch_rounded,
+                        size: 100,
+                        color: Color(0xFFFDE047),
+                        shadows: [
+                          Shadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Cụm nội dung Chữ & Nút bấm
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Mega Sale',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                      shadows: [
+                        Shadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(0, 2)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'UP TO 50% OFF',
+                    style: TextStyle(
+                      color: Color(0xFFFDE047),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      shadows: [
+                        Shadow(
+                            color: Colors.black12,
+                            blurRadius: 2,
+                            offset: Offset(0, 1)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Nút Shop Now
+                  InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                       child: const Text(
                         'Shop Now',
                         style: TextStyle(
-                          fontSize: 11,
+                          color: Color(0xFF2563EB),
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Banner Carousel Widget ──────────────────────────────────────────────────
+
+class BannerCarousel extends StatefulWidget {
+  final PageController pageController;
+  final ValueChanged<int>? onPageChanged;
+
+  const BannerCarousel({
+    super.key,
+    required this.pageController,
+    this.onPageChanged,
+  });
+
+  @override
+  State<BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<BannerCarousel> {
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.pageController.addListener(() {
+      final newIndex = widget.pageController.page?.round() ?? 0;
+      if (newIndex != _currentIndex) {
+        setState(() {
+          _currentIndex = newIndex;
+        });
+        widget.onPageChanged?.call(newIndex);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final banners = [
+      const MegaSaleBanner(),
+      const SummerSaleBanner(),
+    ];
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 140,
+          child: PageView(
+            controller: widget.pageController,
+            children: banners,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Indicator dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            banners.length,
+            (index) => Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentIndex == index
+                    ? const Color(0xFF1EB5D9)
+                    : Colors.grey[300],
+              ),
             ),
           ),
-          // Rocket Icon - positioned to not overlap text
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Summer Sale Banner Widget ───────────────────────────────────────────────
+
+class SummerSaleBanner extends StatelessWidget {
+  const SummerSaleBanner({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 130, // Tăng nhẹ chiều cao để tạo không gian thở
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF1A237E),
+            Color(0xFF3949AB)
+          ], // Xanh đậm sang Xanh ngọc
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1A237E).withOpacity(0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      // Dùng Stack để đè các lớp lên nhau
+      child: Stack(
+        clipBehavior: Clip.none, // CHO PHÉP ROBOT TRÀN VIỀN ĐỂ TẠO CHIỀU SÂU
+        children: [
+          // --- 1. Lớp Ánh sáng hòa trộn (Glow/Blur Effects) ---
           Positioned(
-            right: 0,
-            bottom: -10,
-            child: Transform.rotate(
-              angle: 0.3,
-              child: const Icon(
-                Icons.rocket_launch,
-                size: 100,
-                color: Color(0xFFFFD700),
+            top: -20,
+            right: 80,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.15),
+                // Quầng sáng này làm cầu nối giữa nền và robot
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 40,
+                      spreadRadius: 20),
+                ],
               ),
+            ),
+          ),
+          Positioned(
+            bottom: -30,
+            left: 20,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.white.withOpacity(0.05),
+                      blurRadius: 20,
+                      spreadRadius: 10),
+                ],
+              ),
+            ),
+          ),
+
+          // --- 2. Lớp Hình ảnh Robot (Phải lớn và tràn viền) ---
+          Positioned(
+            right: -15, // Kéo lệch sang phải một chút
+            bottom: -15, // Cho robot hơi tràn xuống đáy
+            top: -15, // Cố tình cho robot cao hơn banner một chút
+            child: SizedBox(
+              width: 160,
+              // Tạm dùng một hình đồ chơi từ Unsplash để bạn test hiệu ứng
+              child: Image.network(
+                'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          // --- 3. Lớp Văn bản và Nút bấm ---
+          Positioned(
+            left: 24,
+            top: 20,
+            bottom: 20,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Summer Sale',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'SALE 20% OFF',
+                  style: TextStyle(
+                    color: Color(0xFFFFD700), // Vàng rực
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1A237E),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    minimumSize: const Size(80, 32), // Nút gọn gàng
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 3,
+                  ),
+                  onPressed: () {},
+                  child: const Text(
+                    'Shop Now',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

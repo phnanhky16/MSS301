@@ -86,7 +86,6 @@ public class OrderEventPublisher {
                                 .orderId(order.getId())
                                 .orderNumber(order.getOrderNumber())
                                 .userId(order.getUserId())
-                                .storeId(order.getStoreId())
                                 .customerEmail(customerEmail)
                                 .customerName(customerName)
                                 .totalAmount(order.getTotalAmount())

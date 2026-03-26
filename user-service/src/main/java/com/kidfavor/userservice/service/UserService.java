@@ -15,14 +15,21 @@ public interface UserService {
     org.springframework.data.domain.Page<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable,
                                                                    String keyword,
                                                                    Boolean status,
+                                                                   Boolean emailVerified,
                                                                    Role role);
+
+    org.springframework.data.domain.Page<UserResponse> getArchivedUsers(org.springframework.data.domain.Pageable pageable,
+                                                                        String keyword,
+                                                                        Role role);
     UserResponse getUserById(int id);
     List<UserResponse> getUsersByStatus(Boolean status);
     List<UserResponse> getUsersByRole(Role role);
     UserResponse updateUser(int id, UserUpdateRequest request);
     void changeUserStatus(int id);
+    void archiveUser(int id);
+    void restoreUser(int id);
     UserResponse changeUserRole(int id, Role role);
-    void deleteUser(int id);
+    void permanentlyDeleteUser(int id);
     /**
      * Return total number of users (for dashboard stats).
      */

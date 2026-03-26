@@ -27,6 +27,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // CORS handling has been removed entirely.  the gateway is
+                // responsible for any Access-Control-* headers and Spring
+                // Security will no longer apply its own CORS filter.  this makes
+                // the backend oblivious to cross-origin concerns (requests may
+                // still be blocked by the browser if no header is sent).
+                
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -40,6 +46,9 @@ public class SecurityConfig {
                         // Actuator - public
                         .requestMatchers("/actuator/**").permitAll()
                         
+                        // Internal service-to-service endpoints - no auth required
+                        .requestMatchers("/internal/**").permitAll()
+                        
                         // OPTIONS - permit all for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
@@ -47,11 +56,22 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/stores/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/warehouses/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/inventory/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/warehouse-stock/**").permitAll()
+                        
+                        // Geocoding and Location endpoints - public for testing/frontend
+                        .requestMatchers("/geocoding/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/location/**").permitAll()
+                        
+                        // Location-based inventory - public for order placement
+                        .requestMatchers("/location-inventory/**").permitAll()
                         
                         // POST, PUT, DELETE - require authentication
                         .requestMatchers(HttpMethod.POST, "/api/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/**").authenticated()
+                        
+                        // Location update endpoints - require authentication
+                        .requestMatchers(HttpMethod.POST, "/location/**").authenticated()
                         
                         // Any other request - require authentication
                         .anyRequest().authenticated()
@@ -69,4 +89,18 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+        /**
+         * Permit all origins/headers/methods for CORS.  This effectively disables
+         * browser CORS protections when clients talk directly to this service.
+         *
+         * The API gateway already adds an Access-Control-Allow-Origin: * header to
+         * every response, but enabling a matching `CorsConfigurationSource` here
+         * prevents Spring Security from blocking preflight requests when the
+         * service is invoked without the gateway (for example during local
+         * testing).
+         */
+        // CORS configuration bean removed; the service no longer advertises
+        // any Access-Control-* headers.  rely on the gateway or clients to
+        // handle cross-origin requirements if necessary.
 }

@@ -1,7 +1,8 @@
 import '../styles/globals.css';
+import '../styles/admin.css';
 import 'antd/dist/reset.css';
 import { useRouter } from 'next/router';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntApp } from 'antd';
 import Layout from '../components/Layout';
 import AdminLayout from '../components/AdminLayout';
 import { CartProvider } from '../hooks/useCart';
@@ -9,16 +10,18 @@ import { CartProvider } from '../hooks/useCart';
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const isAdmin = router.pathname.startsWith('/admin');
-  const isLogin = router.pathname === '/login';
+  const isLogin = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'].includes(router.pathname);
   const Wrapper = isAdmin ? AdminLayout : Layout;
 
   return (
     <ConfigProvider theme={{ token: { primaryColor: '#1ca8c8' } }}>
-      <CartProvider>
-        <Wrapper isLogin={isLogin}>
-          <Component {...pageProps} />
-        </Wrapper>
-      </CartProvider>
+      <AntApp>
+        <CartProvider>
+          <Wrapper isLogin={isLogin}>
+            <Component {...pageProps} />
+          </Wrapper>
+        </CartProvider>
+      </AntApp>
     </ConfigProvider>
   );
 }
