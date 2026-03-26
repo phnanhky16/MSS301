@@ -79,7 +79,7 @@ function mapServerCartItem(item) {
         name: product?.name || `Product #${productId}`,
         price: Number(product?.price || 0),
         imageUrls: Array.isArray(product?.imageUrls) ? product.imageUrls : [],
-        img: '🧸',
+        img: (Array.isArray(product?.imageUrls) && product.imageUrls.length > 0) ? product.imageUrls[0] : '🧸',
         quantity: Number(item?.quantity || 1),
     };
 }

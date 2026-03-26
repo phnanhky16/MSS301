@@ -232,22 +232,17 @@ public class CartServiceImpl implements CartService {
         // Calculate totals
         double totalPrice = itemResponses.stream()
                 .mapToDouble(item -> {
-<<<<<<< HEAD
-                    if (item.getProduct() != null && item.getProduct().getPrice() != null) {
-                        double effectivePrice = item.getProduct().getPrice().doubleValue();
-                        if (item.getProduct().getOnSale() != null && item.getProduct().getOnSale() && item.getProduct().getSalePrice() != null) {
-                            effectivePrice = item.getProduct().getSalePrice().doubleValue();
-                        }
-                        return effectivePrice * item.getQuantity();
-=======
                     if (item.getProduct() != null) {
-                        java.math.BigDecimal priceToUse = item.getProduct().getEffectivePrice() != null 
-                            ? item.getProduct().getEffectivePrice() 
-                            : item.getProduct().getPrice();
+                        java.math.BigDecimal priceToUse = item.getProduct().getEffectivePrice();
+                        if (priceToUse == null) {
+                            priceToUse = item.getProduct().getPrice();
+                            if (Boolean.TRUE.equals(item.getProduct().getOnSale()) && item.getProduct().getSalePrice() != null) {
+                                priceToUse = item.getProduct().getSalePrice();
+                            }
+                        }
                         if (priceToUse != null) {
                             return priceToUse.doubleValue() * item.getQuantity();
                         }
->>>>>>> origin/dev
                     }
                     return 0.0;
                 })

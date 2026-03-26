@@ -181,9 +181,17 @@ export default function CheckoutPage() {
             dataIndex: 'name',
             key: 'name',
             render: (name, record) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 20, background: '#f5f5f5', padding: '4px 8px', borderRadius: 6 }}>
-                        {record.img || '🧸'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 20, background: '#f5f5f5', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, overflow: 'hidden' }}>
+                        {record.imageUrls && record.imageUrls.length > 0 ? (
+                            <img 
+                                src={record.imageUrls[0]} 
+                                alt={name} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                        ) : (
+                            record.img || '🧸'
+                        )}
                     </div>
                     <Text strong style={{ fontSize: 13 }}>{name}</Text>
                 </div>

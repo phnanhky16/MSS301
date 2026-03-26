@@ -1,9 +1,9 @@
-FROM eclipse-temurin:21-jre-alpine
-
+FROM amazoncorretto:17-alpine
 WORKDIR /app
-
-COPY target/inventory-service-0.0.1-SNAPSHOT.jar app.jar
-
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+COPY target/*.jar app.jar
+RUN chown -R appuser:appgroup /app
+USER appuser
 EXPOSE 80
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
