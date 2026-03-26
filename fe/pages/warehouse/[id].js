@@ -62,7 +62,10 @@ export default function WarehouseDetail() {
 
     const handleUpdateStock = async (record) => {
         try {
-            await updateWarehouseProductStock(id, record.productId, { quantity: newQuantity });
+            await updateWarehouseProductStock(id, record.productId, { 
+                productId: record.productId,
+                quantity: newQuantity 
+            });
             message.success("Stock updated successfully");
             setEditingProduct(null);
             loadData();

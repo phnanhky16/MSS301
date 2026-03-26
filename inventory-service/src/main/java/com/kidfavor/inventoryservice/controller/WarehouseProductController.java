@@ -108,7 +108,7 @@ public class WarehouseProductController {
                 .body(ResponseWrapper.created("Product added/updated successfully", product));
     }
 
-    @PutMapping("/{warehouseId}/products/{productId}")
+    @PutMapping("/{warehouseId}/products/{productId}/stock")
     @Operation(summary = "Update stock quantity for a product in warehouse", description = "Set the stock quantity to a specific value (not incremental)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Stock updated successfully"),
