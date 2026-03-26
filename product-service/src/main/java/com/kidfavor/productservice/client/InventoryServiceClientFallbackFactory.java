@@ -79,6 +79,28 @@ public class InventoryServiceClientFallbackFactory implements FallbackFactory<In
                         .data(Collections.emptyList())
                         .build();
             }
+
+            @Override
+            public ApiResponseDto<java.util.Map<Long, Integer>> getTotalWarehouseStockForProducts(List<Long> productIds) {
+                log.warn("Fallback: getTotalWarehouseStockForProducts for {} products", productIds != null ? productIds.size() : 0);
+                return ApiResponseDto.<java.util.Map<Long, Integer>>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(503)
+                        .message("Inventory service unavailable. Stock information not available.")
+                        .data(Collections.emptyMap())
+                        .build();
+            }
+
+            @Override
+            public ApiResponseDto<Integer> getTotalWarehouseStockForProduct(Long productId) {
+                log.warn("Fallback: getTotalWarehouseStockForProduct for product {}", productId);
+                return ApiResponseDto.<Integer>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(503)
+                        .message("Inventory service unavailable. Stock information not available.")
+                        .data(0)
+                        .build();
+            }
         };
     }
 }

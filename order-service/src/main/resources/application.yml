@@ -42,6 +42,7 @@ spring:
         health-check-interval: 10s
         health-check-path: /actuator/health
         health-check-timeout: 3s
+        deregister-critical-service-after: 30s
 
   # Kafka Configuration
   kafka:
@@ -55,9 +56,15 @@ spring:
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
         spring.json.add.type.headers: false
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: order-service-group
+      auto-offset-reset: earliest
 
 # Server Configuration
 server:
+  address: 0.0.0.0
   port: 8082
 
 # Management/Actuator Configuration
@@ -104,11 +111,20 @@ feign:
 
 # Application Custom Configuration
 app:
+  # Kafka Configuration
   kafka:
     topics:
       order-placed: order-placed-topic
+      payment-completed: payment-completed-topic
+  
+  # Service URLs
   product-service:
     url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+
+# JWT Configuration (shared with user-service)
+jwt:
+  secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGFuZCBsb25nIHNlY3JldCBrZXkgZm9yIGp3dCB0b2tlbiBnZW5lcmF0aW9uIGZvciBraWRmYXZvciBhcHBsaWNhdGlvbg==}
+  expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
 
 # Logging Configuration
 logging:

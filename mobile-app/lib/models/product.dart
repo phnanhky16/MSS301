@@ -5,6 +5,7 @@ class Product {
   final double price;
   final int stock;
   final String? imageUrl;
+  final List<String> imageUrls;
   final String? categoryName;
   final String? brandName;
 
@@ -15,20 +16,57 @@ class Product {
     required this.price,
     required this.stock,
     this.imageUrl,
+    this.imageUrls = const [],
     this.categoryName,
     this.brandName,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Handle backend response format
+    List<String> imageUrls = [];
+    if (json['imageUrls'] != null && json['imageUrls'] is List) {
+      imageUrls =
+          List<String>.from((json['imageUrls'] as List).whereType<String>());
+    }
+
+    String? imageUrl;
+    if (imageUrls.isNotEmpty) {
+      imageUrl = imageUrls[0];
+    } else if (json['imageUrl'] != null) {
+      imageUrl = json['imageUrl'];
+    }
+
+    String? categoryName;
+    if (json['category'] != null && json['category'] is Map) {
+      categoryName = json['category']['name'];
+    } else if (json['categoryName'] != null) {
+      categoryName = json['categoryName'];
+    }
+
+    String? brandName;
+    if (json['brand'] != null && json['brand'] is Map) {
+      brandName = json['brand']['name'];
+    } else if (json['brandName'] != null) {
+      brandName = json['brandName'];
+    }
+
+    int stock = 0;
+    if (json['totalStock'] != null) {
+      stock = json['totalStock'];
+    } else if (json['stock'] != null) {
+      stock = json['stock'];
+    }
+
     return Product(
-      id: json['id'],
-      name: json['name'],
+      id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
+      name: json['name'] ?? '',
       description: json['description'] ?? '',
       price: (json['price'] as num).toDouble(),
-      stock: json['stock'] ?? 0,
-      imageUrl: json['imageUrl'],
-      categoryName: json['categoryName'],
-      brandName: json['brandName'],
+      stock: stock,
+      imageUrl: imageUrl,
+      imageUrls: imageUrls,
+      categoryName: categoryName,
+      brandName: brandName,
     );
   }
 

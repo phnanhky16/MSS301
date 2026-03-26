@@ -86,7 +86,25 @@ public class InventoryMapper {
     }
 
     public StoreInventoryResponse toStoreInventoryResponse(StoreInventory si) {
+        // include store identifiers so callers (eg. product-service) can show
+        // where the stock resides. `StoreInventory` holds a reference to the
+        // Store entity; we lazily fetch the id/name here.
+        Long storeId = null;
+        String storeName = null;
+        String address = null;
+        String city = null;
+        if (si.getStore() != null) {
+            storeId = si.getStore().getStoreId();
+            storeName = si.getStore().getStoreName();
+            address = si.getStore().getAddress();
+            city = si.getStore().getCity();
+        }
+
         return StoreInventoryResponse.builder()
+                .storeId(storeId)
+                .storeName(storeName)
+                .address(address)
+                .city(city)
                 .productId(si.getProductId())
                 .productName(si.getProductName())
                 .quantity(si.getQuantity())

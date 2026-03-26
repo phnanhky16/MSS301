@@ -1,15 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { Table, Button, InputNumber, Empty } from 'antd';
 import { DeleteOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
+import { formatVnd } from '../utils/currency';
 
 export default function CartPage() {
-    const { cart, addToCart, clearCart, getCartCount } = useCart();
-
-    // Handle quantity change (this is a bit simplified since useCart only has addToCart)
-    // For a real app, you'd want a setQuantity function in useCart.
-    // I'll add a simple "updateQuantity" to useCart if needed, but for now let's just show.
+    const router = useRouter();
+    const { cart, updateQuantity, removeFromCart, clearCart, getCartCount } = useCart();
 
     const columns = [
         {
@@ -19,7 +18,15 @@ export default function CartPage() {
             render: (text, record) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ fontSize: '24px', background: '#f5f5f5', padding: '8px', borderRadius: '8px' }}>
-                        {record.img}
+                        {record.imageUrls && record.imageUrls.length > 0 ? (
+                            <img
+                                src={record.imageUrls[0]}
+                                alt={record.name}
+                                style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8 }}
+                            />
+                        ) : (
+                            record.img || '🧸'
+                        )}
                     </div>
                     <span style={{ fontWeight: 600 }}>{text}</span>
                 </div>
@@ -29,21 +36,34 @@ export default function CartPage() {
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            render: (price) => `$${price.toFixed(2)}`,
+            render: (price) => formatVnd(price),
         },
         {
             title: 'Quantity',
             dataIndex: 'quantity',
             key: 'quantity',
             render: (qty, record) => (
-                <span style={{ fontWeight: 600 }}>{qty}</span>
+                <InputNumber
+                    min={1}
+                    value={qty}
+                    onChange={(value) => updateQuantity(record.id, Number(value || 1))}
+                />
             ),
         },
         {
             title: 'Subtotal',
             key: 'subtotal',
-            render: (_, record) => `$${(record.price * record.quantity).toFixed(2)}`,
+            render: (_, record) => formatVnd(record.price * record.quantity),
         },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_, record) => (
+                <Button danger type="link" onClick={() => removeFromCart(record.id)}>
+                    Remove
+                </Button>
+            ),
+        }
     ];
 
     const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -86,9 +106,14 @@ export default function CartPage() {
                                 Total Items: <strong>{getCartCount()}</strong>
                             </div>
                             <div style={{ fontSize: '24px', fontWeight: 800, color: '#1ca8c8', marginBottom: '24px' }}>
-                                Total: ${total.toFixed(2)}
+                                Total: {formatVnd(total)}
                             </div>
-                            <Button type="primary" size="large" style={{ background: '#1ca8c8', borderColor: '#1ca8c8', padding: '0 40px' }}>
+                            <Button
+                                type="primary"
+                                size="large"
+                                style={{ background: '#1ca8c8', borderColor: '#1ca8c8', padding: '0 40px' }}
+                                onClick={() => router.push('/checkout')}
+                            >
                                 Checkout
                             </Button>
                         </div>

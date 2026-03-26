@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Select, Switch, Typography, message } from 'antd';
+import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Select, Switch, Typography, message, App as AntApp } from 'antd';
 // Coupon icon wasn't available in the current icon set, fall back to tag
 import { TagOutlined } from '@ant-design/icons';
 import { fetchCoupons, createCoupon, updateCoupon, deleteCoupon } from '../../services/api';
+import { formatVnd } from '../../utils/currency';
 
 const { Title } = Typography;
 
-const CouponForm = ({ visible, onCreate, onCancel, initialValues }) => {
+const CouponForm = ({ open, onCreate, onCancel, initialValues }) => {
   const [form] = Form.useForm();
   useEffect(() => {
-    if (visible && initialValues) {
+    if (open && initialValues) {
       form.setFieldsValue(initialValues);
     }
-  }, [visible, initialValues]);
+  }, [open, initialValues]);
 
   return (
     <Modal
-      visible={visible}
+      open={open}
       title={initialValues ? 'Edit Coupon' : 'New Coupon'}
       okText="Save"
       cancelText="Cancel"
@@ -74,8 +75,9 @@ const CouponForm = ({ visible, onCreate, onCancel, initialValues }) => {
 };
 
 export default function CouponsPage() {
+  const { message } = AntApp.useApp();
   const [coupons, setCoupons] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,7 +108,7 @@ export default function CouponsPage() {
     const action = editing ? updateCoupon(editing.code, data) : createCoupon(data);
     action.then(() => {
       message.success('Saved');
-      setModalVisible(false);
+      setModalOpen(false);
       setEditing(null);
       load();
     }).catch(() => message.error('Error saving'));
@@ -132,7 +134,7 @@ export default function CouponsPage() {
           return `${record.discountValue}%`;
         }
         if (record.discountType === 'FIXED') {
-          return `$${record.discountValue}`;
+          return formatVnd(record.discountValue);
         }
         return record.discountValue;
       }
@@ -146,25 +148,25 @@ export default function CouponsPage() {
       key: 'active',
       render: v => (v ? 'Yes' : 'No')
     },
-      {
-        title: 'Actions',
-        key: 'actions',
-        render: (_text, record) => (
-          <>
-            <Button type="link" onClick={() => {
-              const copy = { ...record };
-              if (copy.expiresAt) copy.expiresAt = dayjs(copy.expiresAt);
-              setEditing(copy);
-              setModalVisible(true);
-            }}>Edit</Button>
-            <Button type="link" danger onClick={() => handleDelete(record)}>Delete</Button>
-          </>
-        )
-      }
-    ];
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_text, record) => (
+        <>
+          <Button type="link" onClick={() => {
+            const copy = { ...record };
+            if (copy.expiresAt) copy.expiresAt = dayjs(copy.expiresAt);
+            setEditing(copy);
+            setModalOpen(true);
+          }}>Edit</Button>
+          <Button type="link" danger onClick={() => handleDelete(record)}>Delete</Button>
+        </>
+      )
+    }
+  ];
 
-    return (
-      <div>
+  return (
+    <div>
       <Title level={2} style={{ marginBottom: 16 }}>
         <TagOutlined style={{ marginRight: 8 }} />
         Coupons
@@ -205,7 +207,7 @@ export default function CouponsPage() {
           Clear
         </Button>
       </div>
-      <Button type="primary" onClick={() => setModalVisible(true)} style={{ marginBottom: 16 }}>
+      <Button type="primary" onClick={() => setModalOpen(true)} style={{ marginBottom: 16 }}>
         New Coupon
       </Button>
       <Table
@@ -220,9 +222,9 @@ export default function CouponsPage() {
         }}
       />
       <CouponForm
-        visible={modalVisible}
+        open={modalOpen}
         onCreate={handleCreate}
-        onCancel={() => { setModalVisible(false); setEditing(null); }}
+        onCancel={() => { setModalOpen(false); setEditing(null); }}
         initialValues={editing}
       />
     </div>

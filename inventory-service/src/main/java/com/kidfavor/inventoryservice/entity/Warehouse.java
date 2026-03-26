@@ -40,6 +40,12 @@ public class Warehouse {
     @Column(name = "ward", length = 100)
     private String ward;
 
+    @Column(name = "street", length = 200)
+    private String street;
+
+    @Column(name = "house_number", length = 50)
+    private String houseNumber;
+
     @Column(name = "phone", length = 20)
     private String phone;
 
@@ -54,6 +60,22 @@ public class Warehouse {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    // GPS Coordinates
+    @Column(name = "latitude")
+    private Double latitude;  // Vietnam: ~8° to 23°N
+
+    @Column(name = "longitude")
+    private Double longitude; // Vietnam: ~102° to 110°E
+
+    @Column(name = "location_accuracy", length = 50)
+    private String locationAccuracy; // address, street, district, city
+
+    @Column(name = "osm_place_id", length = 100)
+    private String osmPlaceId; // OpenStreetMap Place ID
+
+    @Column(name = "formatted_address", length = 1000)
+    private String formattedAddress; // Full address from geocoding
 
     @Column(name = "updated_by", length = 100)
     private String updatedBy;

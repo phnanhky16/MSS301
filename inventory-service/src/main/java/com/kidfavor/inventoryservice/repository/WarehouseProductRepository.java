@@ -22,6 +22,10 @@ public interface WarehouseProductRepository extends JpaRepository<WarehouseProdu
     @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.warehouse.warehouseId = :warehouseId")
     List<WarehouseProduct> findByWarehouseId(@Param("warehouseId") Long warehouseId);
     
+    // Find warehouse product by warehouse ID and product ID (for location-based allocation)
+    @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.warehouse.warehouseId = :warehouseId AND wp.productId = :productId")
+    Optional<WarehouseProduct> findByWarehouseIdAndProductId(@Param("warehouseId") Long warehouseId, @Param("productId") Long productId);
+    
     @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.quantity < wp.minStockLevel")
     List<WarehouseProduct> findLowStockProducts();
     
@@ -41,4 +45,9 @@ public interface WarehouseProductRepository extends JpaRepository<WarehouseProdu
     
     @Query("SELECT wp FROM WarehouseProduct wp WHERE wp.warehouse.warehouseId = :warehouseId AND wp.quantity >= wp.minStockLevel")
     List<WarehouseProduct> findInStockProductsByWarehouse(@Param("warehouseId") Long warehouseId);
+    @Query("SELECT wp.productId, SUM(wp.quantity) FROM WarehouseProduct wp WHERE wp.productId IN :productIds GROUP BY wp.productId")
+    List<Object[]> findTotalStockByProductIds(@Param("productIds") List<Long> productIds);
+    
+    @Query("SELECT SUM(wp.quantity) FROM WarehouseProduct wp WHERE wp.productId = :productId")
+    Integer findTotalStockByProductId(@Param("productId") Long productId);
 }

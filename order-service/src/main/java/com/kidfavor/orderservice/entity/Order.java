@@ -58,6 +58,17 @@ public class Order {
     @Column(length = 500)
     private String notes;
 
+    // GPS coordinates of shipping address for location-based inventory allocation
+    @Column(name = "shipping_latitude")
+    private Double shippingLatitude;
+
+    @Column(name = "shipping_longitude")
+    private Double shippingLongitude;
+
+    // Shipment ID reference (created in user-service)
+    @Column(name = "shipment_id")
+    private Long shipmentId;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();

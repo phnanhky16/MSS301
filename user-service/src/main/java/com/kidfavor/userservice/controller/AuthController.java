@@ -1,14 +1,22 @@
 package com.kidfavor.userservice.controller;
 
 import com.kidfavor.userservice.dto.ApiResponse;
+import com.kidfavor.userservice.dto.request.auth.ChangePasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.GoogleLoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LoginRequest;
 import com.kidfavor.userservice.dto.request.auth.LogoutRequest;
+import com.kidfavor.userservice.dto.request.auth.PasswordResetOtpRequest;
 
+import com.kidfavor.userservice.dto.request.auth.ResendEmailVerificationRequest;
+import com.kidfavor.userservice.dto.request.auth.ResetPasswordRequest;
 import com.kidfavor.userservice.dto.request.auth.RefreshTokenRequest;
 import com.kidfavor.userservice.dto.request.auth.RegisterRequest;
+import com.kidfavor.userservice.dto.request.auth.VerifyPasswordResetOtpRequest;
 import com.kidfavor.userservice.dto.response.AuthResponse;
 import com.kidfavor.userservice.service.AuthService;
+import com.kidfavor.userservice.security.JwtTokenProvider;
+import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,7 +24,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +40,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
         private final AuthService authService;
+        private final JwtTokenProvider jwtTokenProvider;
 
         @Operation(summary = "Register a new user", description = "Create a new user account and return JWT tokens")
         @ApiResponses(value = {
@@ -53,14 +63,10 @@ public class AuthController {
         @PostMapping("/login")
         public ResponseEntity<ApiResponse<AuthResponse>> login(
                         @Valid @RequestBody LoginRequest request) {
-                try {
-                        AuthResponse response = authService.login(request);
-                        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
-                } catch (Exception ex) {
-                        // log full stack for debugging; error will propagate as 500
-                        log.error("Error during login for user {}", request.getUsername(), ex);
-                        throw ex;
-                }
+                // authentication exceptions are handled by GlobalExceptionHandler
+        // (bad credentials, disabled account, etc.), so we simply delegate.
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
         }
 
         @Operation(summary = "Refresh access token", description = "Get new access token using refresh token")
@@ -98,6 +104,45 @@ public class AuthController {
                 return ResponseEntity.ok(ApiResponse.success("Google login successful", response));
         }
 
+        @Operation(summary = "Request OTP for password reset", description = "Send a 6-digit verification code to user email")
+        @PostMapping("/password-reset/request-otp")
+        public ResponseEntity<ApiResponse<Void>> requestPasswordResetOtp(
+                        @Valid @RequestBody PasswordResetOtpRequest request) {
+                authService.requestPasswordResetOtp(request);
+                return ResponseEntity.ok(ApiResponse.success("Verification code has been sent to your email", null));
+        }
+
+        @Operation(summary = "Verify OTP and send reset link", description = "Validate verification code then send password reset link to email")
+        @PostMapping("/password-reset/verify-otp")
+        public ResponseEntity<ApiResponse<Void>> verifyPasswordResetOtp(
+                        @Valid @RequestBody VerifyPasswordResetOtpRequest request) {
+                authService.verifyPasswordResetOtp(request);
+                return ResponseEntity.ok(ApiResponse.success("Email verified. Password reset link has been sent", null));
+        }
+
+        @Operation(summary = "Reset password", description = "Reset account password using reset token from email link")
+        @PostMapping("/password-reset/confirm")
+        public ResponseEntity<ApiResponse<Void>> resetPassword(
+                        @Valid @RequestBody ResetPasswordRequest request) {
+                authService.resetPassword(request);
+                return ResponseEntity.ok(ApiResponse.success("Password reset successful", null));
+        }
+
+        @Operation(summary = "Verify user email", description = "Verify email using one-time link token")
+        @GetMapping("/verify-email")
+        public ResponseEntity<ApiResponse<Void>> verifyEmail(@RequestParam("token") String token) {
+                authService.verifyEmail(token);
+                return ResponseEntity.ok(ApiResponse.success("Email verified successfully", null));
+        }
+
+        @Operation(summary = "Resend email verification link", description = "Resend verification link with cooldown. Previous link will be revoked")
+        @PostMapping("/resend-verification-link")
+        public ResponseEntity<ApiResponse<Void>> resendVerificationLink(
+                        @Valid @RequestBody ResendEmailVerificationRequest request) {
+                authService.resendEmailVerificationLink(request);
+                return ResponseEntity.ok(ApiResponse.success("Verification link has been sent", null));
+        }
+
         @Operation(summary = "Initiate Google Login", description = "Redirect to Google for authentication. After authentication, you'll need to extract the ID token and use the POST /auth/google-login endpoint.")
         @ApiResponses(value = {
                         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "302", description = "Redirect to Google login page")
@@ -110,5 +155,38 @@ public class AuthController {
                         "http://localhost:3000/auth/google/callback"
                 );
                 return ResponseEntity.ok(ApiResponse.success("Please redirect to Google login", googleAuthUrl));
+        }
+
+        @Operation(summary = "Change user password", description = "Change password for a logged-in user. Requires authentication.")
+        @ApiResponses(value = {
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Password changed successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid password or password mismatch"),
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - invalid token"),
+                        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+        })
+        @PutMapping("/users/{userId}/change-password")
+        @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
+        public ResponseEntity<ApiResponse<Void>> changePassword(
+                        @Parameter(description = "User ID", required = true)
+                        @PathVariable Integer userId,
+                        @Valid @RequestBody ChangePasswordRequest request,
+                        HttpServletRequest httpRequest) {
+                
+                // Extract token from request header
+                String authHeader = httpRequest.getHeader(HttpHeaders.AUTHORIZATION);
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                        throw new RuntimeException("Missing or invalid authorization header");
+                }
+                
+                String token = authHeader.substring(7);
+                Integer tokenUserId = jwtTokenProvider.getUserIdFromToken(token);
+                
+                // Validate that the user can only change their own password
+                if (!tokenUserId.equals(userId)) {
+                        throw new RuntimeException("Unauthorized: You can only change your own password");
+                }
+                
+                authService.changePassword(userId, request);
+                return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
         }
 }

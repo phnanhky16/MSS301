@@ -86,6 +86,10 @@ export function handleOAuth2Callback(token, error) {
         name: userInfo.sub || userInfo.email.split('@')[0]
       }));
     }
+
+    // Trigger app-wide auth listeners in the same tab.
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('auth-changed'));
     
     return { success: true, message: 'Signed in with Google successfully!' };
   } else if (error) {

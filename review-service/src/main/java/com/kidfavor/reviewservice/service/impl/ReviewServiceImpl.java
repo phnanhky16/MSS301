@@ -8,16 +8,19 @@ import com.kidfavor.reviewservice.repository.ReviewRepository;
 import com.kidfavor.reviewservice.security.UserPrincipal;
 import com.kidfavor.reviewservice.service.KafkaProducerService;
 import com.kidfavor.reviewservice.service.ReviewService;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,8 +80,7 @@ public class ReviewServiceImpl implements ReviewService {
                     savedReview.getUserId(),
                     savedReview.getProductId(),
                     savedReview.getRating(),
-                    savedReview.getComment()
-            );
+                    savedReview.getComment());
         } catch (Exception e) {
             log.error("Failed to send Kafka event, but review was created: {}", e.getMessage());
         }
@@ -111,8 +113,7 @@ public class ReviewServiceImpl implements ReviewService {
                 updatedReview.getUserId(),
                 updatedReview.getProductId(),
                 updatedReview.getRating(),
-                updatedReview.getComment()
-        );
+                updatedReview.getComment());
 
         return mapToResponse(updatedReview);
     }
@@ -132,8 +133,7 @@ public class ReviewServiceImpl implements ReviewService {
         kafkaProducerService.sendReviewDeletedEvent(
                 review.getId(),
                 review.getUserId(),
-                review.getProductId()
-        );
+                review.getProductId());
     }
 
     @Override
@@ -145,33 +145,6 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(() -> new RuntimeException("Review not found with id: " + id));
 
         return mapToResponse(review);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReviewResponse> getAllReviews() {
-        log.info("Getting all reviews");
-        return reviewRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReviewResponse> getReviewsByUserId(Long userId) {
-        log.info("Getting reviews for user: {}", userId);
-        return reviewRepository.findByUserId(userId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReviewResponse> getReviewsByProductId(Long productId) {
-        log.info("Getting reviews for product: {}", productId);
-        return reviewRepository.findByProductId(productId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -224,7 +197,6 @@ public class ReviewServiceImpl implements ReviewService {
                 .build();
     }
 
-
     @Override
     public Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -232,5 +204,63 @@ public class ReviewServiceImpl implements ReviewService {
             return ((UserPrincipal) authentication.getPrincipal()).getUserId();
         }
         throw new RuntimeException("Unable to extract user ID from authentication token");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> listReviews(Pageable pageable, Long userId, Long productId, Integer rating) {
+        log.info("Listing reviews with filters - userId: {}, productId: {}, rating: {}", userId, productId, rating);
+
+        Specification<Review> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (userId != null) {
+                predicates.add(cb.equal(root.get("userId"), userId));
+            }
+
+            if (productId != null) {
+                predicates.add(cb.equal(root.get("productId"), productId));
+            }
+
+            if (rating != null) {
+                predicates.add(cb.equal(root.get("rating"), rating));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Review> reviews = reviewRepository.findAll(spec, pageable);
+        return reviews.map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getReviewsByProductIdPaged(Long productId, Integer rating, Pageable pageable) {
+        log.info("Getting paged reviews for product: {} with rating: {}, page: {}, size: {}",
+                productId, rating, pageable.getPageNumber(), pageable.getPageSize());
+
+        Specification<Review> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("productId"), productId));
+
+            if (rating != null) {
+                predicates.add(cb.equal(root.get("rating"), rating));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Review> reviews = reviewRepository.findAll(spec, pageable);
+        return reviews.map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getReviewsByUserIdPaged(Long userId, Pageable pageable) {
+        log.info("Getting paged reviews for user: {} with page: {}, size: {}",
+                userId, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<Review> reviews = reviewRepository.findByUserId(userId, pageable);
+        return reviews.map(this::mapToResponse);
     }
 }

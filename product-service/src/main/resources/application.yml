@@ -51,6 +51,24 @@ spring:
         health-check-interval: 10s
         instance-id: ${spring.application.name}:${server.port}
         prefer-ip-address: true
+        deregister-critical-service-after: 30s
+    openfeign:
+      discovery:
+        enabled: true
+
+  # --- CORS configuration (permissive, disables browser restrictions) ------
+  # CORS is now managed by the API gateway; individual services should not
+  # declare their own mappings.  this block is left commented out for
+  # reference but is inactive to avoid duplicate headers or unexpected
+  # behaviour.
+  #mvc:
+  #  cors:
+  #    mappings:
+  #      "/**":
+  #        allowed-origins: "*"
+  #        allowed-methods: "*"
+  #        allowed-headers: "*"
+  #        allow-credentials: true
 
 management:
   endpoints:
@@ -89,3 +107,11 @@ springdoc:
     operations-sorter: alpha
     tags-sorter: alpha
   show-actuator: false
+
+# --- permissive CORS settings ------------------------------------------------
+# configure CORS under the existing `spring` key rather than redeclaring it
+# (duplicate top‑level keys trigger a SnakeYAML parse error at startup).
+## CORS configuration merged into the primary `spring` block above.
+# the original duplicate block caused parsing errors; keeping this here for
+# reference and readability only (it is no longer applied, the real config is
+# earlier under the primary `spring:` section).

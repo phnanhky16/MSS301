@@ -2,6 +2,8 @@ package com.kidfavor.orderservice.client;
 
 import com.kidfavor.orderservice.client.dto.ApiResponse;
 import com.kidfavor.orderservice.client.dto.UserDto;
+import com.kidfavor.orderservice.dto.request.ShipmentCreateRequest;
+import com.kidfavor.orderservice.dto.response.ShipmentResponse;
 import com.kidfavor.orderservice.exception.UserNotFoundException;
 import com.kidfavor.orderservice.exception.UserServiceUnavailableException;
 import feign.FeignException;
@@ -53,6 +55,16 @@ public class UserServiceClientFallbackFactory implements FallbackFactory<UserSer
                 // Default: service unavailable
                 throw new UserServiceUnavailableException(
                         "User Service is currently unavailable: " + cause.getMessage());
+            }
+
+            @Override
+            public ApiResponse<ShipmentResponse> createShipment(ShipmentCreateRequest request) {
+                log.warn("Fallback: Unable to create shipment for user {}. Cause: {}", 
+                         request.getUserId(), cause.getMessage());
+                
+                // Throw exception so order processing knows shipment creation failed
+                throw new UserServiceUnavailableException(
+                        "Failed to create shipment: User Service unavailable");
             }
         };
     }

@@ -11,6 +11,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class StoreInventoryResponse {
+    // identify the store that holds the inventory; these were previously
+    // omitted which caused the product-service to display null values.
+    private Long storeId;
+    private String storeName;
+
+    // additional store location details requested by frontend
+    private String address;
+    private String city;
+
     private Long productId;
     private String productName;
     private Integer quantity;

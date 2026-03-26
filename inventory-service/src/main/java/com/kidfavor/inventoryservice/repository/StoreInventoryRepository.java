@@ -19,6 +19,10 @@ public interface StoreInventoryRepository extends JpaRepository<StoreInventory, 
     
     List<StoreInventory> findByProductId(Long productId);
     
+    // Find inventory by store ID and product ID (for location-based allocation)
+    @Query("SELECT si FROM StoreInventory si WHERE si.store.storeId = :storeId AND si.productId = :productId")
+    Optional<StoreInventory> findByStoreIdAndProductId(@Param("storeId") Long storeId, @Param("productId") Long productId);
+    
     @Query("SELECT si FROM StoreInventory si WHERE si.store.storeId = :storeId")
     List<StoreInventory> findByStoreId(@Param("storeId") Long storeId);
     

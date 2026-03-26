@@ -1,38 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Layout as AntLayout, Menu, Button } from 'antd';
+import { Layout as AntLayout, Menu, Button, Tooltip, Input } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { logout } from '../services/auth';
 import dynamic from 'next/dynamic';
 
-// dynamically import icon module and grab the specific export; keeps
-// initial bundle smaller and avoids Next.js resolving paths that vary by
-// library version.
-const HomeOutlined = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.HomeOutlined),
+// ── Dynamic icon imports ──────────────────────────────────────
+const DashboardOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.DashboardOutlined),
   { ssr: false }
 );
 const UserOutlined = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.UserOutlined),
+  () => import('@ant-design/icons').then(m => m.UserOutlined),
   { ssr: false }
 );
 const ShoppingCartOutlined = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.ShoppingCartOutlined),
+  () => import('@ant-design/icons').then(m => m.ShoppingCartOutlined),
   { ssr: false }
 );
-// Use tag icon for coupons navigation
-const TagOutlinedDyn = dynamic(
-  () => import('@ant-design/icons').then(mod => mod.TagOutlined),
+const TagOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.TagOutlined),
+  { ssr: false }
+);
+const AppstoreOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.AppstoreOutlined),
+  { ssr: false }
+);
+const LogoutOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.LogoutOutlined),
+  { ssr: false }
+);
+const BellOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.BellOutlined),
+  { ssr: false }
+);
+const MessageOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.MessageOutlined),
+  { ssr: false }
+);
+const SearchOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.SearchOutlined),
+  { ssr: false }
+);
+const BarChartOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.BarChartOutlined),
+  { ssr: false }
+);
+const PercentageOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.PercentageOutlined),
+  { ssr: false }
+);
+const SettingOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.SettingOutlined),
+  { ssr: false }
+);
+const QuestionCircleOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.QuestionCircleOutlined),
+  { ssr: false }
+);
+const ApiOutlined = dynamic(
+  () => import('@ant-design/icons').then(m => m.ApiOutlined),
   { ssr: false }
 );
 
 const { Header, Sider, Content, Footer } = AntLayout;
 
+// ── Page title mapping ────────────────────────────────────────
+const pageTitles = {
+  dashboard: 'Dashboard',
+  orders: 'Orders Management',
+  products: 'Products Management',
+  coupons: 'Coupons Management',
+  users: 'Users Management',
+  'users-archived': 'Archived Users',
+  stores: 'Store Management',
+  warehouses: 'Warehouse Management',
+  'warehouse-inventory': 'Warehouse Inventory',
+};
+
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     const check = () => setLoggedIn(!!localStorage.getItem('accessToken'));
@@ -41,7 +92,6 @@ export default function AdminLayout({ children }) {
     return () => window.removeEventListener('storage', check);
   }, []);
 
-  // whenever login status changes, try to parse JWT for profile info
   useEffect(() => {
     if (loggedIn) {
       import('../services/auth').then(mod => {
@@ -51,79 +101,168 @@ export default function AdminLayout({ children }) {
       setProfile(null);
     }
   }, [loggedIn]);
-  // determine which menu item should be highlighted based on the current path
-  // note: Next.js router.pathname is the route template (no query string)
+
   const selected = router.pathname.startsWith('/admin/coupons')
     ? 'coupons'
     : router.pathname.startsWith('/admin/orders')
-    ? 'orders'
-    : router.pathname.startsWith('/admin/products')
-    ? 'products'
-    : router.pathname.startsWith('/admin/users')
-    ? 'users'
-    : 'dashboard';
+      ? 'orders'
+      : router.pathname.startsWith('/admin/products')
+        ? 'products'
+        : router.pathname.startsWith('/admin/users-archived')
+          ? 'users-archived'
+          : router.pathname.startsWith('/admin/users')
+          ? 'users'
+          : router.pathname.startsWith('/admin/stores')
+            ? 'stores'
+            : router.pathname.startsWith('/admin/warehouses')
+              ? 'warehouses'
+              : router.pathname.startsWith('/admin/inventory')
+                ? 'stores'
+                : 'dashboard';
+
+  const displayName = profile?.fullName || profile?.name || 'Admin';
+  const initials = displayName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <>
       <Head>
-        {/* set favicon explicitly to avoid default /favicon.ico 404 */}
         <link rel="icon" href="/images.jpg" />
       </Head>
-      <AntLayout style={{ minHeight: '100vh' }}>
-      <Sider collapsible>
-        <div className="logo" style={{ height: 48, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* use public/images.jpg as application icon; make it larger */}
-          <img src="/images.jpg" alt="logo" style={{ height: 48, objectFit: 'contain' }} />
-        </div>
-        <Menu theme="dark" defaultSelectedKeys={[selected]} mode="inline">
-          <Menu.Item key="dashboard" icon={<HomeOutlined />}>
-            <Link href="/admin">Dashboard</Link>
-          </Menu.Item>
-          <Menu.Item key="orders" icon={<ShoppingCartOutlined />}>
-            <Link href="/admin/orders">Orders</Link>
-          </Menu.Item>
-          <Menu.Item key="products" icon={<ShoppingCartOutlined />}> 
-            <Link href="/admin/products">Products</Link>
-          </Menu.Item>
-          <Menu.Item key="coupons" icon={<TagOutlinedDyn />}> 
-            <Link href="/admin/coupons">Coupons</Link>
-          </Menu.Item>
-          <Menu.Item key="users" icon={<UserOutlined />}>
-            <Link href="/admin/users">Users</Link>
-          </Menu.Item>
-        </Menu>
-      </Sider>
-      <AntLayout>
-        <Header style={{ background: '#fff', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
-            <img src="/images.jpg" alt="logo" style={{ height: 32, marginRight: 8, objectFit: 'contain' }} />
-            <span>Admin Panel</span>
+
+      <AntLayout className="admin-layout" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        {/* ── Sidebar ── */}
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={220}
+          collapsedWidth={72}
+          className="admin-sidebar"
+          breakpoint="lg"
+        >
+          {/* Logo */}
+          <div className="admin-sidebar-logo">
+            <div className="admin-sidebar-logo-circle">K</div>
+            {!collapsed && (
+              <div className="admin-sidebar-logo-text">
+                <span className="admin-sidebar-logo-title">KidFavor</span>
+              </div>
+            )}
           </div>
-          {loggedIn ? (
-            <div style={{ display: 'flex', alignItems: 'center', marginRight: 16 }}>
-              <span style={{ marginRight: 12 }}>
-                {profile?.fullName || profile?.name || ''}
-              </span>
-              <Button
-                type="link"
-                onClick={async () => {
-                  await logout();
-                  router.push('/login');
-                }}
-              >
-                Logout
-              </Button>
+
+          {/* Navigation */}
+          <div className="admin-sidebar-scroll">
+            <Menu
+              theme="light"
+              selectedKeys={[selected]}
+              mode="inline"
+              className="admin-sidebar-menu"
+              items={[
+                {
+                  type: 'group',
+                  label: collapsed ? '' : 'MENU',
+                  children: [
+                    { key: 'dashboard', icon: <DashboardOutlined />, label: <Link href="/admin">Dashboard</Link> },
+                    { key: 'orders', icon: <ShoppingCartOutlined />, label: <Link href="/admin/orders">Orders</Link> },
+                    { key: 'products', icon: <AppstoreOutlined />, label: <Link href="/admin/products">Products</Link> },
+                    { key: 'users', icon: <UserOutlined />, label: <Link href="/admin/users">Customers</Link> },
+                    { key: 'users-archived', icon: <UserOutlined />, label: <Link href="/admin/users-archived">Archived Users</Link> },
+                    { key: 'reports', icon: <BarChartOutlined />, label: <Link href="/admin/warehouses">Reports</Link> },
+                    { key: 'coupons', icon: <PercentageOutlined />, label: <Link href="/admin/coupons">Discounts</Link> },
+                  ],
+                },
+                {
+                  type: 'group',
+                  label: collapsed ? '' : 'SUPPORT',
+                  children: [
+                    { key: 'stores', icon: <ApiOutlined />, label: <Link href="/admin/stores">Integrations</Link> },
+                    { key: 'warehouses', icon: <QuestionCircleOutlined />, label: <Link href="/admin/warehouses">Help</Link> },
+                    { key: 'warehouse-inventory', icon: <SettingOutlined />, label: <Link href="/admin/warehouse-inventory">Settings</Link> },
+                  ],
+                },
+              ]}
+            />
+          </div>
+
+
+        </Sider>
+
+        {/* ── Main Area ── */}
+        <AntLayout>
+          {/* Header */}
+          <Header className="admin-header">
+            <div className="admin-header-left">
+              <div className="admin-header-title">
+                {pageTitles[selected] || 'Dashboard'}
+              </div>
             </div>
-          ) : (
-            <Button type="link" onClick={() => router.push('/login')} style={{ marginRight: 16 }}>
-              Login
-            </Button>
-          )}
-        </Header>
-        <Content style={{ margin: '16px' }}>{children}</Content>
-        <Footer style={{ textAlign: 'center' }}>KidFavor Admin ©2026</Footer>
+
+            <div className="admin-header-right">
+              <Input
+                prefix={<SearchOutlined style={{ color: '#bbb' }} />}
+                placeholder="Search stock, order, etc"
+                className="admin-header-search"
+                variant="unstyled"
+              />
+              {loggedIn ? (
+                <>
+                  <Tooltip title="Messages">
+                    <Button type="text" shape="circle" icon={<MessageOutlined style={{ fontSize: 17 }} />} className="admin-header-icon-btn" />
+                  </Tooltip>
+                  <Tooltip title="Notifications">
+                    <Button type="text" shape="circle" icon={<BellOutlined style={{ fontSize: 17 }} />} className="admin-header-icon-btn" />
+                  </Tooltip>
+
+                  <div className="admin-header-user">
+                    <div className="admin-header-avatar">{initials}</div>
+                    <div>
+                      <div className="admin-header-name">{displayName}</div>
+                      <div className="admin-header-role">
+                        {profile?.role || 'Admin'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="admin-logout-btn"
+                    icon={<LogoutOutlined />}
+                    onClick={async () => {
+                      await logout();
+                      router.push('/login');
+                    }}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="primary"
+                  onClick={() => router.push('/login')}
+                  style={{ borderRadius: 10 }}
+                >
+                  Login
+                </Button>
+              )}
+            </div>
+          </Header>
+
+          {/* Content */}
+          <Content className="admin-content">{children}</Content>
+
+          {/* Footer */}
+          <Footer className="admin-footer">
+            <span className="admin-footer-text">
+              KidFavor Admin ©2026 — Built with{' '}
+              <span className="admin-footer-heart">❤️</span>
+            </span>
+          </Footer>
+        </AntLayout>
       </AntLayout>
-    </AntLayout>
     </>
   );
 }

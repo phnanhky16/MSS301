@@ -14,6 +14,7 @@ spring:
         health-check-path: /actuator/health
         health-check-interval: 10s
         instance-id: ${spring.application.name}:${server.port}
+        deregister-critical-service-after: 30s
     gateway:
       discovery:
         locator:
@@ -21,8 +22,9 @@ spring:
           lower-case-service-id: true
       routes:
         # User Service Routes
+        # (Use direct container DNS to avoid stale service discovery entries)
         - id: user-service
-          uri: lb://user-service
+          uri: http://user-service:8081
           predicates:
             - Path=/api/users/**, /api/shipments/**
           filters:
@@ -30,7 +32,7 @@ spring:
 
         # User Service Auth Routes (Public)
         - id: user-service-auth
-          uri: lb://user-service
+          uri: http://user-service:8081
           predicates:
             - Path=/api/auth/**
           filters:
@@ -38,17 +40,15 @@ spring:
 
         # User Service OAuth2 Routes
         - id: user-service-oauth2
-          uri: lb://user-service
+          uri: http://user-service:8081
           predicates:
             - Path=/oauth2/**, /login/oauth2/**
           filters:
             - StripPrefix=0
 
-
-
         # User Service Swagger API Docs
         - id: user-service-api-docs
-          uri: lb://user-service
+          uri: http://user-service:8081
           predicates:
             - Path=/user-service/v3/api-docs, /user-service/v3/api-docs/**
           filters:
@@ -56,15 +56,17 @@ spring:
 
         # User Service Swagger UI resources
         - id: user-service-swagger-ui
-          uri: lb://user-service
+          uri: http://user-service:8081
           predicates:
             - Path=/user-service/swagger-ui/**, /user-service/swagger-ui.html
           filters:
             - RewritePath=/user-service/(?<segment>.*), /${segment}
 
         # Order Service Routes
+        # NOTE: Use direct container DNS instead of Consul load balancer to avoid
+        # stale address caching during rapid container restarts.
         - id: order-service
-          uri: lb://order-service
+          uri: http://order-service:8082
           predicates:
             - Path=/api/orders/**, /api/payments/**, /api/coupons/**
           filters:
@@ -72,7 +74,7 @@ spring:
 
         # Order Service Swagger API Docs
         - id: order-service-api-docs
-          uri: lb://order-service
+          uri: http://order-service:8082
           predicates:
             - Path=/order-service/v3/api-docs, /order-service/v3/api-docs/**
           filters:
@@ -80,7 +82,7 @@ spring:
 
         # Order Service Swagger UI resources
         - id: order-service-swagger-ui
-          uri: lb://order-service
+          uri: http://order-service:8082
           predicates:
             - Path=/order-service/swagger-ui/**, /order-service/swagger-ui.html
           filters:
@@ -139,6 +141,9 @@ spring:
           uri: lb://inventory-service
           predicates:
             - Path=/api/warehouses/**, /api/stores/**, /api/inventory/**
+          filters:
+            # default statuses (5xx and 408) are used when no list is provided
+            - Retry=3
 
         # Inventory Service Swagger API Docs (more specific, must come before general route)
         - id: inventory-service-api-docs
@@ -172,7 +177,16 @@ spring:
           filters:
             - RewritePath=/inventory-service/(?<segment>.*), /${segment}
 
-        # Cart Service Routes
+        # Cart Service Routes (direct /api/cart/**)
+        - id: cart-service-api
+          uri: lb://cart-service
+          predicates:
+            - Path=/api/cart/**
+          filters:
+            # /api/cart/carts -> /carts for cart-service controller mappings
+            - StripPrefix=2
+
+        # Cart Service Routes (via /cart-service/** prefix)
         - id: cart-service
           uri: lb://cart-service
           predicates:
@@ -200,8 +214,9 @@ spring:
         - id: review-service
           uri: lb://review-service
           predicates:
-            - Path=/review-service/**
+            - Path=/api/reviews/**, /review-service/**
           filters:
+            - RewritePath=/api/reviews/(?<segment>.*), /reviews/${segment}
             - RewritePath=/review-service/(?<segment>.*), /${segment}
 
         # Review Service Swagger API Docs
@@ -220,6 +235,30 @@ spring:
           filters:
             - RewritePath=/review-service/(?<segment>.*), /${segment}
 
+        # Address Service Routes (public — no auth required)
+        - id: address-service
+          uri: lb://address-service
+          predicates:
+            - Path=/api/administrative-units/**
+          filters:
+            - StripPrefix=1
+
+        # Address Service Swagger API Docs
+        - id: address-service-api-docs
+          uri: lb://address-service
+          predicates:
+            - Path=/address-service/v3/api-docs, /address-service/v3/api-docs/**
+          filters:
+            - RewritePath=/address-service/(?<segment>.*), /${segment}
+
+        # Address Service Swagger UI resources
+        - id: address-service-swagger-ui
+          uri: lb://address-service
+          predicates:
+            - Path=/address-service/swagger-ui/**, /address-service/swagger-ui.html
+          filters:
+            - RewritePath=/address-service/(?<segment>.*), /${segment}
+
   security:
     oauth2:
       resourceserver:
@@ -227,10 +266,14 @@ spring:
           issuer-uri: http://localhost:8180/realms/kidfavor
           jwk-set-uri: http://localhost:8180/realms/kidfavor/protocol/openid-connect/certs
 
-# the gateway no longer performs any per-route CORS configuration.  instead a
-# global filter adds a wildcard header on every response, effectively disabling
-# browser CORS restrictions during development.  downstream services should
-# not set CORS headers at all (they were cleaned up earlier).
+# CORS support can be toggled via configuration.  set `gateway.cors.enabled`
+# to true during development to allow requests from localhost:3000; set to
+# false for a stricter same-origin deployment.  (previous versions of this
+# file documented the now-obsolete hard-coded behavior.)
+
+gateway:
+  cors:
+    enabled: true
 
 # Swagger/OpenAPI Configuration for Gateway aggregation
 springdoc:
@@ -250,6 +293,10 @@ springdoc:
         url: /review-service/v3/api-docs
       - name: User Service
         url: /user-service/v3/api-docs
+      - name: Address Service
+        url: /address-service/v3/api-docs
+      - name: Cart Service
+        url: /cart-service/v3/api-docs
     urls-primary-name: User Service
 
 management:

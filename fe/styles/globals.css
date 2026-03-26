@@ -200,6 +200,62 @@ a {
   box-shadow: 0 4px 12px rgba(28, 168, 200, 0.4);
 }
 
+/* autocomplete dropdown styles */
+.autocomplete-dropdown {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  width: calc(100% - 24px);
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+  z-index: 1000;
+  list-style: none;
+  padding: 0;
+}
+
+.autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover {
+  background: #f5f5f5;
+}
+
+/* history entries look lighter/italic to distinguish from live suggestions */
+.autocomplete-dropdown.history .autocomplete-item.history {
+  font-style: italic;
+  color: #666;
+}
+
+/* show back-arrow icon next to history entries */
+.autocomplete-dropdown.history .autocomplete-item.history .anticon {
+  vertical-align: middle;
+}
+
+/* add "x" button for clearing an individual history entry */
+.autocomplete-dropdown.history .autocomplete-item.history {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.autocomplete-dropdown.history .autocomplete-item.history .history-keyword {
+  flex: 1;
+}
+
+.autocomplete-dropdown.history .autocomplete-item.history .history-remove {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+}
+
+.autocomplete-dropdown.history .autocomplete-item.history .history-remove:hover {
+  color: #333;
+}
+
 .user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -468,6 +524,127 @@ a {
   color: #fff;
 }
 
+/* ─── HOME FILTER BAR ─── */
+.home-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: #f8fbfd;
+  border-radius: 14px;
+  border: 1.5px solid #e8f0f4;
+}
+
+.home-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-filter-item label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.home-filter-select {
+  padding: 7px 12px;
+  border: 1.5px solid #d4dfe5;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+  color: #333;
+  min-width: 140px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.home-filter-select:focus {
+  outline: none;
+  border-color: #1ca8c8;
+}
+
+.home-filter-price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-filter-input {
+  width: 90px;
+  padding: 7px 10px;
+  border: 1.5px solid #d4dfe5;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.home-filter-input:focus {
+  outline: none;
+  border-color: #1ca8c8;
+}
+
+.home-filter-input::placeholder {
+  color: #bbb;
+}
+
+.home-filter-dash {
+  color: #999;
+  font-size: 14px;
+}
+
+.home-filter-stars {
+  display: flex;
+  gap: 4px;
+}
+
+.home-star-btn {
+  padding: 6px 12px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.home-star-btn:hover {
+  border-color: #fab400;
+  color: #fab400;
+}
+
+.home-star-btn.active {
+  background: #fab400;
+  border-color: #fab400;
+  color: #fff;
+  font-weight: 600;
+}
+
+.home-filter-clear {
+  padding: 7px 16px;
+  border: 1.5px solid #ff6b6b;
+  border-radius: 8px;
+  background: #fff;
+  color: #ff6b6b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-end;
+}
+
+.home-filter-clear:hover {
+  background: #ff6b6b;
+  color: #fff;
+}
+
 /* ─── CATEGORY BUTTONS ─── */
 .cats-section {
   padding-top: 48px;
@@ -564,6 +741,13 @@ a {
   background: #ff6b6b;
 }
 
+.prod-badge.bestseller {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .wish-btn {
   position: absolute;
   top: 12px;
@@ -589,9 +773,14 @@ a {
 .prod-img {
   font-size: 64px;
   text-align: center;
-  padding: 16px 0;
+  padding: 0;
   background: #f9f9f9;
   border-radius: 12px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .prod-info {
@@ -1930,4 +2119,204 @@ a {
 .thumb-row div:hover {
   border-color: #1ca8c8 !important;
   opacity: 1 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFILE PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+.profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 16px;
+  color: #999;
+}
+
+.profile-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
+/* Hero */
+.profile-hero {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.profile-hero-bg {
+  height: 180px;
+  background: linear-gradient(135deg, #1ca8c8 0%, #0e7490 60%, #155e75 100%);
+  position: relative;
+}
+
+.profile-hero-bg::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.profile-avatar-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  padding: 0 32px;
+  margin-top: -52px;
+  position: relative;
+  z-index: 2;
+}
+
+.profile-avatar-large {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1ca8c8, #0e7490);
+  color: #fff;
+  font-size: 36px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 20px rgba(28, 168, 200, 0.3);
+  flex-shrink: 0;
+}
+
+.profile-hero-info {
+  padding-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: #2d2d2d;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.profile-role-badge {
+  display: inline-block;
+  padding: 3px 14px;
+  border-radius: 20px;
+  background: rgba(28, 168, 200, 0.1);
+  color: #1ca8c8;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+/* Info cards */
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1.5px solid #f0f0f0;
+  padding: 28px;
+  transition: box-shadow 0.25s;
+}
+
+.profile-card:hover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.profile-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2d2d2d;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid #f0f0f0;
+}
+
+.profile-card-title .anticon {
+  color: #1ca8c8;
+  font-size: 18px;
+}
+
+.profile-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 32px;
+}
+
+.profile-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.profile-field-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(28, 168, 200, 0.08);
+  color: #1ca8c8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.profile-field-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-field-label {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.profile-field-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2d2d2d;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  .profile-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-avatar-wrapper {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -52px;
+    padding: 0 16px;
+  }
+
+  .profile-hero-info {
+    align-items: center;
+  }
 }

@@ -17,6 +17,8 @@ public class StoreInventoryDto {
     private Long storeId;
     private String storeCode;
     private String storeName;
+    private String address;
+    private String city;
     private Long productId;
     private Integer quantity;
     private Integer minStockLevel;

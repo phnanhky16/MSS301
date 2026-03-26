@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Table, Typography, message, Button, Input, Select } from 'antd';
-import { fetchUsers, deleteUser } from '../../services/api';
+import { Table, Typography, Button, Input, Select, App as AntApp } from 'antd';
+import { useRouter } from 'next/router';
+import { fetchUsers, archiveUser, sendUserPasswordResetLink } from '../../services/api';
 
 const { Title } = Typography;
 
 export default function UsersPage() {
+  const router = useRouter();
+  const { message } = AntApp.useApp();
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loadError, setLoadError] = useState(null);
   const [filters, setFilters] = useState({});
+  const [sendingResetId, setSendingResetId] = useState(null);
 
   const load = (page = currentPage - 1, size = pageSize) => {
     fetchUsers(page, size, filters)
@@ -46,27 +50,50 @@ export default function UsersPage() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: val => (val ? 'Active' : 'Inactive'),
+      render: (val, record) => {
+        if (record.emailVerified === false) {
+          return 'Unverified';
+        }
+        return val ? 'Active' : 'Inactive';
+      },
     },
     { title: 'Role', dataIndex: 'role', key: 'role' },
     {
       title: 'Action',
       key: 'action',
       render: (_text, record) => (
-        <Button
-          type="link"
-          danger
-          onClick={() => {
-            deleteUser(record.id, true)
-              .then(() => {
-                message.success('Deleted');
-                load(0, pageSize);
-              })
-              .catch(() => message.error('Delete failed'));
-          }}
-        >
-          Delete
-        </Button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button
+            type="link"
+            onClick={() => {
+              setSendingResetId(record.id);
+              sendUserPasswordResetLink(record.id)
+                .then(() => message.success(`Reset link sent to ${record.email}`))
+                .catch(err => {
+                  const text = err?.message || 'Send reset link failed';
+                  message.error(text);
+                })
+                .finally(() => setSendingResetId(null));
+            }}
+            loading={sendingResetId === record.id}
+          >
+            Send reset link
+          </Button>
+          <Button
+            type="link"
+            danger
+            onClick={() => {
+              archiveUser(record.id)
+                .then(() => {
+                  message.success('Archived');
+                  load(0, pageSize);
+                })
+                .catch(() => message.error('Archive failed'));
+            }}
+          >
+            Archive
+          </Button>
+        </div>
       )
     }
   ];
@@ -86,10 +113,28 @@ export default function UsersPage() {
           style={{ width: 120 }}
           allowClear
           value={filters.status}
-          onChange={val => setFilters(f => ({ ...f, status: val }))}
+          onChange={val => {
+            if (val === 'UNVERIFIED') {
+              setFilters(f => {
+                const next = { ...f };
+                delete next.status;
+                next.emailVerified = false;
+                next.status = 'UNVERIFIED';
+                return next;
+              });
+              return;
+            }
+
+            setFilters(f => {
+              const next = { ...f, status: val };
+              delete next.emailVerified;
+              return next;
+            });
+          }}
         >
           <Select.Option value={true}>Active</Select.Option>
           <Select.Option value={false}>Inactive</Select.Option>
+          <Select.Option value="UNVERIFIED">Unverified</Select.Option>
         </Select>
         <Select
           placeholder="Role"
@@ -104,6 +149,7 @@ export default function UsersPage() {
           <Select.Option value="ADMIN">Admin</Select.Option>
         </Select>
         <Button onClick={() => { setFilters({}); load(0, pageSize); }}>Clear</Button>
+        <Button onClick={() => router.push('/admin/users-archived')}>Manage archived users</Button>
       </div>
       {loadError && (
         <div style={{ marginBottom: 8 }}>

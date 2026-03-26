@@ -20,8 +20,7 @@ public class CreateOrderRequest {
     @NotNull(message = "User ID is required")
     private Long userId;
 
-    @NotNull(message = "Store ID is required")
-    private Long storeId;
+    // storeId removed - system will auto-select nearest store based on GPS location
 
     @NotEmpty(message = "Order must contain at least one item")
     @Valid

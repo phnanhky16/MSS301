@@ -205,8 +205,8 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     }
 
     @Override
-    public List<StoreAvailabilityResponse> checkStoreAvailability(Long productId, Integer requiredQuantity) {
-        log.info("Checking availability for product {} with required quantity: {}", productId, requiredQuantity);
+    public List<StoreAvailabilityResponse> checkStoreAvailability(Long productId) {
+        log.info("Checking availability for product {}", productId);
         
         // Get all store inventory for this product
         List<StoreInventory> inventoryList = storeInventoryRepository.findByProductId(productId);
@@ -216,11 +216,10 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
             return List.of();
         }
         
-        // Convert to availability response
+        // Convert to availability response, sorted by available quantity descending
         return inventoryList.stream()
                 .map(inventory -> {
                     Store store = inventory.getStore();
-                    boolean hasEnoughStock = inventory.getQuantity() >= requiredQuantity;
                     
                     return StoreAvailabilityResponse.builder()
                             .storeId(store.getStoreId())
@@ -230,18 +229,10 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                             .productId(productId)
                             .productName(inventory.getProductName())
                             .availableQuantity(inventory.getQuantity())
-                            .requestedQuantity(requiredQuantity)
-                            .hasEnoughStock(hasEnoughStock)
                             .shelfLocation(inventory.getShelfLocation())
                             .build();
                 })
-                .sorted((a, b) -> {
-                    // Sort by: 1. Has enough stock first, 2. Then by available quantity descending
-                    if (a.getHasEnoughStock() != b.getHasEnoughStock()) {
-                        return a.getHasEnoughStock() ? -1 : 1;
-                    }
-                    return b.getAvailableQuantity().compareTo(a.getAvailableQuantity());
-                })
+                .sorted((a, b) -> b.getAvailableQuantity().compareTo(a.getAvailableQuantity()))
                 .collect(Collectors.toList());
     }
 
