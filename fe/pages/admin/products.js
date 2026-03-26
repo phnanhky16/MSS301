@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchProducts, fetchCategories, fetchBrands, createProduct, updateProduct, deleteProduct, updateProductStatus, fetchProductImages, uploadProductImage, deleteProductImage, setPrimaryImage, updateProductImageFile, uploadMultipleProductImages, reorderProductImages, setSalePrice, removeSalePrice } from '../../services/api';
-import { Table, Typography, message, Input, Select, Button, Modal, Form, InputNumber, Switch, Upload, Card, Space, Divider, Tag as AntTag, App as AntApp, DatePicker } from 'antd';
+import { Table, Typography, message, Input, Select, Button, Modal, Form, InputNumber, Switch, Upload, Card, Space, Divider, Tag as AntTag, App as AntApp, DatePicker, Alert } from 'antd';
 import {
   DndContext,
   closestCenter,
@@ -37,6 +37,7 @@ export default function ProductsPage() {
   const [brands, setBrands] = useState([]);
   const [formVisible, setFormVisible] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   // Sale price modal state
   const [saleModalVisible, setSaleModalVisible] = useState(false);
@@ -44,12 +45,7 @@ export default function ProductsPage() {
   const [saleForm] = Form.useForm();
 
   const load = (page = currentPage - 1, size = pageSize) => {
-    // always request every status when loading the admin table
-    // send `ALL` explicitly but still allow the user to change the sort column
-    // if they click a header – that sort value is passed back into load()
-    // onChange (see table config) and the contract with the BE is that the
-    // server will ignore it when status=ALL, preventing inactive items from
-    // jumping around.
+    setLoadError(null);
     fetchProducts(page, size, { ...filters, sort, status: 'ALL' })
       .then(response => {
         setProducts(response.content);
@@ -57,7 +53,15 @@ export default function ProductsPage() {
         setCurrentPage(response.number + 1);
         setPageSize(response.size);
       })
-      .catch(() => message.error('Failed to load products'));
+      .catch((err) => {
+        const status = err?.status;
+        if (status === 503) {
+          setLoadError('Product Service is currently unavailable (503). Please make sure the product-service is running.');
+        } else {
+          setLoadError('Failed to load products. Please try again.');
+        }
+        message.error('Failed to load products');
+      });
   };
 
   useEffect(() => {
@@ -234,6 +238,17 @@ export default function ProductsPage() {
   return (
     <div>
       <Title level={2}>Products</Title>
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          closable
+          message="Service Unavailable"
+          description={loadError}
+          style={{ marginBottom: 16 }}
+          action={<Button size="small" type="primary" onClick={() => load(0, pageSize)}>Retry</Button>}
+        />
+      )}
       <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Input
           placeholder="Keyword"

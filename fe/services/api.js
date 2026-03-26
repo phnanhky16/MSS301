@@ -58,7 +58,8 @@ export async function request(path, options = {}) {
     }
     if (res.status === 503) {
       // service unavailable / maintenance
-      if (typeof window !== 'undefined') {
+      // only hard-redirect for public pages; admin pages should show inline errors
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin')) {
         window.location.href = '/maintenance';
       }
     }
