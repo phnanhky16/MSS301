@@ -15,6 +15,7 @@ public class BulkAllocationRequest {
     private Double longitude;
     private List<ItemRequest> items;
     private Double maxDistanceKm;
+    private Long storeId;
 
     @Data
     @Builder

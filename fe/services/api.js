@@ -582,3 +582,25 @@ export function fetchProductsByIds(ids) {
   return request(`/products/by-ids?ids=${ids.join(',')}`);
 }
 
+// --- Coupons ---
+export function validateCoupon(code) {
+  return request(`/coupons/${code}`);
+}
+
+// --- Orders (POS / Admin) ---
+export function createOrder(data) {
+  return request('/orders', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function getOrder(id) {
+  return request(`/orders/${id}`);
+}
+
+export function updateOrderStatus(id, status) {
+  return request(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+}
+
+export function getOrdersByUser(userId) {
+  return request(`/orders/user/${userId}`);
+}
+

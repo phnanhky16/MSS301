@@ -77,7 +77,9 @@ const pageTitles = {
   stores: 'Store Management',
   warehouses: 'Warehouse Management',
   'warehouse-inventory': 'Warehouse Inventory',
+  inventory: 'Store Inventory',
   reviews: 'Review Management',
+  pos: 'POS Bán hàng',
 };
 
 export default function AdminLayout({ children }) {
@@ -126,8 +128,12 @@ export default function AdminLayout({ children }) {
                   : router.pathname.startsWith('/warehouse/')
                     ? 'warehouses'
                     : router.pathname.startsWith('/admin/inventory')
-                      ? 'stores'
-                      : 'dashboard';
+                      ? 'inventory'
+                      : router.pathname.startsWith('/admin/warehouse-inventory')
+                        ? 'warehouse-inventory'
+                        : router.pathname.startsWith('/store/pos')
+                          ? 'pos'
+                          : 'dashboard';
 
   const displayName = profile?.fullName || profile?.name || 'Admin';
   const initials = displayName
@@ -174,11 +180,15 @@ export default function AdminLayout({ children }) {
               items={[
                 {
                   type: 'group',
-                  label: collapsed ? '' : (profile?.role === 'STAFF_FOR_WAREHOUSE' ? 'WAREHOUSE' : 'MENU'),
-                  children: profile?.role === 'STAFF_FOR_WAREHOUSE' 
+                  label: collapsed ? '' : (profile?.role === 'STAFF_FOR_WAREHOUSE' ? 'WAREHOUSE' : profile?.role === 'STAFF_FOR_STORE' ? 'CỬA HÀNG' : 'MENU'),
+                  children: profile?.role === 'STAFF_FOR_WAREHOUSE'
                     ? [
                         { key: 'dashboard', icon: <DashboardOutlined />, label: <Link href="/warehouse/dashboard">Dashboard</Link> },
                         { key: 'warehouses', icon: <AppstoreOutlined />, label: <Link href="/warehouse/list">Warehouses</Link> },
+                      ]
+                    : profile?.role === 'STAFF_FOR_STORE'
+                    ? [
+                        { key: 'pos', icon: <ShoppingCartOutlined />, label: <Link href="/store/pos">POS Bán hàng</Link> },
                       ]
                     : [
                         { key: 'dashboard', icon: <DashboardOutlined />, label: <Link href="/admin">Dashboard</Link> },
@@ -187,7 +197,6 @@ export default function AdminLayout({ children }) {
                         { key: 'users', icon: <UserOutlined />, label: <Link href="/admin/users">Customers</Link> },
                         { key: 'users-archived', icon: <UserOutlined />, label: <Link href="/admin/users-archived">Archived Users</Link> },
                         { key: 'reviews', icon: <MessageOutlined />, label: <Link href="/admin/reviews">Reviews</Link> },
-                        { key: 'reports', icon: <BarChartOutlined />, label: <Link href="/admin/warehouses">Reports</Link> },
                         { key: 'coupons', icon: <PercentageOutlined />, label: <Link href="/admin/coupons">Discounts</Link> },
                       ],
                 },
@@ -197,9 +206,10 @@ export default function AdminLayout({ children }) {
                   children: [
                     { key: 'home', icon: <ApiOutlined />, label: <Link href="/?skipRedirect=true">Back to Website</Link> },
                     ...(profile?.role !== 'STAFF_FOR_WAREHOUSE' ? [
-                      { key: 'stores', icon: <ApiOutlined />, label: <Link href="/admin/stores">Integrations</Link> },
-                      { key: 'warehouses', icon: <QuestionCircleOutlined />, label: <Link href="/admin/warehouses">Help</Link> },
-                      { key: 'warehouse-inventory', icon: <SettingOutlined />, label: <Link href="/admin/warehouse-inventory">Settings</Link> },
+                      { key: 'stores', icon: <ApiOutlined />, label: <Link href="/admin/stores">Store Management</Link> },
+                      { key: 'warehouses', icon: <QuestionCircleOutlined />, label: <Link href="/admin/warehouses">Warehouse Management</Link> },
+                      { key: 'inventory', icon: <AppstoreOutlined />, label: <Link href="/admin/inventory">Store Inventory</Link> },
+                      { key: 'warehouse-inventory', icon: <SettingOutlined />, label: <Link href="/admin/warehouse-inventory">Warehouse Inventory</Link> },
                     ] : [])
                   ],
                 },

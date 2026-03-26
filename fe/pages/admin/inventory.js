@@ -35,7 +35,7 @@ export default function InventoryPage() {
   function openForm(item) {
     setEditing(item);
     if (item) {
-      form.setFieldsValue({ productId: item.product.id, quantity: item.quantity });
+      form.setFieldsValue({ productId: item.productId, quantity: item.quantity });
     } else {
       form.resetFields();
     }
@@ -43,9 +43,14 @@ export default function InventoryPage() {
   }
 
   function handleSubmit(values) {
-    const data = { productId: values.productId, quantity: values.quantity };
+    const prod = products.find(p => p.id === values.productId);
+    const data = { 
+      productId: values.productId, 
+      productName: prod ? prod.name : '',
+      quantity: values.quantity 
+    };
     const action = editing
-      ? updateStock(selectedStore, editing.product.id, { quantity: values.quantity })
+      ? updateStock(selectedStore, editing.productId, { quantity: values.quantity })
       : addOrUpdateInventory(selectedStore, data);
     action
       .then(() => {
@@ -58,14 +63,21 @@ export default function InventoryPage() {
   }
 
   const columns = [
-    { title: 'Product', dataIndex: ['product', 'name'], key: 'product' },
+    { 
+      title: 'Product', 
+      key: 'productName', 
+      render: (_, r) => {
+        const found = products.find(p => p.id === r.productId);
+        return r.productName || (found ? found.name : `Product #${r.productId}`);
+      }
+    },
     { title: 'Quantity', dataIndex: 'quantity', key: 'quantity' },
     {
       title: 'Action', key: 'action', render: (_t, record) => (
         <>
           <Button type="link" onClick={() => openForm(record)}>Edit</Button>
           <Button type="link" danger onClick={() => {
-            removeInventory(selectedStore, record.product.id)
+            removeInventory(selectedStore, record.productId)
               .then(() => { message.success('Removed'); setSelectedStore(s => s); })
               .catch(() => message.error('Fail'));
           }}>Delete</Button>
@@ -98,7 +110,7 @@ export default function InventoryPage() {
       <Table
         dataSource={inventory}
         columns={columns}
-        rowKey={rec => rec.product.id}
+        rowKey="productId"
         loading={loading}
       />
 

@@ -9,7 +9,7 @@ import {
     CheckCircleOutlined, CreditCardOutlined, ArrowLeftOutlined
 } from '@ant-design/icons';
 import { useCart } from '../hooks/useCart';
-import { fetchProvinces, fetchDistricts, fetchWards, request } from '../services/api';
+import { fetchProvinces, fetchDistricts, fetchWards, request, validateCoupon } from '../services/api';
 import Link from 'next/link';
 import { formatVnd } from '../utils/currency';
 
@@ -40,6 +40,11 @@ export default function CheckoutPage() {
     const [loadingWards, setLoadingWards] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
+
+    // ── Coupon states ─────────────────────────────────────────
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [couponLoading, setCouponLoading] = useState(false);
 
     // ── Load provinces on mount ───────────────────────────────
     useEffect(() => {
@@ -89,8 +94,48 @@ export default function CheckoutPage() {
         setSelectedWardName(option.children);
     };
 
-    // ── Order total ───────────────────────────────────────────
-    const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    // ── Coupon handlers ───────────────────────────────────────
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setCouponLoading(true);
+        try {
+            const res = await validateCoupon(couponCode.trim().toUpperCase());
+            if (!res.active) {
+                message.error('Mã giảm giá đã bị vô hiệu hóa');
+                setAppliedCoupon(null);
+            } else if (res.maxRedemptions && res.timesRedeemed >= res.maxRedemptions) {
+                message.error('Mã giảm giá đã hết lượt sử dụng');
+                setAppliedCoupon(null);
+            } else {
+                message.success('Áp dụng mã giảm giá thành công!');
+                setAppliedCoupon(res);
+            }
+        } catch (err) {
+            message.error('Mã giảm giá không hợp lệ hoặc đã hết hạn');
+            setAppliedCoupon(null);
+        } finally {
+            setCouponLoading(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponCode('');
+        setAppliedCoupon(null);
+        message.info('Đã gỡ mã giảm giá');
+    };
+
+    // ── Order total & discount ────────────────────────────────
+    const subTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    let discountAmount = 0;
+    if (appliedCoupon) {
+        if (appliedCoupon.discountType === 'PERCENT') {
+            discountAmount = subTotal * (appliedCoupon.discountValue / 100);
+        } else if (appliedCoupon.discountType === 'FIXED') {
+            discountAmount = appliedCoupon.discountValue;
+        }
+        if (discountAmount > subTotal) discountAmount = subTotal;
+    }
+    const finalTotal = subTotal - discountAmount;
 
     // ── Submit ────────────────────────────────────────────────
     const handleSubmit = async (values) => {
@@ -126,6 +171,7 @@ export default function CheckoutPage() {
                 shippingAddress,
                 phoneNumber: values.phone,
                 notes: values.note || '',
+                couponCode: appliedCoupon?.code || '',
                 items: cart.map(item => ({
                     productId: item.id,
                     quantity: item.quantity,
@@ -450,12 +496,41 @@ export default function CheckoutPage() {
                                     size="small"
                                     style={{ marginBottom: 16 }}
                                 />
+
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <Input 
+                                            placeholder="Nhập mã giảm giá" 
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                            disabled={!!appliedCoupon}
+                                        />
+                                        {appliedCoupon ? (
+                                            <Button danger onClick={handleRemoveCoupon}>Xóa</Button>
+                                        ) : (
+                                            <Button type="primary" style={{ background: '#1ca8c8' }} loading={couponLoading} onClick={handleApplyCoupon}>Áp dụng</Button>
+                                        )}
+                                    </div>
+                                    {appliedCoupon && (
+                                        <Text type="success" style={{ fontSize: 13, marginTop: 4, display: 'block' }}>
+                                            <CheckCircleOutlined style={{ marginRight: 4 }} />
+                                            Đã áp dụng mã {appliedCoupon.code} giảm {appliedCoupon.discountType === 'PERCENT' ? `${appliedCoupon.discountValue}%` : formatVnd(appliedCoupon.discountValue)}
+                                        </Text>
+                                    )}
+                                </div>
+
                                 <Divider style={{ margin: '12px 0' }} />
 
                                 <div style={styles.summaryRow}>
                                     <Text type="secondary">Tạm tính:</Text>
-                                    <Text>{formatVnd(total)}</Text>
+                                    <Text>{formatVnd(subTotal)}</Text>
                                 </div>
+                                {appliedCoupon && (
+                                    <div style={styles.summaryRow}>
+                                        <Text type="secondary">Giảm giá:</Text>
+                                        <Text type="danger">- {formatVnd(discountAmount)}</Text>
+                                    </div>
+                                )}
                                 <div style={styles.summaryRow}>
                                     <Text type="secondary">Phí giao hàng:</Text>
                                     <Tag color="green">Miễn phí</Tag>
@@ -464,7 +539,7 @@ export default function CheckoutPage() {
                                 <div style={{ ...styles.summaryRow, marginTop: 4 }}>
                                     <Text strong style={{ fontSize: 16 }}>Tổng cộng:</Text>
                                     <Text strong style={{ fontSize: 20, color: '#1ca8c8' }}>
-                                        {formatVnd(total)}
+                                        {formatVnd(finalTotal)}
                                     </Text>
                                 </div>
 

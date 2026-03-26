@@ -46,8 +46,13 @@ export default function Login() {
       const stored = localStorage.getItem('userInfo');
       try {
         const info = stored ? JSON.parse(stored) : null;
-        if (info && info.role && info.role.toUpperCase() === 'ADMIN') {
+        const role = info?.role?.toUpperCase();
+        if (role === 'ADMIN') {
           router.push('/admin');
+        } else if (role === 'STAFF_FOR_STORE') {
+          router.push('/store/pos');
+        } else if (role === 'STAFF_FOR_WAREHOUSE') {
+          router.push('/warehouse/dashboard');
         } else {
           router.push('/');
         }
@@ -99,8 +104,13 @@ export default function Login() {
         window.dispatchEvent(new Event('storage'));
 
         // route depending on user role
-        if (info && info.role && info.role.toUpperCase() === 'ADMIN') {
+        const role = info?.role?.toUpperCase();
+        if (role === 'ADMIN') {
           router.push('/admin');
+        } else if (role === 'STAFF_FOR_STORE') {
+          router.push('/store/pos');
+        } else if (role === 'STAFF_FOR_WAREHOUSE') {
+          router.push('/warehouse/dashboard');
         } else {
           router.push('/');
         }

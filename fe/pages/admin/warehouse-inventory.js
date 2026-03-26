@@ -57,7 +57,7 @@ export default function WarehouseInventoryPage() {
   function openForm(item) {
     setEditing(item);
     if (item) {
-      form.setFieldsValue({ productId: item.product.id, quantity: item.quantity });
+      form.setFieldsValue({ productId: item.productId, quantity: item.quantity });
     } else {
       form.resetFields();
     }
@@ -65,9 +65,14 @@ export default function WarehouseInventoryPage() {
   }
 
   function handleSubmit(values) {
-    const data = { productId: values.productId, quantity: values.quantity };
+    const prod = products.find(p => p.id === values.productId);
+    const data = { 
+      productId: values.productId, 
+      productName: prod ? prod.name : '',
+      quantity: values.quantity 
+    };
     const action = editing
-      ? updateWarehouseProductStock(selectedWarehouse, editing.product.id, { quantity: values.quantity })
+      ? updateWarehouseProductStock(selectedWarehouse, editing.productId, { quantity: values.quantity })
       : addOrUpdateWarehouseProduct(selectedWarehouse, data);
     action
       .then(() => {
@@ -79,14 +84,21 @@ export default function WarehouseInventoryPage() {
   }
 
   const columns = [
-    { title: 'Product', dataIndex: ['product', 'name'], key: 'product' },
+    { 
+      title: 'Product', 
+      key: 'productName', 
+      render: (_, r) => {
+        const found = products.find(p => p.id === r.productId);
+        return r.productName || (found ? found.name : `Product #${r.productId}`);
+      }
+    },
     { title: 'Quantity', dataIndex: 'quantity', key: 'quantity' },
     {
       title: 'Action', key: 'action', render: (_t, record) => (
         <>
           <Button type="link" onClick={() => openForm(record)}>Edit</Button>
           <Button type="link" danger onClick={() => {
-            removeWarehouseProduct(selectedWarehouse, record.product.id)
+            removeWarehouseProduct(selectedWarehouse, record.productId)
               .then(() => { message.success('Removed'); setSelectedWarehouse(s => s); })
               .catch(() => message.error('Fail'));
           }}>Delete</Button>
@@ -119,7 +131,7 @@ export default function WarehouseInventoryPage() {
       <Table
         dataSource={inventory}
         columns={columns}
-        rowKey={rec => rec.product.id}
+        rowKey="productId"
         loading={loading}
       />
 

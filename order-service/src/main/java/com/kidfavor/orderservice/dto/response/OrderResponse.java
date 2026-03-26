@@ -22,6 +22,7 @@ public class OrderResponse {
     private OrderStatus status;
     private BigDecimal totalAmount;
     private String shippingAddress;
+    private Long storeId;              // Store ID for POS orders
     private Double shippingLatitude;   // GPS latitude
     private Double shippingLongitude;  // GPS longitude
     private Long shipmentId;           // Shipment reference

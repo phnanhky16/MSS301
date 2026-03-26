@@ -44,6 +44,7 @@ public class Order {
 
     // amount discounted due to coupon (zero if none)
     @Column(precision = 19, scale = 2)
+    @Builder.Default
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @Column(length = 500)
@@ -54,6 +55,10 @@ public class Order {
 
     @Column(length = 500)
     private String notes;
+
+    // Store ID for POS orders that bypass location-based allocation
+    @Column(name = "store_id")
+    private Long storeId;
 
     // GPS coordinates of shipping address for location-based inventory allocation
     @Column(name = "shipping_latitude")

@@ -20,7 +20,7 @@ public class CreateOrderRequest {
     @NotNull(message = "User ID is required")
     private Long userId;
 
-    // storeId removed - system will auto-select nearest store based on GPS location
+    private Long storeId; // For POS orders to directly allocate from a specific store
 
     @NotEmpty(message = "Order must contain at least one item")
     @Valid

@@ -161,20 +161,29 @@ public class LocationBasedInventoryServiceImpl implements LocationBasedInventory
         List<Store> allStores = storeRepository.findByIsActive(true);
         List<StoreWithDistance> sortedStores = new ArrayList<>();
         
-        for (Store store : allStores) {
-            if (store.getLatitude() != null && store.getLongitude() != null) {
-                double distance = geocodingService.calculateDistance(
-                    request.getLatitude(), request.getLongitude(),
-                    store.getLatitude(), store.getLongitude());
-                
-                if (request.getMaxDistanceKm() == null || distance <= request.getMaxDistanceKm()) {
-                    // Temporarily use null for inventory here, we just need sorted stores
-                    sortedStores.add(new StoreWithDistance(store, null, distance));
+        if (request.getStoreId() != null) {
+            log.info("Explicit storeId provided: {}. Bypassing GPS location logic.", request.getStoreId());
+            Optional<Store> explicitStore = storeRepository.findById(request.getStoreId());
+            if (explicitStore.isPresent() && explicitStore.get().getIsActive()) {
+                sortedStores.add(new StoreWithDistance(explicitStore.get(), null, 0.0));
+            } else {
+                log.warn("Provided storeId {} is invalid or inactive", request.getStoreId());
+            }
+        } else {
+            for (Store store : allStores) {
+                if (store.getLatitude() != null && store.getLongitude() != null && request.getLatitude() != null && request.getLongitude() != null) {
+                    double distance = geocodingService.calculateDistance(
+                        request.getLatitude(), request.getLongitude(),
+                        store.getLatitude(), store.getLongitude());
+                    
+                    if (request.getMaxDistanceKm() == null || distance <= request.getMaxDistanceKm()) {
+                        // Temporarily use null for inventory here, we just need sorted stores
+                        sortedStores.add(new StoreWithDistance(store, null, distance));
+                    }
                 }
             }
+            sortedStores.sort(Comparator.comparingDouble(StoreWithDistance::getDistance));
         }
-        
-        sortedStores.sort(Comparator.comparingDouble(StoreWithDistance::getDistance));
         
         for (BulkAllocationRequest.ItemRequest item : request.getItems()) {
             int remainingQuantity = item.getQuantity();

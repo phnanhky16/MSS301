@@ -30,25 +30,34 @@ public class LocationBasedOrderServiceImpl implements LocationBasedOrderService 
 
     @Override
     public LocationBasedOrderResult processOrder(Order order) {
-        log.info("Processing location-based order: {}", order.getOrderNumber());
-        
+        log.info("Processing order: {} (storeId={})", order.getOrderNumber(), order.getStoreId());
+
         LocationBasedOrderResult result = LocationBasedOrderResult.builder()
                 .orderNumber(order.getOrderNumber())
                 .build();
 
-        try {
-            Long shipmentId = createShipment(order);
-            order.setShipmentId(shipmentId);
-            result.setShipmentId(shipmentId);
-            result.setShipmentCreated(true);
-        } catch (Exception e) {
-            log.error("Failed to create shipment", e);
-            result.setShipmentCreated(false);
-            result.setErrorMessage("Failed to create shipment");
-            return result;
+        boolean isPOSOrder = order.getStoreId() != null;
+
+        // Shipment only for online/delivery orders
+        if (!isPOSOrder) {
+            try {
+                Long shipmentId = createShipment(order);
+                order.setShipmentId(shipmentId);
+                result.setShipmentId(shipmentId);
+                result.setShipmentCreated(true);
+            } catch (Exception e) {
+                log.error("Failed to create shipment", e);
+                result.setShipmentCreated(false);
+                result.setErrorMessage("Failed to create shipment");
+                return result;
+            }
+        } else {
+            result.setShipmentCreated(false); // no delivery for POS
+            log.info("POS order — skipping shipment creation");
         }
 
-        if (order.getShippingAddress() != null) {
+        // Geocoding only for delivery orders that have a shipping address
+        if (!isPOSOrder && order.getShippingAddress() != null) {
             try {
                 GeocodingResultDTO geocoding = geocodeAddress(order.getShippingAddress());
                 if (geocoding != null) {
@@ -64,7 +73,8 @@ public class LocationBasedOrderServiceImpl implements LocationBasedOrderService 
             }
         }
 
-        if (order.getShippingLatitude() != null) {
+        // Inventory allocation
+        if (isPOSOrder || order.getShippingLatitude() != null) {
             List<BulkAllocationRequest.ItemRequest> itemRequests = new ArrayList<>();
             for (OrderItem item : order.getItems()) {
                 itemRequests.add(BulkAllocationRequest.ItemRequest.builder()
@@ -77,7 +87,8 @@ public class LocationBasedOrderServiceImpl implements LocationBasedOrderService 
                     .latitude(order.getShippingLatitude())
                     .longitude(order.getShippingLongitude())
                     .items(itemRequests)
-                    .maxDistanceKm(50.0) // default search radius
+                    .storeId(order.getStoreId()) // null for GPS orders, non-null for POS
+                    .maxDistanceKm(50.0)
                     .build();
 
             BulkAllocationResult bulkResult = inventoryServiceClient.allocateBulkInventory(bulkRequest);
@@ -85,7 +96,6 @@ public class LocationBasedOrderServiceImpl implements LocationBasedOrderService 
             if (bulkResult != null && bulkResult.getAllocations() != null) {
                 List<OrderItem> splitItems = new ArrayList<>();
                 for (AllocationItem allocated : bulkResult.getAllocations()) {
-                    // Find original item specs (price, name, etc.)
                     OrderItem originalItem = order.getItems().stream()
                             .filter(i -> i.getProductId().equals(allocated.getProductId()))
                             .findFirst().orElse(null);
@@ -98,14 +108,13 @@ public class LocationBasedOrderServiceImpl implements LocationBasedOrderService 
                                 .productImageUrl(originalItem.getProductImageUrl())
                                 .unitPrice(originalItem.getUnitPrice())
                                 .quantity(allocated.getAllocatedQuantity())
-                                .storeId(allocated.getStoreId())
+                                .storeId(allocated.getStoreId() != null ? allocated.getStoreId() : order.getStoreId())
                                 .build();
                         splitItem.calculateSubtotal();
                         splitItems.add(splitItem);
                     }
                 }
-                
-                // Replace the original items with the split/allocated items
+
                 order.getItems().clear();
                 for (OrderItem splitItem : splitItems) {
                     order.addItem(splitItem);
