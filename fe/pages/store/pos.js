@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import {
-  Layout, Button, Select, Input, Badge, Modal, Spin, message,
+  Layout, Button, Select, Input, Badge, Modal, Spin, message, Pagination,
   Divider, Empty, Tag, Avatar, Tooltip, Space,
 } from 'antd';
 import {
@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'next/router';
 import { logout, getCurrentUser } from '../../services/auth';
 import {
-  fetchActiveStores, fetchInStockProducts, fetchProducts,
+  fetchActiveStores, fetchInStockProducts,
   createOrder, updateOrderStatus, validateCoupon,
 } from '../../services/api';
 
@@ -22,14 +22,60 @@ const { Sider, Content, Header } = Layout;
 const formatVND = (n) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
 
+const normalizeRole = (role) => {
+  if (!role) return '';
+  const value = String(role).toUpperCase();
+  return value.startsWith('ROLE_') ? value.slice(5) : value;
+};
+
+const getUserSession = () => {
+  const tokenUser = getCurrentUser();
+  let storedUser = null;
+
+  try {
+    const raw = localStorage.getItem('userInfo');
+    storedUser = raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    storedUser = null;
+  }
+
+  if (!tokenUser && !storedUser) return null;
+  const merged = { ...(storedUser || {}), ...(tokenUser || {}) };
+  return { ...merged, role: normalizeRole(merged.role) };
+};
+
+const resolveUserId = (user) => {
+  if (!user) return null;
+  return user.userId ?? user.id ?? null;
+};
+
+const pickFirst = (obj, keys, fallback = undefined) => {
+  if (!obj || !Array.isArray(keys)) return fallback;
+  for (const key of keys) {
+    const value = obj?.[key];
+    if (value !== undefined && value !== null && value !== '') {
+      return value;
+    }
+  }
+  return fallback;
+};
+
+const parseNumberSafe = (value, fallback = 0) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
 export default function POSDashboard() {
   const router = useRouter();
+  const [msgApi, msgHolder] = message.useMessage();
   const [profile, setProfile] = useState(null);
   const [stores, setStores] = useState([]);
   const [selectedStore, setSelectedStore] = useState(null);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
   const [cart, setCart] = useState([]);
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -42,13 +88,13 @@ export default function POSDashboard() {
 
   // Auth guard
   useEffect(() => {
-    const user = getCurrentUser();
+    const user = getUserSession();
     setProfile(user);
     if (!user) { router.push('/login'); return; }
     if (user.role !== 'STAFF_FOR_STORE' && user.role !== 'ADMIN') {
       router.push('/');
     }
-  }, []);
+  }, [router]);
 
   // Load stores
   useEffect(() => {
@@ -58,45 +104,61 @@ export default function POSDashboard() {
         setStores(list);
         if (list.length === 1) setSelectedStore(list[0].storeId);
       })
-      .catch(() => message.error('Không thể tải danh sách cửa hàng'));
-  }, []);
+      .catch(() => msgApi.error('Không thể tải danh sách cửa hàng'));
+  }, [msgApi]);
 
   // Load products when store selected or refresh requested
   useEffect(() => {
     if (!selectedStore) { setProducts([]); setFilteredProducts([]); return; }
     setLoadingProducts(true);
-    // Fetch in-stock items at the store, then enrich with product details
-    Promise.all([
-      fetchInStockProducts(selectedStore),
-      fetchProducts(0, 200, { status: 'ACTIVE' }),
-    ])
-      .then(([inventory, prodPage]) => {
+    fetchInStockProducts(selectedStore)
+      .then((inventory) => {
         const invList = Array.isArray(inventory) ? inventory : (inventory?.data ?? []);
-        const prodList = Array.isArray(prodPage) ? prodPage : (prodPage?.content ?? prodPage?.data ?? []);
-        // Merge: add product details (image, price) into inventory record
-        const enriched = invList.map(inv => {
-          const prod = prodList.find(p => p.id === (inv.productId ?? inv.product?.id));
+
+        const mapped = invList.map((inv, index) => {
+          const productId = parseNumberSafe(pickFirst(inv, ['productId', 'product_id', 'id'], inv.product?.id), 0);
+          const quantity = parseNumberSafe(pickFirst(inv, ['quantity', 'stock', 'availableQuantity'], 0), 0);
+          const productName =
+            pickFirst(inv, ['productName', 'name', 'product_name'], null)
+            || inv.product?.name
+            || `SP #${productId || index + 1}`;
+          const price = parseNumberSafe(
+            pickFirst(inv, ['salePrice', 'price', 'sellingPrice', 'unitPrice', 'sale_price', 'selling_price'],
+              inv.product?.salePrice
+              ?? inv.product?.price
+              ?? inv.product?.sellingPrice
+              ?? inv.product?.unitPrice
+              ?? 0)
+          , 0);
+          const image =
+            pickFirst(inv, ['imageUrl', 'imageURL', 'image', 'thumbnail', 'image_url'], null)
+            || inv.product?.imageUrl
+            || null;
+
           return {
-            productId: inv.productId ?? inv.product?.id,
-            productName: inv.productName || prod?.name || `Product #${inv.productId}`,
-            quantity: inv.quantity,
-            price: prod?.onSale && prod?.salePrice ? prod.salePrice : (prod?.price ?? 0),
-            image: prod?.imageUrl ?? null,
+            productId: productId || `inv-${index}`,
+            productName,
+            quantity: Number.isFinite(quantity) ? quantity : 0,
+            price: Number.isFinite(price) ? price : 0,
+            image,
             status: inv.status,
           };
         }).filter(p => p.quantity > 0);
-        setProducts(enriched);
-        setFilteredProducts(enriched);
+
+        setProducts(mapped);
+        setFilteredProducts(mapped);
+        setPage(1);
       })
-      .catch(() => message.error('Không thể tải sản phẩm'))
+      .catch(() => msgApi.error('Không thể tải sản phẩm'))
       .finally(() => setLoadingProducts(false));
-  }, [selectedStore, reloadKey]);
+  }, [selectedStore, reloadKey, msgApi]);
 
   // Client-side product search
   useEffect(() => {
     if (!search.trim()) { setFilteredProducts(products); return; }
     const q = search.toLowerCase();
     setFilteredProducts(products.filter(p => p.productName.toLowerCase().includes(q)));
+    setPage(1);
   }, [search, products]);
 
   // Cart helpers
@@ -105,7 +167,7 @@ export default function POSDashboard() {
       const existing = prev.find(c => c.productId === product.productId);
       if (existing) {
         if (existing.qty >= product.quantity) {
-          message.warning('Tồn kho không đủ');
+          msgApi.warning('Tồn kho không đủ');
           return prev;
         }
         return prev.map(c => c.productId === product.productId ? { ...c, qty: c.qty + 1 } : c);
@@ -117,7 +179,7 @@ export default function POSDashboard() {
   const changeQty = (productId, qty) => {
     const prod = products.find(p => p.productId === productId);
     if (qty < 1) { removeFromCart(productId); return; }
-    if (prod && qty > prod.quantity) { message.warning('Tồn kho không đủ'); return; }
+    if (prod && qty > prod.quantity) { msgApi.warning('Tồn kho không đủ'); return; }
     setCart(prev => prev.map(c => c.productId === productId ? { ...c, qty } : c));
   };
 
@@ -142,7 +204,7 @@ export default function POSDashboard() {
         disc = data.discountValue ?? 0;
       }
       setCouponDiscount(disc);
-      message.success(`Đã áp dụng mã giảm giá: -${formatVND(disc)}`);
+      msgApi.success(`Đã áp dụng mã giảm giá: -${formatVND(disc)}`);
     } catch {
       setCouponError('Mã không hợp lệ hoặc đã hết hạn');
       setCouponDiscount(0);
@@ -153,15 +215,20 @@ export default function POSDashboard() {
 
   // Checkout
   const handleCheckout = async () => {
-    if (cart.length === 0) { message.warning('Giỏ hàng trống'); return; }
-    if (!selectedStore) { message.warning('Vui lòng chọn cửa hàng'); return; }
+    if (cart.length === 0) { msgApi.warning('Giỏ hàng trống'); return; }
+    if (!selectedStore) { msgApi.warning('Vui lòng chọn cửa hàng'); return; }
+    const userId = resolveUserId(profile);
+    if (!userId) {
+      msgApi.error('Không xác định được nhân viên đăng nhập, vui lòng đăng nhập lại');
+      return;
+    }
     setCheckoutLoading(true);
     try {
       const orderPayload = {
-        userId: profile?.id ?? profile?.sub,
+        userId,
         storeId: selectedStore,
         items: cart.map(c => ({ productId: c.productId, quantity: c.qty })),
-        couponCode: couponCode.trim() || undefined,
+        couponCode: couponCode.trim().toUpperCase() || undefined,
         notes: 'POS — Bán tại quầy',
       };
       const res = await createOrder(orderPayload);
@@ -173,18 +240,21 @@ export default function POSDashboard() {
       setCart([]);
       setCouponCode('');
       setCouponDiscount(0);
-      message.success(`✅ Đơn #${order.orderNumber} đã hoàn tất!`);
+      msgApi.success(`✅ Đơn #${order.orderNumber ?? order.id} đã hoàn tất!`);
     } catch (e) {
-      message.error('Thanh toán thất bại: ' + (e?.message ?? 'Lỗi không xác định'));
+      msgApi.error('Thanh toán thất bại: ' + (e?.message ?? 'Lỗi không xác định'));
     } finally {
       setCheckoutLoading(false);
     }
   };
 
   const currentStoreName = stores.find(s => s.storeId === selectedStore)?.storeName ?? '—';
+  const start = (page - 1) * pageSize;
+  const pagedProducts = filteredProducts.slice(start, start + pageSize);
 
   return (
     <>
+      {msgHolder}
       <Head>
         <title>POS Bán hàng — KidFavor</title>
         <style>{`
@@ -201,22 +271,81 @@ export default function POSDashboard() {
           .pos-body { display: flex; flex: 1; overflow: hidden; }
           .pos-left { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f8f9fa; }
           .pos-toolbar { padding: 12px 16px; display: flex; gap: 10px; background: #fff; border-bottom: 1px solid #e8e8e8; }
-          .pos-grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; align-content: start; }
-          .pos-card {
-            background: #fff; border-radius: 12px; overflow: hidden; cursor: pointer;
-            border: 2px solid transparent; transition: all 0.18s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          .pos-grid { flex: 1; overflow-y: auto; padding: 16px; align-content: start; }
+          .pos-shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px;
           }
-          .pos-card:hover { border-color: #0f3460; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(15,52,96,0.15); }
-          .pos-card-img {
-            width: 100%; height: 120px; background: #f0f2f5;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 40px; border-bottom: 1px solid #f0f0f0;
+          .pos-shop-card {
+            background: #fff;
+            border: 1.5px solid #e9ecef;
+            border-radius: 12px;
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 250px;
+            position: relative;
+            transition: box-shadow 0.2s, transform 0.2s;
           }
-          .pos-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-          .pos-card-body { padding: 8px 10px 10px; min-height: 64px; }
-          .pos-card-name { font-size: 12px; font-weight: 600; color: #1a1a2e; line-height: 1.3; margin-bottom: 4px; }
-          .pos-card-price { color: #e63946; font-size: 13px; font-weight: 700; }
-          .pos-card-stock { font-size: 11px; color: #6c757d; }
+          .pos-shop-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+          }
+          .pos-shop-add {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            background: #1ca8c8;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          }
+          .pos-shop-image {
+            height: 130px;
+            border-radius: 10px;
+            background: #f3f5f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            overflow: hidden;
+          }
+          .pos-shop-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          .pos-shop-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          }
+          .pos-shop-name {
+            font-size: 13px;
+            line-height: 1.35;
+            color: #24303f;
+            font-weight: 600;
+            margin: 0;
+            min-height: 34px;
+          }
+          .pos-shop-price {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1ca8c8;
+          }
+          .pos-shop-stock {
+            font-size: 12px;
+            color: #5c6b7a;
+          }
           .pos-right { width: 340px; display: flex; flex-direction: column; background: #fff; border-left: 1px solid #e8e8e8; flex-shrink: 0; }
           .pos-cart-header { padding: 14px 16px; background: #1a1a2e; color: #fff; font-size: 15px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
           .pos-cart-items { flex: 1; overflow-y: auto; padding: 8px; }
@@ -271,7 +400,7 @@ export default function POSDashboard() {
             </div>
 
             {/* Product grid */}
-            <div className="pos-grid">
+            <div className="pos-grid pos-shop-grid">
               {loadingProducts ? (
                 <div style={{ gridColumn: '1/-1', display: 'flex', justifyContent: 'center', padding: 60 }}>
                   <Spin size="large" />
@@ -280,25 +409,64 @@ export default function POSDashboard() {
                 <div style={{ gridColumn: '1/-1', padding: 60 }}>
                   <Empty description={selectedStore ? 'Không có sản phẩm tồn kho' : 'Vui lòng chọn cửa hàng'} />
                 </div>
-              ) : filteredProducts.map(prod => (
-                <div key={prod.productId} className="pos-card" onClick={() => addToCart(prod)}>
-                  <div className="pos-card-img">
-                    {prod.image ? (
+              ) : pagedProducts.map(prod => {
+                const displayName = prod.productName || 'Sản phẩm chưa có tên';
+                const displayPrice = Number.isFinite(Number(prod.price)) ? Number(prod.price) : 0;
+                const displayImage = prod.image;
+                const mergedProduct = {
+                  ...prod,
+                  productName: displayName,
+                  price: displayPrice,
+                  image: displayImage,
+                };
+
+                return (
+                <div key={prod.productId} className="pos-shop-card" onClick={() => addToCart(mergedProduct)}>
+                  <button
+                    className="pos-shop-add"
+                    aria-label="Thêm vào hóa đơn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(mergedProduct);
+                    }}
+                  >
+                    <ShoppingCartOutlined />
+                  </button>
+
+                  <div className="pos-shop-image">
+                    {displayImage ? (
                       <img
-                        src={prod.image}
-                        alt={prod.productName}
+                        src={displayImage}
+                        alt={displayName || 'Sản phẩm'}
                         onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
                       />
                     ) : null}
-                    <span style={{ display: prod.image ? 'none' : 'flex' }}>🧸</span>
+                    <span style={{ display: displayImage ? 'none' : 'flex' }}>🧸</span>
                   </div>
-                  <div className="pos-card-body">
-                    <div className="pos-card-name" title={prod.productName}>{prod.productName}</div>
-                    <div className="pos-card-price">{formatVND(prod.price)}</div>
-                    <div className="pos-card-stock">Tồn: {prod.quantity}</div>
+
+                  <div className="pos-shop-info">
+                    <p className="pos-shop-name" title={displayName}>
+                      {displayName}
+                    </p>
+                    <span className="pos-shop-price">{formatVND(displayPrice)}</span>
+                    <div className="pos-shop-stock">
+                      Tồn kho cửa hàng: {Number.isFinite(prod.quantity) ? prod.quantity : 0}
+                    </div>
                   </div>
                 </div>
-              ))}
+              )})}
+
+              {!loadingProducts && filteredProducts.length > pageSize && (
+                <div style={{ gridColumn: '1/-1', display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+                  <Pagination
+                    current={page}
+                    pageSize={pageSize}
+                    total={filteredProducts.length}
+                    showSizeChanger={false}
+                    onChange={setPage}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

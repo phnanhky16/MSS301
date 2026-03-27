@@ -4,6 +4,7 @@ import com.kidfavor.inventoryservice.enums.ProductStockStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,6 +30,15 @@ public class StoreInventory {
 
     @Column(name = "product_name", length = 255)
     private String productName;
+
+    @Column(name = "price", precision = 19, scale = 2)
+    private BigDecimal price;
+
+    @Column(name = "sale_price", precision = 19, scale = 2)
+    private BigDecimal salePrice;
+
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity = 0;

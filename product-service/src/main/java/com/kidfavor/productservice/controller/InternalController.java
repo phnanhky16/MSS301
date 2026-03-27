@@ -2,6 +2,9 @@ package com.kidfavor.productservice.controller;
 
 import com.kidfavor.productservice.dto.response.ResponseWrapper;
 import com.kidfavor.productservice.dto.response.ProductResponse;
+import com.kidfavor.productservice.entity.Product;
+import com.kidfavor.productservice.mapper.ProductMapper;
+import com.kidfavor.productservice.repository.ProductRepository;
 import com.kidfavor.productservice.service.ProductService;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.AccessLevel;
@@ -11,6 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Internal API endpoints for inter-service communication
@@ -24,6 +30,8 @@ import java.util.Optional;
 public class InternalController {
     
     ProductService productService;
+    ProductRepository productRepository;
+    ProductMapper productMapper;
     
     /**
      * Get product by ID for internal service calls
@@ -61,10 +69,14 @@ public class InternalController {
     @GetMapping("/products/by-ids")
     public ResponseEntity<ResponseWrapper<java.util.List<ProductResponse>>> getProductsByIdsInternal(
             @RequestParam("ids") java.util.List<Long> ids) {
+        List<Product> entities = productRepository.findByIdInWithRelations(ids);
+        Map<Long, Product> entityMap = entities.stream().collect(Collectors.toMap(Product::getId, p -> p));
+
         java.util.List<ProductResponse> products = ids.stream()
-                .map(id -> productService.getProductById(id).orElse(null))
-                .filter(java.util.Objects::nonNull)
-                .collect(java.util.stream.Collectors.toList());
+            .map(entityMap::get)
+            .filter(java.util.Objects::nonNull)
+            .map(productMapper::toResponse)
+            .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(ResponseWrapper.success("Retrieved products successfully", products));
     }
 }

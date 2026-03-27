@@ -59,7 +59,15 @@ export default function Maintenance() {
                 type="primary" 
                 size="large" 
                 icon={<ReloadOutlined />}
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  const returnPath = window.localStorage.getItem('maintenanceReturnPath');
+                  if (returnPath && returnPath !== '/maintenance') {
+                    window.localStorage.removeItem('maintenanceReturnPath');
+                    window.location.href = returnPath;
+                  } else {
+                    window.location.reload();
+                  }
+                }}
                 style={{ 
                   height: 56, 
                   borderRadius: 16, 

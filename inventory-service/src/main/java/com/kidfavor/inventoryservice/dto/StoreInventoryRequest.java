@@ -3,6 +3,8 @@ package com.kidfavor.inventoryservice.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,6 +20,13 @@ public class StoreInventoryRequest {
 
     @Size(max = 255, message = "Product name must not exceed 255 characters")
     private String productName;
+
+    private BigDecimal price;
+
+    private BigDecimal salePrice;
+
+    @Size(max = 1000, message = "Image URL must not exceed 1000 characters")
+    private String imageUrl;
 
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity must be non-negative")

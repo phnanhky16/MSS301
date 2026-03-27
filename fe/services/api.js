@@ -58,10 +58,19 @@ export async function request(path, options = {}) {
     }
     if (res.status === 503) {
       // service unavailable / maintenance
-      // only hard-redirect for public pages; admin pages should show inline errors
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin')) {
-        window.location.href = '/maintenance';
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname;
+        const fullPath = window.location.pathname + window.location.search;
+        // Do not redirect admin/store API pages back to maintenance; show inline errors there.
+        if (!path.startsWith('/admin') && !path.startsWith('/store')) {
+          if (path !== '/maintenance') {
+            localStorage.setItem('maintenanceReturnPath', fullPath);
+          }
+          window.location.href = '/maintenance';
+        }
       }
+      const text = await res.text();
+      throw createApiError(res.status, res.statusText, text);
     }
     throw createApiError(res.status, res.statusText, text);
   }

@@ -6,6 +6,8 @@ import com.kidfavor.inventoryservice.dto.StoreInventoryRequest;
 import com.kidfavor.inventoryservice.dto.StoreInventoryResponse;
 import com.kidfavor.inventoryservice.dto.StoreRestockRequest;
 import com.kidfavor.inventoryservice.dto.StoreRestockResponse;
+import com.kidfavor.inventoryservice.client.ProductServiceClient;
+import com.kidfavor.inventoryservice.client.dto.ProductResponseDto;
 import com.kidfavor.inventoryservice.entity.Store;
 import com.kidfavor.inventoryservice.entity.StoreInventory;
 import com.kidfavor.inventoryservice.entity.Warehouse;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +42,81 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     private final WarehouseService warehouseService;
     private final WarehouseProductRepository warehouseProductRepository;
     private final InventoryMapper mapper;
+    private final ProductServiceClient productServiceClient;
+
+    private boolean needsProductEnrichment(StoreInventory si) {
+        return si.getProductName() == null || si.getProductName().isBlank()
+                || si.getPrice() == null
+                || si.getImageUrl() == null || si.getImageUrl().isBlank();
+    }
+
+    private String firstImageUrl(ProductResponseDto dto) {
+        if (dto == null || dto.getImageUrls() == null || dto.getImageUrls().isEmpty()) {
+            return null;
+        }
+        return dto.getImageUrls().get(0);
+    }
+
+    private List<StoreInventoryResponse> toEnrichedResponses(List<StoreInventory> inventories) {
+        if (inventories == null || inventories.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> missingProductIds = inventories.stream()
+                .filter(this::needsProductEnrichment)
+                .map(StoreInventory::getProductId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (!missingProductIds.isEmpty()) {
+            try {
+                var response = productServiceClient.getProductsByIds(missingProductIds);
+                if (response != null && response.isSuccess() && response.getData() != null) {
+                    Map<Long, ProductResponseDto> productMap = response.getData().stream()
+                            .collect(Collectors.toMap(ProductResponseDto::getId, p -> p, (a, b) -> a));
+
+                    boolean changed = false;
+                    for (StoreInventory si : inventories) {
+                        ProductResponseDto product = productMap.get(si.getProductId());
+                        if (product == null) {
+                            continue;
+                        }
+
+                        if ((si.getProductName() == null || si.getProductName().isBlank()) && product.getName() != null) {
+                            si.setProductName(product.getName());
+                            changed = true;
+                        }
+
+                        if (si.getPrice() == null && product.getPrice() != null) {
+                            si.setPrice(product.getPrice());
+                            changed = true;
+                        }
+
+                        if (si.getSalePrice() == null && product.getSalePrice() != null) {
+                            si.setSalePrice(product.getSalePrice());
+                            changed = true;
+                        }
+
+                        if ((si.getImageUrl() == null || si.getImageUrl().isBlank())) {
+                            String image = firstImageUrl(product);
+                            if (image != null) {
+                                si.setImageUrl(image);
+                                changed = true;
+                            }
+                        }
+                    }
+
+                    if (changed) {
+                        storeInventoryRepository.saveAll(inventories);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to enrich store inventory product details: {}", e.getMessage());
+            }
+        }
+
+        return inventories.stream().map(mapper::toStoreInventoryResponse).collect(Collectors.toList());
+    }
 
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -51,9 +129,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     @Override
     public List<StoreInventoryResponse> getInventoryByStore(Long storeId) {
         log.info("Fetching inventory for store id: {}", storeId);
-        return storeInventoryRepository.findByStoreId(storeId).stream()
-                .map(mapper::toStoreInventoryResponse)
-                .collect(Collectors.toList());
+        return toEnrichedResponses(storeInventoryRepository.findByStoreId(storeId));
     }
 
     @Override
@@ -63,55 +139,43 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         StoreInventory si = storeInventoryRepository.findByStoreAndProductId(store, productId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Product " + productId + " not found in store " + storeId));
-        return mapper.toStoreInventoryResponse(si);
+        return toEnrichedResponses(List.of(si)).stream().findFirst().orElse(mapper.toStoreInventoryResponse(si));
     }
 
     @Override
     public List<StoreInventoryResponse> getLowStockProducts() {
         log.info("Fetching low stock products in all stores");
-        return storeInventoryRepository.findLowStockProducts().stream()
-                .map(mapper::toStoreInventoryResponse)
-                .collect(Collectors.toList());
+        return toEnrichedResponses(storeInventoryRepository.findLowStockProducts());
     }
 
     @Override
     public List<StoreInventoryResponse> getLowStockProductsByStore(Long storeId) {
         log.info("Fetching low stock products in store: {}", storeId);
-        return storeInventoryRepository.findLowStockProductsByStore(storeId).stream()
-                .map(mapper::toStoreInventoryResponse)
-                .collect(Collectors.toList());
+        return toEnrichedResponses(storeInventoryRepository.findLowStockProductsByStore(storeId));
     }
 
     @Override
     public List<StoreInventoryResponse> getOutOfStockProducts() {
         log.info("Fetching out of stock products in all stores");
-        return storeInventoryRepository.findOutOfStockProducts().stream()
-                .map(mapper::toStoreInventoryResponse)
-                .collect(Collectors.toList());
+        return toEnrichedResponses(storeInventoryRepository.findOutOfStockProducts());
     }
 
     @Override
     public List<StoreInventoryResponse> getOutOfStockProductsByStore(Long storeId) {
         log.info("Fetching out of stock products in store: {}", storeId);
-        return storeInventoryRepository.findOutOfStockProductsByStore(storeId).stream()
-                .map(mapper::toStoreInventoryResponse)
-                .collect(Collectors.toList());
+        return toEnrichedResponses(storeInventoryRepository.findOutOfStockProductsByStore(storeId));
     }
 
     @Override
     public List<StoreInventoryResponse> getInStockProducts() {
         log.info("Fetching in stock products in all stores");
-        return storeInventoryRepository.findInStockProducts().stream()
-                .map(mapper::toStoreInventoryResponse)
-                .collect(Collectors.toList());
+        return toEnrichedResponses(storeInventoryRepository.findInStockProducts());
     }
 
     @Override
     public List<StoreInventoryResponse> getInStockProductsByStore(Long storeId) {
         log.info("Fetching in stock products in store: {}", storeId);
-        return storeInventoryRepository.findInStockProductsByStore(storeId).stream()
-                .map(mapper::toStoreInventoryResponse)
-                .collect(Collectors.toList());
+        return toEnrichedResponses(storeInventoryRepository.findInStockProductsByStore(storeId));
     }
 
     @Override
@@ -150,6 +214,9 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
         storeInventory.setQuantity(request.getQuantity());
         storeInventory.setProductName(request.getProductName());
+        storeInventory.setPrice(request.getPrice());
+        storeInventory.setSalePrice(request.getSalePrice());
+        storeInventory.setImageUrl(request.getImageUrl());
         storeInventory.setMinStockLevel(request.getMinStockLevel());
         storeInventory.setShelfLocation(request.getShelfLocation());
         storeInventory.setUpdatedBy(getCurrentUsername());
