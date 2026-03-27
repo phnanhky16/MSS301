@@ -547,6 +547,86 @@ const SortableImageCard = ({ img, onReplace, onDelete }) => {
   );
 };
 
+      <style jsx>{`
+        :global(.admin-page-container) {
+          padding: 24px;
+          background: #f5f7fa;
+          min-height: 100vh;
+        }
+        :global(.admin-page-title) {
+          color: #1a1a1a;
+          font-weight: 800;
+          margin-bottom: 24px !important;
+          padding-bottom: 16px;
+          border-bottom: 2px solid #1ca8c8;
+        }
+        :global(.admin-filter-bar) {
+          background: white;
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        :global(.admin-filter-bar input),
+        :global(.admin-filter-bar .ant-select) {
+          min-width: 140px;
+        }
+        :global(.admin-table-wrapper) {
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+          overflow: hidden;
+        }
+        :global(.admin-table-wrapper .ant-table) {
+          font-size: 14px;
+        }
+        :global(.admin-table-wrapper .ant-table-thead > tr > th) {
+          background: #fafafa;
+          color: #1a1a1a;
+          font-weight: 600;
+          border-bottom: 2px solid #e8e8e8;
+        }
+        :global(.admin-table-wrapper .ant-table-tbody > tr:hover > td) {
+          background: #f9f9f9;
+        }
+        :global(.admin-modal) {
+          border-radius: 8px;
+        }
+        :global(.admin-modal .ant-modal-header) {
+          border-bottom: 1px solid #e8e8e8;
+        }
+        :global(.admin-modal .ant-modal-title) {
+          font-weight: 700;
+        }
+        :global(.admin-button-group) {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        :global(.ant-btn-primary) {
+          background: #1ca8c8 !important;
+          border-color: #1ca8c8 !important;
+        }
+        :global(.ant-btn-primary:hover) {
+          background: #1691b0 !important;
+        }
+        @media (max-width: 768px) {
+          :global(.admin-page-container) {
+            padding: 16px;
+          }
+          :global(.admin-filter-bar) {
+            flex-direction: column;
+          }
+          :global(.admin-filter-bar input),
+          :global(.admin-filter-bar .ant-select) {
+            width: 100%;
+          }
+        }
+      `}</style>
+
 const ProductImageManager = ({ productId }) => {
   const { message, modal } = AntApp.useApp();
   const [images, setImages] = useState([]);

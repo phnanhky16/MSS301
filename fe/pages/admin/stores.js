@@ -328,6 +328,60 @@ export default function StoresPage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <style jsx>{`
+        :global(.admin-page-container) {
+          padding: 24px;
+          background: #f5f7fa;
+          min-height: 100vh;
+        }
+        :global(.admin-page-title) {
+          color: #1a1a1a;
+          font-weight: 800;
+          margin-bottom: 24px !important;
+          padding-bottom: 16px;
+          border-bottom: 2px solid #1ca8c8;
+        }
+        :global(.admin-button-primary) {
+          margin-bottom: 12px;
+        }
+        :global(.admin-table-wrapper) {
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+          overflow: hidden;
+        }
+        :global(.admin-table-wrapper .ant-table) {
+          font-size: 14px;
+        }
+        :global(.admin-table-wrapper .ant-table-thead > tr > th) {
+          background: #fafafa;
+          color: #1a1a1a;
+          font-weight: 600;
+          border-bottom: 2px solid #e8e8e8;
+        }
+        :global(.admin-table-wrapper .ant-table-tbody > tr:hover > td) {
+          background: #f9f9f9;
+        }
+        :global(.ant-btn-primary) {
+          background: #1ca8c8 !important;
+          border-color: #1ca8c8 !important;
+        }
+        :global(.ant-btn-primary:hover) {
+          background: #1691b0 !important;
+        }
+        :global(.admin-modal .ant-modal-header) {
+          border-bottom: 1px solid #e8e8e8;
+        }
+        :global(.admin-modal .ant-modal-title) {
+          font-weight: 700;
+        }
+        @media (max-width: 768px) {
+          :global(.admin-page-container) {
+            padding: 16px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
