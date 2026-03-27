@@ -64,7 +64,7 @@ export default function Layout({ children, isLogin = false }) {
             {[
               { href: '/', label: 'Home' },
               { href: '/shop', label: 'Shop' },
-              { href: '/about', label: 'Blogs' },
+              { href: '/blog', label: 'Blogs' },
               { href: '/toy', label: 'Toy' },
               { href: '/contact', label: 'Contact' },
             ].map(item => {
