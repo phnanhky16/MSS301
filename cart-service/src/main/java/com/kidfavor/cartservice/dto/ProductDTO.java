@@ -24,8 +24,8 @@ public class ProductDTO implements Serializable {
     private BigDecimal salePrice;
     private Boolean onSale;
     
-    // @JsonProperty("effectivePrice")
-    // private BigDecimal effectivePrice;
+     @JsonProperty("effectivePrice")
+    private BigDecimal effectivePrice;
     private String status;
     private List<String> imageUrls;
 

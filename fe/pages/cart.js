@@ -36,7 +36,27 @@ export default function CartPage() {
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            render: (price) => formatVnd(price),
+            render: (price, record) => (
+                <div>
+                    {record.onSale && record.originalPrice && (
+                        <div style={{ fontSize: '12px', color: '#999', textDecoration: 'line-through' }}>
+                            {formatVnd(record.originalPrice)}
+                        </div>
+                    )}
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: record.onSale ? '#ff4d4f' : '#000' }}>
+                        {formatVnd(price)}
+                    </div>
+                    {record.onSale && record.originalPrice && (
+                        <div style={{ fontSize: '11px', color: '#ff4d4f' }}>
+                            -
+                            {Math.round(
+                                ((record.originalPrice - price) / record.originalPrice) * 100
+                            )}
+                            %
+                        </div>
+                    )}
+                </div>
+            ),
         },
         {
             title: 'Quantity',

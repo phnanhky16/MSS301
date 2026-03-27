@@ -252,6 +252,25 @@ export default function CheckoutPage() {
             render: qty => <Tag color="blue">x{qty}</Tag>,
         },
         {
+            title: 'Đơn giá',
+            dataIndex: 'price',
+            key: 'price',
+            align: 'right',
+            width: 100,
+            render: (price, record) => (
+                <div style={{ textAlign: 'right' }}>
+                    {record.onSale && record.originalPrice && (
+                        <div style={{ fontSize: '11px', color: '#999', textDecoration: 'line-through' }}>
+                            {formatVnd(record.originalPrice)}
+                        </div>
+                    )}
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: record.onSale ? '#ff4d4f' : '#000' }}>
+                        {formatVnd(price)}
+                    </div>
+                </div>
+            ),
+        },
+        {
             title: 'Thành tiền',
             key: 'subtotal',
             align: 'right',

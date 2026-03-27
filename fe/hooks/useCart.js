@@ -73,11 +73,23 @@ function saveCookieCart(items) {
 function mapServerCartItem(item) {
     const product = item?.product || {};
     const productId = Number(item?.productId || product?.id);
+    
+    // Use effectivePrice from server if available (already includes sale price logic)
+    // otherwise calculate it locally
+    const serverEffectivePrice = product?.effectivePrice ? Number(product.effectivePrice) : null;
+    const isOnSale = product?.onSale && product?.salePrice != null;
+    const effectivePrice = serverEffectivePrice !== null 
+        ? serverEffectivePrice 
+        : (isOnSale ? Number(product?.salePrice || 0) : Number(product?.price || 0));
+    
     return {
         id: productId,
         productId,
         name: product?.name || `Product #${productId}`,
-        price: Number(product?.price || 0),
+        price: effectivePrice,  // Use effective price (sale price if available)
+        salePrice: product?.salePrice ? Number(product.salePrice) : null,
+        onSale: Boolean(product?.onSale),
+        originalPrice: Number(product?.price || 0),  // Keep original price for reference
         imageUrls: Array.isArray(product?.imageUrls) ? product.imageUrls : [],
         img: (Array.isArray(product?.imageUrls) && product.imageUrls.length > 0) ? product.imageUrls[0] : '🧸',
         quantity: Number(item?.quantity || 1),
@@ -191,7 +203,10 @@ export function CartProvider({ children }) {
                                 id: productId,
                                 productId,
                                 name: product?.name || `Product #${productId}`,
-                                price: Number(product?.price || 0),
+                                price: Number(product?.price || 0),  // Use price passed from product (may be effectivePrice)
+                                salePrice: product?.salePrice ? Number(product.salePrice) : null,
+                                onSale: Boolean(product?.onSale),
+                                originalPrice: Number(product?.price || 0),
                                 imageUrls: product?.imageUrls || [],
                                 img: product?.img || '🧸',
                                 quantity: qtyToAdd
@@ -220,7 +235,10 @@ export function CartProvider({ children }) {
                         id: productId,
                         productId,
                         name: product?.name || `Product #${productId}`,
-                        price: Number(product?.price || 0),
+                        price: Number(product?.price || 0),  // Use price passed from product (may be effectivePrice)
+                        salePrice: product?.salePrice ? Number(product.salePrice) : null,
+                        onSale: Boolean(product?.onSale),
+                        originalPrice: Number(product?.price || 0),
                         imageUrls: product?.imageUrls || [],
                         img: product?.img || '🧸',
                         quantity: qtyToAdd
