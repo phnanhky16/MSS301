@@ -99,7 +99,8 @@ export default function UsersPage() {
   ];
 
   return (
-    <div>
+    <>
+      <div>
       <Title level={2}>Users</Title>
       <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Input
@@ -167,9 +168,9 @@ export default function UsersPage() {
           onChange: (page, size) => load(page - 1, size),
         }}
       />
-    </div>
+      </div>
 
-    <style jsx>{`
+      <style jsx>{`
       :global(.admin-page-container) {
         padding: 24px;
         background: #f5f7fa;
@@ -234,6 +235,6 @@ export default function UsersPage() {
         }
       }
     `}</style>
-  </div>
+    </>
   );
 }

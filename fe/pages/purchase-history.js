@@ -68,6 +68,7 @@ function isOrderOwnedByCurrentUser(order, currentUserId) {
 }
 
 export default function PurchaseHistoryPage() {
+  const restrictedRoles = new Set(['ADMIN', 'STAFF_FOR_WAREHOUSE']);
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
@@ -91,6 +92,15 @@ export default function PurchaseHistoryPage() {
     }
 
     const resolvedUserId = currentUser.userId || currentUser.id || currentUser.sub;
+    const role = String(currentUser.role || '').toUpperCase();
+
+    if (restrictedRoles.has(role)) {
+      if (typeof window !== 'undefined') {
+        window.location.replace('/');
+      }
+      return;
+    }
+
     if (!resolvedUserId) {
       if (typeof window !== 'undefined') {
         window.location.replace('/login');

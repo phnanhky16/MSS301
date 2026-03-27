@@ -39,6 +39,8 @@ export default function Layout({ children, isLogin = false }) {
   }, []);
 
   const isHome = router.pathname === '/';
+  const canViewPurchaseHistory =
+    !['ADMIN', 'STAFF_FOR_WAREHOUSE'].includes(String(userInfo?.role || '').toUpperCase());
 
   return (
     <div className={`site-wrapper${isLogin ? ' login-page' : ''}`}>
@@ -155,13 +157,15 @@ export default function Layout({ children, isLogin = false }) {
                       <UserOutlined />
                       <span>My Profile</span>
                     </button>
-                    <button
-                      className="dropdown-item"
-                      onClick={() => { setShowUserMenu(false); router.push('/purchase-history'); }}
-                    >
-                      <HistoryOutlined />
-                      <span>Purchase History</span>
-                    </button>
+                    {canViewPurchaseHistory && (
+                      <button
+                        className="dropdown-item"
+                        onClick={() => { setShowUserMenu(false); router.push('/purchase-history'); }}
+                      >
+                        <HistoryOutlined />
+                        <span>Purchase History</span>
+                      </button>
+                    )}
                     {(userInfo.role === 'ADMIN' || userInfo.role === 'STAFF_FOR_WAREHOUSE') && (
                       <button
                         className="dropdown-item"
